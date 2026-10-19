@@ -11,6 +11,18 @@ importers:
       '@electron/remote':
         specifier: 2.1.2
         version: 2.1.2(electron@22.3.25)
+      '@fontsource/cormorant-garamond':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/courier-prime':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/eb-garamond':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-mono':
+        specifier: 5.3.0
+        version: 5.3.0
       '@react-icons/all-files':
         specifier: 4.1.0
         version: 4.1.0(react@18.2.0)
@@ -677,6 +689,18 @@ packages:
   '@eslint/js@8.57.0':
     resolution: {integrity: sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@fontsource/cormorant-garamond@5.3.0':
+    resolution: {integrity: sha512-weuGsCirGVWBWqpt6YUp0yLThTe4G8YO45noq8wxeJCRvEpq5lFrxNMFSTxcyOyV5k5otzJ8guDzYegdYlcLMQ==}
+
+  '@fontsource/courier-prime@5.3.0':
+    resolution: {integrity: sha512-KIi1k4VG1Wv+/CGpb1AUpLkUuOAQA6zmvthqxOZGN0AV8BEgQgbK7qAtquv14zsBJAY1bb5BHIEbWVFLgENh0w==}
+
+  '@fontsource/eb-garamond@5.3.0':
+    resolution: {integrity: sha512-VplwHpB8FLuzl+4G5LDci1b3Z4SghiuXH8XEgaxjnOb5aue5mEt1njmDKeO6iyLeGa73LffU7PC7hzncLRx0ZA==}
+
+  '@fontsource/ibm-plex-mono@5.3.0':
+    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -5428,6 +5452,14 @@ snapshots:
       - supports-color
 
   '@eslint/js@8.57.0': {}
+
+  '@fontsource/cormorant-garamond@5.3.0': {}
+
+  '@fontsource/courier-prime@5.3.0': {}
+
+  '@fontsource/eb-garamond@5.3.0': {}
+
+  '@fontsource/ibm-plex-mono@5.3.0': {}
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
