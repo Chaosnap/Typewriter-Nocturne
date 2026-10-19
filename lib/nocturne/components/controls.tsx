@@ -19,7 +19,9 @@ export function Slider({label, value, min, max, step, format, onChange}: SliderP
   return (
     <div className="tn-slider">
       <div className="tn-slider-head">
-        <label className="tn-label" htmlFor={id}>{label}</label>
+        <label className="tn-label" htmlFor={id}>
+          {label}
+        </label>
         <span className="tn-value">{format ? format(value) : String(value)}</span>
       </div>
       <input

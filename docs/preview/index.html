@@ -295,12 +295,12 @@ function layout() {
   const H = stage.clientHeight;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const narrow = W < 720;
-  const machineH = clamp(H * 0.4, 190, 380);
+  const machineH = clamp(H * 0.3, 160, 300);
   const sheetW = Math.min(W - (narrow ? 64 : 2 * clamp(W * 0.16, 90, 280)), 1020);
   const sheetX = Math.round((W - sheetW) / 2);
   const machineTop = H - machineH;
-  const platenR = machineH * 0.13;
-  const platenY = machineTop + machineH * 0.25;
+  const platenR = machineH * 0.12;
+  const platenY = machineTop + machineH * 0.24;
   const bailY = machineTop + machineH * 0.08;
   const sheetTop = -12;
   LINE = Math.round(settings.fontSize * settings.lineHeight);
@@ -767,44 +767,50 @@ const machine = (() => {
     return t;
   }
   function scaleTexture(width, height, cols, cell, offset) {
-    const k = 3;
+    // An engraved ivory-on-black scale: hairline ticks, slender serif numerals, a vermilion
+    // half-scale below a fine centre rule, and a double gilt hairline border.
+    const k = 4;
     const c = document.createElement('canvas');
     c.width = Math.round(width * k);
     c.height = Math.round(height * k);
     const x = c.getContext('2d');
     x.scale(k, k);
     const bg = x.createLinearGradient(0, 0, 0, height);
-    bg.addColorStop(0, '#1a140f');
-    bg.addColorStop(0.5, '#0e0b08');
-    bg.addColorStop(1, '#16110c');
+    bg.addColorStop(0, '#120e0b');
+    bg.addColorStop(0.5, '#0a0807');
+    bg.addColorStop(1, '#110d0a');
     x.fillStyle = bg;
     x.fillRect(0, 0, width, height);
-    // Fine centre rule.
-    x.fillStyle = 'rgba(236, 224, 198, 0.55)';
-    x.fillRect(offset - 2, height * 0.5 - 0.4, cols * cell + 4, 0.8);
-    const cream = 'rgba(238, 227, 202, 0.95)';
-    const red = 'rgba(214, 78, 56, 0.95)';
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
+    const gilt = 'rgba(214, 176, 104, 0.9)';
+    x.strokeStyle = gilt;
+    x.lineWidth = 0.6;
+    x.strokeRect(1.2, 1.2, width - 2.4, height - 2.4);
+    x.lineWidth = 0.3;
+    x.strokeRect(3, 3, width - 6, height - 6);
+    const ivory = 'rgba(238, 228, 206, 0.92)';
+    const vermilion = 'rgba(206, 86, 62, 0.92)';
+    const mid = height * 0.56;
+    x.fillStyle = 'rgba(238, 228, 206, 0.5)';
+    x.fillRect(offset - 2, mid, cols * cell + 4, 0.35);
     for (let col = 0; col <= cols; col++) {
       const px = offset + col * cell;
       const major = col % 10 === 0;
       const half = col % 5 === 0;
-      // Upper ticks hang from the top edge; lower ticks rise from the centre rule.
-      x.fillStyle = cream;
-      x.fillRect(px - 0.4, 1.5, 0.8, major ? height * 0.24 : half ? height * 0.17 : height * 0.1);
-      x.fillStyle = half ? red : 'rgba(214, 78, 56, 0.55)';
-      x.fillRect(px - 0.4, height * 0.5, 0.8, half ? height * 0.1 : height * 0.06);
+      x.fillStyle = ivory;
+      const len = major ? height * 0.2 : half ? height * 0.14 : height * 0.08;
+      x.fillRect(px - 0.18, mid - len, 0.36, len);
+      x.fillStyle = vermilion;
+      x.fillRect(px - 0.15, mid, 0.3, half ? height * 0.09 : height * 0.045);
     }
-    x.font = `700 ${Math.round(height * 0.2)}px ${monoFont()}`;
-    for (let col = 10; col <= cols; col += 10) {
-      x.fillStyle = cream;
-      x.fillText(String(col), offset + col * cell, height * 0.36);
-    }
-    for (let col = 5; col <= cols; col += 10) {
-      x.fillStyle = red;
-      x.fillText(String(col), offset + col * cell, height * 0.78);
-    }
+    const serif = getComputedStyle(document.documentElement).getPropertyValue('--font-ui');
+    x.textAlign = 'center';
+    x.textBaseline = 'alphabetic';
+    x.font = `500 ${(height * 0.22).toFixed(1)}px ${serif}`;
+    x.fillStyle = ivory;
+    for (let col = 10; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, mid - height * 0.25);
+    x.font = `italic 500 ${(height * 0.19).toFixed(1)}px ${serif}`;
+    x.fillStyle = vermilion;
+    for (let col = 5; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, height * 0.88);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
@@ -1016,7 +1022,7 @@ const machine = (() => {
 
     // Body: a clear-coated enamel case, tilted so its deck faces the viewer.
     const bodyTilt = 0.42;
-    const deckVisible = machineH * 0.17;
+    const deckVisible = machineH * 0.16;
     const deckDepth = deckVisible / Math.sin(bodyTilt);
     const frontVisible = H - (platenY + platenR * 1.05 + deckVisible) + 40;
     const bodyHeight = frontVisible / Math.cos(bodyTilt);
@@ -1040,9 +1046,7 @@ const machine = (() => {
     shellGeometry.translate(-bodyW / 2, -6, -6);
     const shell = mesh(shellGeometry, mat.enamel);
     body.add(shell);
-    const trimFront = mesh(cylX(1.8, bodyW - 40, 24), mat.brass);
-    trimFront.position.set(0, -shoulder - 6, 1.5);
-    body.add(trimFront);
+
     const trimBack = mesh(cylX(1.6, bodyW - 60, 24), mat.chrome);
     trimBack.position.set(0, 0.6, -deckDepth + 6);
     body.add(trimBack);
@@ -1063,13 +1067,14 @@ const machine = (() => {
     parts.basket = basket;
     // The segment: a broad brushed-steel ring facing the viewer, grooved and slotted, with the type
     // bars crossing it and their slugs resting outside.
-    const segR = clamp(machineH * 0.44, 60, 160);
+    // Like a real basket, the ring is centred on the printing point and hangs below it, so the
+    // shorter inner arc is on top and every type bar points up at the printing point.
+    const segR = clamp(machineH * 0.42, 56, 130);
     const seg = new THREE.Group();
-    // In front of the paper, behind the deck's front edge: its lower half sinks into the body.
-    seg.position.set(0, -(platenY + platenR * 1.05 + deckVisible + segR * 0.4), 6);
+    seg.position.set(0, -(bailY + 8), 6);
     head.add(seg);
-    const arcStart = Math.PI * 0.2;
-    const arcLength = Math.PI * 0.6;
+    const arcStart = Math.PI * 1.22;
+    const arcLength = Math.PI * 0.56;
     textures.brushed = textures.brushed || brushedTexture();
     const bandMaterial = new THREE.MeshStandardMaterial({color: 0xc9ccd1, metalness: 0.92, roughness: 0.36, roughnessMap: textures.brushed, envMapIntensity: 1.9});
     const band = mesh(new THREE.RingGeometry(segR * 0.78, segR, 180, 1, arcStart, arcLength), bandMaterial, {cast: false});
@@ -1119,7 +1124,7 @@ const machine = (() => {
     parts.barLength = barLength;
 
     // Ribbon spools on the deck.
-    const spoolR = clamp(sheetX * 0.62, 40, 112);
+    const spoolR = clamp(Math.min(sheetX * 0.5, machineH * 0.3), 34, 84);
     parts.spools = [];
     for (const side of [-1, 1]) {
       const x = side < 0 ? Math.max(sheetX + spoolR * 0.15, spoolR + 8) : Math.min(sheetX + sheetW - spoolR * 0.15, W - spoolR - 8);
@@ -1250,8 +1255,8 @@ const machine = (() => {
     // Front panel layout, in screen pixels below the front edge (local y = -screen / cos(tilt)).
     const frontScreen = H - (platenY + platenR * 1.05 + deckVisible);
     const toLocal = (screen) => -screen / Math.cos(bodyTilt);
-    const scaleTop = Math.max(10, frontScreen * 0.1);
-    const scaleH = clamp(frontScreen * 0.42, 30, 56);
+    const scaleTop = shoulder * Math.cos(bodyTilt) + clamp(frontScreen * 0.08, 6, 14);
+    const scaleH = clamp(frontScreen * 0.3, 24, 40);
     const scaleW = gridRight - gridLeft + 36;
     const scaleX = (gridLeft + gridRight) / 2 - platenCx;
     const scaleY = toLocal(scaleTop + scaleH / 2);
@@ -1261,17 +1266,20 @@ const machine = (() => {
     scale.material.emissiveIntensity = 0.35;
     scale.position.set(scaleX, scaleY, 1.2);
     body.add(scale);
-    const frame = mesh(new RoundedBoxGeometry(scaleW + 10, scaleLocalH + 10, 2, 2, 2.5), mat.chrome, {cast: false});
-    frame.position.set(scaleX, scaleY, -0.6);
-    body.add(frame);
-    const pointer = mesh(new THREE.ConeGeometry(5.5, 13, 3).rotateZ(Math.PI), mat.gold);
-    pointer.position.set(0, scaleY + scaleLocalH / 2 + 4, 3);
+    // A slim gilded needle riding on the scale's top edge.
+    const needleShape = new THREE.Shape();
+    needleShape.moveTo(-2.6, 0);
+    needleShape.lineTo(2.6, 0);
+    needleShape.lineTo(0, -scaleLocalH * 0.42);
+    needleShape.closePath();
+    const pointer = mesh(new THREE.ExtrudeGeometry(needleShape, {depth: 0.8, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 2}), mat.gold, {cast: false});
+    pointer.position.set(0, scaleY + scaleLocalH / 2 + 3, 1.6);
     body.add(pointer);
     parts.pointer = pointer;
     // Gilded pinstripes above and below the scale.
-    for (const offset of [-scaleLocalH / 2 - 10, scaleLocalH / 2 + 12]) {
-      for (const k of [0, 3.2]) {
-        const stripe = mesh(new THREE.BoxGeometry(bodyW - 120 - k * 10, 0.9, 0.6), mat.gold, {cast: false});
+    for (const offset of [-scaleLocalH / 2 - 7, scaleLocalH / 2 + 8]) {
+      for (const k of [0, 2.6]) {
+        const stripe = mesh(new THREE.BoxGeometry(bodyW - 120 - k * 10, k ? 0.45 : 0.8, 0.5), mat.gold, {cast: false});
         stripe.position.set(0, scaleY + offset + (offset < 0 ? -k : k), 0.6);
         body.add(stripe);
       }
