@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deeply inspired by https://github.com/Microsoft/vscode/blob/1.17.0/resources/win/bin/code.sh
 
-NAME="Hyper"
+NAME="Typewriter Nocturne"
 HYPER_PATH="$(dirname "$(dirname "$(dirname "$(realpath "$0")")")")"
 ELECTRON="$HYPER_PATH/$NAME.exe"
 if grep -q Microsoft /proc/version; then
-	echo "Warning! Due to WSL limitations, you can't use CLI commands here. Please use Hyper CLI on cmd, PowerShell or GitBash/CygWin."
+	echo "Warning! Due to WSL limitations, you can't use CLI commands here. Please use the nocturne CLI on cmd, PowerShell or GitBash/CygWin."
 	echo "Please see: https://github.com/Microsoft/WSL/issues/1494"
 	echo ""
 	# If running under WSL don't pass cli.js to Electron, as environment vars

@@ -39,7 +39,7 @@ exports.default = async (context) => {
   const archToCopy = Arch[context.arch];
   const pathToElectron =
     process.platform === 'darwin'
-      ? `${context.appOutDir}/Hyper.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources`
+      ? `${context.appOutDir}/${context.packager.appInfo.productFilename}.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources`
       : context.appOutDir;
   copySnapshot(pathToElectron, archToCopy);
 };

@@ -12,7 +12,7 @@ const darwinMenu = (
     label: `${app.name}`,
     submenu: [
       {
-        label: 'About Hyper',
+        label: `About ${app.name}`,
         click() {
           showAbout();
         }

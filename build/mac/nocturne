@@ -22,7 +22,7 @@ if [ -z "$APP_PATH" ]; then
 fi
 
 CONTENTS="$APP_PATH/Contents"
-ELECTRON="$CONTENTS/MacOS/Hyper"
+ELECTRON="$CONTENTS/MacOS/Typewriter Nocturne"
 CLI="$CONTENTS/Resources/bin/cli.js"
 ELECTRON_RUN_AS_NODE=1 "$ELECTRON" "$CLI" "$@"
 exit $?

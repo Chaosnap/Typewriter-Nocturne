@@ -8,7 +8,7 @@ exports.default = async function notarizing(context) {
 
   const appName = context.packager.appInfo.productFilename;
   return await notarize({
-    appBundleId: "co.zeit.hyper",
+    appBundleId: context.packager.appInfo.id,
     appPath: `${appOutDir}/${appName}.app`,
     appleId: process.env.APPLE_ID,
     appleIdPassword: process.env.APPLE_PASSWORD

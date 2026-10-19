@@ -12,21 +12,26 @@ const defaultCfgFile = 'config-default.json';
 const schemaFile = 'schema.json';
 const homeDirectory = homedir();
 
+// [nocturne] Use our own config directory so we never read or overwrite the
+// configuration of a regular Hyper installation on the same machine.
+const cfgDirName = 'TypewriterNocturne';
+
 // If the user defines XDG_CONFIG_HOME they definitely want their config there,
 // otherwise use the home directory in linux/mac and userdata in windows
 let cfgDir = process.env.XDG_CONFIG_HOME
-  ? join(process.env.XDG_CONFIG_HOME, 'Hyper')
+  ? join(process.env.XDG_CONFIG_HOME, cfgDirName)
   : process.platform === 'win32'
     ? app.getPath('userData')
-    : join(homeDirectory, '.config', 'Hyper');
+    : join(homeDirectory, '.config', cfgDirName);
 
 const legacyCfgPath = join(
   process.env.XDG_CONFIG_HOME !== undefined
-    ? join(process.env.XDG_CONFIG_HOME, 'hyper')
+    ? join(process.env.XDG_CONFIG_HOME, cfgDirName)
     : process.platform == 'win32'
       ? app.getPath('userData')
       : homedir(),
-  '.hyper.js'
+  // [nocturne] Hyper 3's `.hyper.js` belongs to Hyper; we never migrate it.
+  '.typewriter-nocturne.js'
 );
 
 let cfgPath = join(cfgDir, cfgFile);
@@ -55,8 +60,8 @@ const plugs = {
   cache: resolve(plugins, 'cache')
 };
 const yarn = resolve(__dirname, '../../bin/yarn-standalone.js');
-const cliScriptPath = resolve(__dirname, '../../bin/hyper');
-const cliLinkPath = '/usr/local/bin/hyper';
+const cliScriptPath = resolve(__dirname, '../../bin/nocturne');
+const cliLinkPath = '/usr/local/bin/nocturne';
 
 const icon = resolve(__dirname, '../static/icon96x96.png');
 

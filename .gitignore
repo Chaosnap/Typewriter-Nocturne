@@ -21,3 +21,8 @@ plugins
 .vscode/*
 !.vscode/launch.json
 .idea
+
+# [nocturne] Rendered from assets/nocturne/*.svg in CI (bin/ci/render-assets.sh)
+build/icon.png
+app/static/*.png
+ci-logs

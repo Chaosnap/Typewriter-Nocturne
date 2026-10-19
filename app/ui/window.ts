@@ -40,7 +40,7 @@ export function newWindow(
     minHeight: 190,
     backgroundColor: toElectronBackgroundColor(cfg.backgroundColor || '#000'),
     titleBarStyle: 'hiddenInset',
-    title: 'Hyper.app',
+    title: 'Typewriter Nocturne',
     // we want to go frameless on Windows and Linux
     frame: process.platform === 'darwin',
     transparent: process.platform === 'darwin',
@@ -110,12 +110,14 @@ export function newWindow(
     // the callback passed as parameter, and deleted right after.
     (app.windowCallback || fn)(window);
     app.windowCallback = undefined;
-    fetchNotifications(window);
-    // auto updates
-    if (!isDev) {
+    // [nocturne] Hyper's remote news feed and update server belong to upstream Hyper.
+    // This fork does not contact them; releases are published on GitHub instead.
+    // The calls stay behind explicit opt-in flags so upstream merges remain small.
+    if (process.env.NOCTURNE_ENABLE_UPSTREAM_NEWS === '1') {
+      fetchNotifications(window);
+    }
+    if (!isDev && process.env.NOCTURNE_ENABLE_UPSTREAM_UPDATER === '1') {
       updater(window);
-    } else {
-      console.log('ignoring auto updates during dev');
     }
   });
 

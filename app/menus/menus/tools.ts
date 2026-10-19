@@ -15,7 +15,7 @@ const toolsMenu = (
         }
       },
       {
-        label: 'Install Hyper CLI command in PATH',
+        label: 'Install `nocturne` command in PATH',
         click() {
           execCommand('cli:install');
         }
@@ -26,13 +26,13 @@ const toolsMenu = (
       ...(process.platform === 'win32'
         ? <MenuItemConstructorOptions[]>[
             {
-              label: 'Add Hyper to system context menu',
+              label: 'Add Typewriter Nocturne to system context menu',
               click() {
                 execCommand('systemContextMenu:add');
               }
             },
             {
-              label: 'Remove Hyper from system context menu',
+              label: 'Remove Typewriter Nocturne from system context menu',
               click() {
                 execCommand('systemContextMenu:remove');
               }

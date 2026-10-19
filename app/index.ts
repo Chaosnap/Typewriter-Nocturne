@@ -1,13 +1,13 @@
 // eslint-disable-next-line import/order
 import {cfgPath} from './config/paths';
 
-// Print diagnostic information for a few arguments instead of running Hyper.
+// Print diagnostic information for a few arguments instead of running the app.
 if (['--help', '-v', '--version'].includes(process.argv[1])) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const {version} = require('./package');
-  console.log(`Hyper version ${version}`);
-  console.log('Hyper does not accept any command line arguments. Please modify the config file instead.');
-  console.log(`Hyper configuration file located at: ${cfgPath}`);
+  console.log(`Typewriter Nocturne version ${version} (based on Hyper)`);
+  console.log('Typewriter Nocturne does not accept any command line arguments. Please modify the config file instead.');
+  console.log(`Configuration file located at: ${cfgPath}`);
   process.exit();
 }
 
@@ -199,10 +199,10 @@ app.on('ready', () =>
       if (!isDev) {
         // check if should be set/removed as default ssh protocol client
         if (config.getConfig().defaultSSHApp && !app.isDefaultProtocolClient('ssh')) {
-          console.log('Setting Hyper as default client for ssh:// protocol');
+          console.log('Setting Typewriter Nocturne as default client for ssh:// protocol');
           app.setAsDefaultProtocolClient('ssh');
         } else if (!config.getConfig().defaultSSHApp && app.isDefaultProtocolClient('ssh')) {
-          console.log('Removing Hyper from default client for ssh:// protocol');
+          console.log('Removing Typewriter Nocturne from default client for ssh:// protocol');
           app.removeAsDefaultProtocolClient('ssh');
         }
         void installCLI(false);

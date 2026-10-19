@@ -56,7 +56,7 @@ export const createMenu = (
     void dialog.showMessageBox({
       title: `About ${appName}`,
       message: `${appName} ${appVersion} (${updateChannel})`,
-      detail: `Renderers: ${renderers}\nPlugins: ${pluginList}\n\nCreated by Guillermo Rauch\nCopyright © 2022 Vercel, Inc.`,
+      detail: `Renderers: ${renderers}\nPlugins: ${pluginList}\n\nA literary terminal based on Hyper.\nHyper created by Guillermo Rauch, Copyright © 2022 Vercel, Inc. (MIT)`,
       buttons: [],
       icon: icon as any
     });
