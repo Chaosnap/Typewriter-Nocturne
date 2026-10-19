@@ -30,6 +30,13 @@ if [ "$status" -ne 0 ]; then
     perl -pe 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
   safe_title="$(printf '%s' "$name" | tr -d ':,')"
   echo "::error title=${safe_title} failed (exit ${status})::${tail_text}"
+  # A second annotation with only the lines that look like errors, from anywhere in the log.
+  error_text="$(perl -pe 's/\e\[[0-9;?]*[A-Za-z]//g; s/\r//g' "$log" |
+    grep -iE 'error|err!|fail|cannot|could not|not found|missing|denied|exception' | grep -v 'Progress:' |
+    head -n 80 | perl -pe 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+  if [ -n "$error_text" ]; then
+    echo "::error title=${safe_title} error lines::${error_text}"
+  fi
 fi
 
 exit "$status"

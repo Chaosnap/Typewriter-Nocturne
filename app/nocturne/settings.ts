@@ -67,7 +67,7 @@ export function fontStack(typography: Pick<TypographySettings, 'font' | 'customF
       : `"IBM Plex Mono", ${MONO_FALLBACK}`;
   }
   const entry = FONTS.find((font) => font.id === typography.font);
-  if (!entry || !entry.family) {
+  if (!entry?.family) {
     return MONO_FALLBACK;
   }
   return `${quoteFamily(entry.family)}, ${MONO_FALLBACK}`;

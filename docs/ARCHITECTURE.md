@@ -157,7 +157,7 @@ Package matrix (native runner per OS, native modules compiled on that OS):
 | Runner | Targets | Notes |
 | --- | --- | --- |
 | `macos-15` (Apple silicon) | DMG arm64 + DMG x64 | x64 `node-pty` cross-compiled with clang; ad-hoc signed |
-| `windows-latest` | NSIS installer x64 | Windows arm64 planned on `windows-11-arm` |
+| `windows-2022` | NSIS installer x64 | Visual Studio 2022 for node-gyp 9; Windows arm64 planned on `windows-11-arm` |
 | `ubuntu-22.04` | AppImage + DEB x64 | older glibc baseline for wider distro compatibility; Linux arm64 planned on `ubuntu-24.04-arm` |
 
 Every package job then launches the **packaged** app with Playwright (Linux under Xvfb), drives a real shell
