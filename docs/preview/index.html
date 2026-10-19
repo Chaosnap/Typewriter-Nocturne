@@ -1,0 +1,1655 @@
+<title>Typewriter Nocturne Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cormorant+Garamond:ital,wght@1,500&display=swap">
+<style>
+  /* Layout: a dark study. The terminal is a sheet of parchment standing in a typewriter; the
+     machine is a lit 3D model whose canvas sits exactly over the sheet, so text stays text.
+     Deliberately one dark world; the paper changes with the theme. */
+  :root {
+    color-scheme: dark;
+    --room: #241a14;
+    --room-edge: #070504;
+    --paper: #efdfbd;
+    --ink: #2a2019;
+    --accent: #b08a4a;
+    --panel: rgba(22, 16, 12, 0.9);
+    --panel-ink: #f1e6cf;
+    --panel-muted: rgba(241, 230, 207, 0.62);
+    --panel-line: rgba(176, 138, 74, 0.35);
+    --glow: rgba(255, 215, 154, 0.12);
+    --font-mono: 'Courier Prime', 'Courier New', 'Nimbus Mono PS', monospace;
+    --font-ui: 'EB Garamond', 'Iowan Old Style', Palatino, Georgia, serif;
+    --font-display: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+  }
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--room-edge); color: var(--panel-ink); font-family: var(--font-ui); overflow: hidden; }
+  #app {
+    position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr;
+    background:
+      radial-gradient(ellipse 60% 55% at var(--lx, 50%) var(--ly, 30%), var(--glow), transparent 72%),
+      radial-gradient(ellipse 120% 95% at 50% 35%, var(--room), var(--room-edge));
+  }
+  header.bar {
+    display: flex; align-items: center; gap: 12px; min-width: 0;
+    padding-block: 10px 6px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .brand { font-variant: small-caps; letter-spacing: 0.22em; font-size: 15px; color: var(--accent); white-space: nowrap; }
+  .where { font-style: italic; color: var(--panel-muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tools { margin-left: auto; display: flex; gap: 4px; }
+  .tool {
+    width: 32px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--accent); cursor: pointer; opacity: 0.8;
+  }
+  .tool:hover, .tool:focus-visible { opacity: 1; border-color: var(--panel-line); outline: none; }
+  .tool[aria-pressed="true"] { opacity: 1; background: var(--glow); border-color: var(--panel-line); }
+  .tool svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  #stage { position: relative; min-height: 0; overflow: hidden; cursor: text; }
+  #sheet { position: absolute; z-index: 1; background: var(--paper); overflow: hidden; }
+  #sheet canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #paper { mix-blend-mode: multiply; }
+  #glow { mix-blend-mode: screen; }
+  #machine { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; }
+  #vignette { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse 85% 80% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.42) 100%); }
+  #hint {
+    position: absolute; z-index: 3; left: 50%; top: 14px; transform: translateX(-50%);
+    padding: 4px 12px; border-radius: 12px; background: rgba(0, 0, 0, 0.5);
+    font-size: 13px; font-style: italic; color: var(--panel-muted); white-space: nowrap; pointer-events: none;
+    transition: opacity 400ms ease;
+  }
+  #loading { position: absolute; z-index: 3; inset: 0; display: grid; place-items: center; color: var(--panel-muted); font-style: italic; pointer-events: none; }
+  #studio {
+    position: absolute; z-index: 10; top: 52px; right: max(12px, env(safe-area-inset-right, 0px));
+    width: 300px; max-height: calc(100% - 64px); overflow-y: auto; padding: 16px 18px 18px;
+    border: 1px solid var(--panel-line); border-radius: 12px; background: var(--panel); backdrop-filter: blur(12px);
+    box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  }
+  #studio[hidden] { display: none; }
+  #studio h2 { margin: 0 0 2px; font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 24px; text-wrap: balance; }
+  .eyebrow { font-variant: small-caps; letter-spacing: 0.2em; font-size: 12px; color: var(--panel-muted); }
+  .group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--panel-line); display: grid; gap: 10px; }
+  .group h3 { margin: 0; font-weight: 500; font-style: italic; font-size: 17px; }
+  .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .themes button {
+    padding: 6px 4px 7px; border: 1px solid var(--panel-line); border-radius: 6px; background: transparent;
+    color: var(--panel-ink); font-family: var(--font-ui); font-size: 13px; cursor: pointer; display: grid; gap: 5px;
+  }
+  .themes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .themes button:focus-visible { outline: 1px dotted var(--accent); outline-offset: 2px; }
+  .swatch { height: 22px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3); }
+  .slider { display: grid; gap: 3px; }
+  .slider .head, .switch { display: flex; justify-content: space-between; align-items: center; }
+  .label, .value {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--panel-muted); font-variant-numeric: tabular-nums;
+  }
+  .value { color: var(--panel-ink); letter-spacing: 0.04em; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 18px; margin: 0; cursor: pointer;
+    background:
+      linear-gradient(var(--panel-muted), var(--panel-muted)) 0 50% / 100% 1px no-repeat,
+      repeating-linear-gradient(90deg, var(--panel-muted) 0 1px, transparent 1px 10%) 0 50% / 100% 9px no-repeat;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 9px; height: 18px; border-radius: 2px; border: 1px solid #5e431c;
+    background: linear-gradient(90deg, #f3dca4, #b8904c 55%, #5e431c); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  input[type="range"]::-moz-range-thumb { width: 9px; height: 18px; border-radius: 2px; border: 1px solid #5e431c; background: #b8904c; }
+  input[type="range"]:focus-visible { outline: 1px dotted var(--accent); outline-offset: 3px; }
+  .toggle { position: relative; width: 38px; height: 20px; border-radius: 10px; flex: none; border: 1px solid var(--panel-line); background: transparent; cursor: pointer; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--panel-muted); transition: transform 140ms ease; }
+  .toggle[aria-checked="true"] { border-color: var(--accent); background: var(--glow); }
+  .toggle[aria-checked="true"]::after { transform: translateX(18px); background: radial-gradient(circle at 35% 35%, #f3dca4, #b8904c 60%, #5e431c); }
+  .toggle:focus-visible { outline: 1px dotted var(--accent); outline-offset: 2px; }
+  .note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--panel-muted); }
+  @media (max-width: 720px) {
+    #studio { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; top: auto; bottom: 12px; max-height: 46%; }
+    .where { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #hint, .toggle::after { transition: none; } }
+</style>
+
+<div id="app">
+  <header class="bar">
+    <span class="brand">Typewriter Nocturne</span>
+    <span class="where" id="where">Paper &amp; Ink · ~/manuscripts</span>
+    <div class="tools">
+      <button class="tool" id="t-lamp" type="button" aria-pressed="true" title="Lamp on / off" aria-label="Lamp on / off">
+        <svg viewBox="0 0 20 20"><path d="M6 9h8l-2-6H8z"/><path d="M10 9v6M6.5 17h7"/><path d="M8 12l-2 2.5M12 12l2 2.5" opacity="0.6"/></svg>
+      </button>
+      <button class="tool" id="t-sound" type="button" aria-pressed="true" title="Typewriter sound on / off" aria-label="Typewriter sound on / off">
+        <svg viewBox="0 0 20 20"><path d="M5 14V9.5a5 5 0 0 1 10 0V14l1.5 1.5h-13z"/><path d="M8.5 17.5h3"/></svg>
+      </button>
+      <button class="tool" id="t-studio" type="button" aria-pressed="true" title="Studio" aria-label="Studio">
+        <svg viewBox="0 0 20 20"><path d="M4 5h12M4 10h12M4 15h12" opacity="0.55"/><path d="M7 3.5v3M13 8.5v3M9 13.5v3"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="stage" aria-label="Typewriter preview. Click and type.">
+    <div id="sheet"><canvas id="text"></canvas><canvas id="paper"></canvas><canvas id="glow"></canvas></div>
+    <canvas id="machine"></canvas>
+    <div id="vignette"></div>
+    <div id="hint">Click the paper and type. Return feeds the paper.</div>
+    <div id="loading">Assembling the typewriter…</div>
+  </main>
+  <aside id="studio" aria-label="Nocturne Studio">
+    <div class="eyebrow">Nocturne Studio</div>
+    <h2>Light, Paper &amp; Ink</h2>
+    <div class="group"><h3>Theme</h3><div class="themes" id="themes"></div></div>
+    <div class="group" id="type-group"><h3>Type</h3></div>
+    <div class="group" id="lamp-group">
+      <div class="switch"><span class="label">Lamp</span><button class="toggle" id="lamp-toggle" role="switch" aria-checked="true" aria-label="Lamp"></button></div>
+    </div>
+    <div class="group" id="paper-group"><h3>Paper &amp; Ink</h3></div>
+    <div class="group" id="sound-group">
+      <div class="switch"><span class="label">Typewriter sound</span><button class="toggle" id="sound-toggle" role="switch" aria-checked="true" aria-label="Typewriter sound"></button></div>
+    </div>
+    <div class="group"><p class="note">A preview of the visual layer of Typewriter Nocturne. The sheet shows a sample transcript; in the app it is a real xterm.js terminal running your shell, and every effect sits on top of it without touching input or output.</p></div>
+  </aside>
+</div>
+
+<script type="importmap">
+{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ------------------------------------------------------------------------------------------------
+// Themes (mirrors app/nocturne/themes.ts)
+const THEMES = {
+  'paper-and-ink': {
+    name: 'Paper & Ink', appearance: 'light', paper: '#efdfbd', ink: '#2a2019', muted: '#6e6153', accent: '#b08a4a',
+    room: '#241a14', roomEdge: '#070504', light: '#ffd29a', source: 'carriage', position: [0.5, 1],
+    colors: {accent: '#7a5a14', green: '#3f5d26', red: '#8f3424', blue: '#2a4a6e', cyan: '#2a5f5e', magenta: '#6e3762', yellow: '#7d5e12'},
+    trim: '#c9a35c', shade: 0.42, env: 0.55, exposure: 1.0
+  },
+  'midnight-study': {
+    name: 'Midnight Study', appearance: 'dark', paper: '#1d1814', ink: '#eadfc8', muted: '#a39580', accent: '#c9a45c',
+    room: '#140f0b', roomEdge: '#030202', light: '#ffb35c', source: 'desk-lamp', position: [0.84, 0.04],
+    colors: {accent: '#e3b25c', green: '#a3b46a', red: '#d2765c', blue: '#7f9fc2', cyan: '#7fb3a8', magenta: '#c48aa8', yellow: '#e3b25c'},
+    trim: '#c9a45c', shade: 0.5, env: 0.32, exposure: 0.9
+  },
+  'moonlit-poetry': {
+    name: 'Moonlit Poetry', appearance: 'dark', paper: '#181927', ink: '#dcdcec', muted: '#9496b4', accent: '#b7bdd6',
+    room: '#0e0e1a', roomEdge: '#030307', light: '#c9d4ff', source: 'moonlight', position: [0.14, -0.1],
+    colors: {accent: '#e2cf9a', green: '#9cc3a4', red: '#d88a9a', blue: '#8ea8e0', cyan: '#8cc8d6', magenta: '#b79ce0', yellow: '#e2cf9a'},
+    trim: '#b7bdd6', shade: 0.48, env: 0.3, exposure: 0.85
+  }
+};
+
+// Paper is chosen separately from the theme (mirrors the planned NocturneSettings.paper).
+const LIGHT_INK = {ink: '#2a2019', muted: '#6b5f52', colors: {accent: '#7a5a14', green: '#3f5d26', red: '#8f3424', blue: '#2a4a6e', cyan: '#2a5f5e', magenta: '#6e3762', yellow: '#7d5e12'}};
+const PAPERS = {
+  cotton: {name: 'Cotton', paper: '#eee6d5', appearance: 'light', ...LIGHT_INK, age: 0, crinkle: 0.55, mottle: 0.12, laid: 0, linen: 0},
+  laid: {name: 'Laid', paper: '#f1e9d6', appearance: 'light', ...LIGHT_INK, age: 0, crinkle: 0.22, mottle: 0.18, laid: 1, linen: 0},
+  linen: {name: 'Linen', paper: '#ebe5d8', appearance: 'light', ...LIGHT_INK, age: 0, crinkle: 0.2, mottle: 0.08, laid: 0, linen: 1},
+  onionskin: {name: 'Onionskin', paper: '#f2f1ea', appearance: 'light', ...LIGHT_INK, age: 0, crinkle: 0.08, mottle: 0.04, laid: 0, linen: 0},
+  parchment: {name: 'Parchment', paper: '#efdfbd', appearance: 'light', ...LIGHT_INK, age: 0.75, crinkle: 0.25, mottle: 1, laid: 0, linen: 0},
+  night: {name: 'Night', paper: '#1d1a20', appearance: 'dark', ink: '#e6e1ea', muted: '#9a94a6',
+    colors: {accent: '#e3c48a', green: '#a3c48e', red: '#e0907e', blue: '#93ace0', cyan: '#8cc8c4', magenta: '#c7a0dc', yellow: '#e6cf8a'},
+    age: 0, crinkle: 0.3, mottle: 0.1, laid: 0, linen: 0}
+};
+
+const settings = {
+  theme: 'paper-and-ink', paper: 'cotton', lamp: true,
+  intensity: 1.0, spread: 74, reach: 1.0, softness: 0.65, particles: 0.45, grain: 0.1,
+  fontSize: 15, lineHeight: 1.45,
+  texture: 1, impression: 0.8,
+  sound: true, volume: 0.45
+};
+const currentPaper = () => PAPERS[settings.paper];
+
+// ------------------------------------------------------------------------------------------------
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const mix = (a, b, t) => a + (b - a) * t;
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255);
+const rgb = (c, a = 1) => `rgba(${Math.round(clamp(c[0], 0, 1) * 255)}, ${Math.round(clamp(c[1], 0, 1) * 255)}, ${Math.round(clamp(c[2], 0, 1) * 255)}, ${a})`;
+const norm = (v) => { const l = Math.hypot(...v) || 1; return v.map((x) => x / l); };
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const hash = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const monoFont = () => getComputedStyle(document.documentElement).getPropertyValue('--font-mono');
+
+// ------------------------------------------------------------------------------------------------
+// Carriage physics (mirrors app/nocturne/carriage-physics.ts)
+const ESCAPEMENT = {acceleration: 60000, maxSpeed: 3200, restitution: 0.22};
+const RETURN = {acceleration: 14000, maxSpeed: 2600, restitution: 0.3};
+function stepImpact(body, target, p, dt) {
+  let {position, velocity} = body;
+  let remaining = clamp(dt, 0, 0.1);
+  while (remaining > 0) {
+    const h = Math.min(1 / 480, remaining);
+    remaining -= h;
+    const offset = target - position;
+    if (Math.abs(offset) < 0.25 && Math.abs(velocity) < 25) return {position: target, velocity: 0};
+    const dir = Math.sign(offset) || -Math.sign(velocity);
+    velocity = clamp(velocity + dir * p.acceleration * h, -p.maxSpeed, p.maxSpeed);
+    const next = position + velocity * h;
+    if ((next - target) * (position - target) < 0 || next === target) {
+      position = target - Math.sign(velocity) * 1e-6;
+      velocity = -velocity * p.restitution;
+    } else position = next;
+  }
+  return {position, velocity};
+}
+function stepSpring(body, target, frequency, damping, dt) {
+  const w = 2 * Math.PI * frequency;
+  let {position, velocity} = body;
+  let remaining = clamp(dt, 0, 0.1);
+  while (remaining > 0) {
+    const h = Math.min(1 / 480, remaining);
+    remaining -= h;
+    velocity += (-w * w * (position - target) - 2 * damping * w * velocity) * h;
+    position += velocity * h;
+  }
+  if (Math.abs(position - target) < 0.002 && Math.abs(velocity) < 0.02) return {position: target, velocity: 0};
+  return {position, velocity};
+}
+
+// ------------------------------------------------------------------------------------------------
+// Sample transcript on the sheet (in the app this is xterm.js)
+const TRANSCRIPT = [
+  [['~/manuscripts', 'accent'], [' on ', 'muted'], ['main', 'magenta']],
+  [['$ ', 'muted'], ['git status --short', 'ink']],
+  [[' M ', 'green'], ['chapter-01.md', 'ink']],
+  [['?? ', 'red'], ['sonnet-18.txt', 'ink']],
+  [['$ ', 'muted'], ['python3 -c "print(\'Shall I compare thee\')"', 'ink']],
+  [['Shall I compare thee', 'ink']],
+  [['$ ', 'muted'], ['ls', 'ink']],
+  [['drafts/', 'blue'], ['   ', 'ink'], ['notes.md', 'cyan'], ['   ', 'ink'], ['纸与墨.txt', 'yellow']],
+  [['$ ', 'muted'], ['npm test', 'ink']],
+  [['  ✓ ', 'green'], ['42 passing', 'ink'], [' (318ms)', 'muted']],
+  [['$ ', 'muted'], ['echo "Every line of code, a line of verse"', 'ink']],
+  [['Every line of code, a line of verse', 'ink']],
+  [['$ ', 'muted'], ['git commit -m "Sonnet XVIII', 'ink']]
+];
+const lines = TRANSCRIPT.map((segments) => segments.flatMap(([text, color]) => [...text].map((ch) => ({ch, color, at: -1e9}))));
+const wide = (ch) => ch.codePointAt(0) > 0x2e80;
+const widthOf = (line) => line.reduce((n, c) => n + (wide(c.ch) ? 2 : 1), 0);
+let cursor = {row: lines.length - 1, col: widthOf(lines[lines.length - 1])};
+
+// ------------------------------------------------------------------------------------------------
+// Layout
+const stage = document.getElementById('stage');
+const sheetEl = document.getElementById('sheet');
+const textCanvas = document.getElementById('text');
+const paperCanvas = document.getElementById('paper');
+const glowCanvas = document.getElementById('glow');
+const machineCanvas = document.getElementById('machine');
+let L = {};
+let cellW = 9;
+let LINE = 22;
+let dirty = true;
+
+const carriage = {x: {position: 0, velocity: 0}, mode: 'step', strike: {position: 0, velocity: 0, bar: 0}, vibrator: {position: 0, velocity: 0}, spool: 0};
+const feed = {position: 0, velocity: 0};
+const platenRoll = {angle: 0, target: 0, velocity: 0};
+
+function layout() {
+  const W = stage.clientWidth;
+  const H = stage.clientHeight;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const narrow = W < 720;
+  const machineH = clamp(H * 0.4, 190, 380);
+  const sheetW = Math.min(W - (narrow ? 64 : 2 * clamp(W * 0.16, 90, 280)), 1020);
+  const sheetX = Math.round((W - sheetW) / 2);
+  const machineTop = H - machineH;
+  const platenR = machineH * 0.13;
+  const platenY = machineTop + machineH * 0.25;
+  const bailY = machineTop + machineH * 0.08;
+  const sheetTop = -12;
+  LINE = Math.round(settings.fontSize * settings.lineHeight);
+  const ctx = textCanvas.getContext('2d');
+  ctx.font = `${settings.fontSize}px ${monoFont()}`;
+  cellW = ctx.measureText('M').width;
+  const textBottom = bailY - 16;
+  const padX = Math.max(28, Math.round(sheetW * 0.07));
+  const cols = Math.max(20, Math.floor((sheetW - 2 * padX) / cellW));
+  const gridX = Math.round((sheetW - cols * cellW) / 2);
+  const rows = Math.max(4, Math.floor((textBottom - 40) / LINE));
+  L = {W, H, dpr, machineH, machineTop, sheetW, sheetX, sheetTop, sheetH: platenY - sheetTop, platenY, platenR, bailY,
+    rows, cols, gridX, gridY: textBottom - rows * LINE - sheetTop};
+  Object.assign(sheetEl.style, {left: `${sheetX}px`, top: `${sheetTop}px`, width: `${sheetW}px`, height: `${L.sheetH}px`});
+  for (const canvas of [textCanvas, paperCanvas, glowCanvas]) {
+    canvas.width = Math.round(sheetW * dpr);
+    canvas.height = Math.round(L.sheetH * dpr);
+    canvas.style.width = `${sheetW}px`;
+    canvas.style.height = `${L.sheetH}px`;
+  }
+  carriage.x = {position: cursorX(), velocity: 0};
+  machine.build();
+  dirty = true;
+}
+const visibleStart = () => lines.length - L.rows;
+const cursorX = () => L.sheetX + L.gridX + (cursor.col + 0.5) * cellW;
+
+// ------------------------------------------------------------------------------------------------
+// Text: glyphs drawn as a terminal draws them, plus the typebar impression of freshly struck keys
+function drawText(now) {
+  const t = THEMES[settings.theme];
+  const ctx = textCanvas.getContext('2d');
+  ctx.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+  ctx.clearRect(0, 0, L.sheetW, L.sheetH);
+  ctx.font = `${settings.fontSize}px ${monoFont()}`;
+  const pp = currentPaper();
+  const palette = {ink: pp.ink, muted: pp.muted, ...pp.colors};
+  const start = visibleStart();
+  const shift = feed.position * LINE;
+  let animating = false;
+  for (let r = Math.max(0, start); r < lines.length; r++) {
+    const y = L.gridY + (r - start) * LINE + LINE * 0.72 + shift;
+    let col = 0;
+    for (const cell of lines[r]) {
+      if (cell.ch !== ' ') {
+        const x = L.gridX + col * cellW;
+        const color = palette[cell.color] || pp.ink;
+        const age = now - cell.at;
+        if (age < 0) {
+          // The type bar is still travelling: nothing on the paper yet.
+          animating = true;
+        } else if (age < 420 && settings.impression > 0) {
+          // The slug has just hit: heavier, slightly spread ink that settles into normal print.
+          animating = true;
+          const k = 1 - smooth(0, 420, age);
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 2.4 * k * settings.impression;
+          const s = 1 + 0.07 * k * settings.impression;
+          ctx.translate(x + cellW / 2, y - settings.fontSize * 0.3);
+          ctx.scale(s, s);
+          ctx.fillText(cell.ch, -cellW / 2, settings.fontSize * 0.3);
+          ctx.globalAlpha = 0.55 * k * settings.impression;
+          ctx.fillText(cell.ch, -cellW / 2 + 0.35, settings.fontSize * 0.3 + 0.25);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = color;
+          ctx.fillText(cell.ch, x, y);
+        }
+      }
+      col += wide(cell.ch) ? 2 : 1;
+    }
+  }
+  const cy = L.gridY + (cursor.row - start) * LINE + shift;
+  ctx.globalAlpha = 0.8;
+  ctx.fillStyle = pp.ink;
+  ctx.fillRect(L.gridX + cursor.col * cellW, cy + 3, cellW, LINE - 5);
+  ctx.globalAlpha = 1;
+  return animating;
+}
+
+// ------------------------------------------------------------------------------------------------
+// Parchment and light: a multiply layer (albedo × irradiance), physically based lamp model
+const VERT = `#version 300 es
+in vec2 aPos; void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
+const FRAG = `#version 300 es
+precision highp float;
+uniform vec2 uSize; uniform float uScale; uniform int uSource;
+uniform vec3 uLightPos; uniform vec3 uLightDir; uniform vec2 uCone; uniform float uExposure;
+uniform vec4 uWindow; uniform vec2 uPane; uniform vec3 uTint; uniform float uLamp;
+uniform float uAmbient; uniform vec3 uAmbientTint; uniform float uBump; uniform float uGrain; uniform float uTime;
+uniform float uAge; uniform float uSeed; uniform float uFold; uniform float uMottle; uniform float uCrinkle;
+uniform float uLaid; uniform float uLinen;
+out vec4 outColor;
+float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float noise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  return mix(mix(hash12(i), hash12(i + vec2(1, 0)), u.x), mix(hash12(i + vec2(0, 1)), hash12(i + vec2(1, 1)), u.x), u.y);
+}
+float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.03 + 17.1; a *= 0.5; } return v; }
+// Parchment relief: vellum veins (domain-warped), long fibres, fine tooth.
+float relief(vec2 p) {
+  vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
+  float veins = 1.0 - abs(fbm(p * 0.02 + w * 3.0) * 2.0 - 1.0);
+  float r = 0.35 * pow(veins, 6.0) + 0.35 * noise(p * vec2(0.6, 0.18)) + 0.3 * noise(p * 1.9);
+  // Laid paper: fine laid lines across, chain lines down the sheet.
+  float laidLines = 0.5 + 0.5 * sin(p.y * 6.2831 / 4.2);
+  float chain = exp(-pow((mod(p.x, 96.0) - 48.0) / 3.2, 2.0));
+  r = mix(r, r * 0.6 + laidLines * 0.18 + chain * 0.35, uLaid);
+  // Linen: a woven cross-hatch with slubs.
+  float weave = 0.5 + 0.5 * sin(p.x * 6.2831 / 3.4) * sin(p.y * 6.2831 / 3.4);
+  float slub = noise(p * vec2(0.07, 1.3));
+  return mix(r, r * 0.3 + weave * 0.5 + slub * 0.35, uLinen);
+}
+float panes(float t, float e) { float f = fract(t); return smoothstep(0.0, e, f) * smoothstep(0.0, e, 1.0 - f); }
+float gobo(vec2 p) {
+  vec2 uv = (p - uWindow.xy) / uWindow.zw;
+  float e = max(0.02, uPane.y / max(uWindow.z, uWindow.w));
+  float aperture = smoothstep(0.5, 0.5 - e * 2.0, abs(uv.x)) * smoothstep(0.5, 0.5 - e * 2.0, abs(uv.y));
+  float me = min(0.45, 0.04 + uPane.y / uPane.x);
+  float bars = panes((p.x - uWindow.x) / uPane.x + 0.5, me) * panes((p.y - uWindow.y) / uPane.x + 0.5, me);
+  return aperture * (0.3 + 0.7 * bars);
+}
+float irradiance(vec3 P, vec3 n) {
+  if (uSource == 2) return max(0.0, dot(n, -uLightDir)) * gobo(P.xy);
+  vec3 d = P - uLightPos; float d2 = max(1.0, dot(d, d)); vec3 r = d * inversesqrt(d2);
+  float cone = smoothstep(uCone.x, uCone.y, dot(r, uLightDir));
+  return cone * max(0.0, -dot(n, r)) / d2;
+}
+vec3 parchment(vec2 p) {
+  vec2 uv = p / uSize;
+  // Large tonal mottling of skin and age.
+  float mottle = fbm(p * 0.006 + uSeed) * 0.65 + fbm(p * 0.022 + uSeed * 2.0) * 0.35;
+  vec3 base = mix(vec3(1.0), mix(vec3(1.0, 0.985, 0.95), vec3(0.86, 0.74, 0.55), smoothstep(0.35, 0.8, mottle) * 0.85), uMottle);
+  vec3 tone = vec3(1.0);
+  // Darker, irregular edges.
+  float edge = min(min(uv.x, 1.0 - uv.x) * uSize.x, uv.y * uSize.y);
+  float ragged = edge + (fbm(p * 0.05 + 3.0) - 0.5) * 26.0;
+  float burn = 1.0 - smoothstep(0.0, 46.0, ragged);
+  tone *= mix(vec3(1.0), vec3(0.62, 0.45, 0.28), burn * 0.85);
+  // Foxing: small rust spots with soft halos.
+  vec2 cell = floor(p / 70.0);
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 c = cell + vec2(float(i), float(j));
+      float h = hash12(c + uSeed);
+      if (h > 0.16) continue;
+      vec2 centre = (c + vec2(hash12(c + 1.7), hash12(c + 4.1))) * 70.0;
+      float radius = mix(1.5, 6.5, hash12(c + 8.3));
+      float d = length(p - centre);
+      tone *= mix(vec3(1.0), vec3(0.8, 0.62, 0.45), (1.0 - smoothstep(radius * 0.4, radius * 2.4, d)) * 0.7);
+    }
+  }
+  // Water stains: faint tide lines.
+  float stain = fbm(p * 0.004 + uSeed + 31.0);
+  float tide = smoothstep(0.015, 0.0, abs(stain - 0.58));
+  tone *= mix(vec3(1.0), vec3(0.82, 0.7, 0.52), tide * 0.35);
+  // A fold across the sheet.
+  float fold = (p.y - uFold) / 2.5;
+  tone *= 1.0 - 0.08 * exp(-fold * fold) + 0.03 * exp(-(fold - 2.2) * (fold - 2.2));
+  // Laid chain lines are a touch more translucent (darker); linen shows its weave faintly.
+  float chainTone = exp(-pow((mod(p.x, 96.0) - 48.0) / 3.2, 2.0));
+  base *= 1.0 - uLaid * (0.03 * chainTone + 0.005 * (0.5 + 0.5 * sin(p.y * 6.2831 / 4.2)));
+  base *= 1.0 - uLinen * 0.02 * (0.5 + 0.5 * sin(p.x * 6.2831 / 3.4) * sin(p.y * 6.2831 / 3.4));
+  return base * mix(vec3(1.0), tone, uAge);
+}
+void main() {
+  vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
+  float e = 0.9;
+  float h0 = relief(p); float hx = relief(p + vec2(e, 0.0)); float hy = relief(p + vec2(0.0, e));
+  vec3 n = normalize(vec3(-(hx - h0) * (1.2 + 3.0 * uCrinkle), -(hy - h0) * (1.2 + 3.0 * uCrinkle), 1.0));
+  float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), n) * uExposure)) * uLamp;
+  vec2 uv = p / uSize;
+  float vignette = smoothstep(0.15, 1.1, length((uv - vec2(0.5, 0.55)) * vec2(1.0, 1.15)));
+  float ambient = mix(1.0, uAmbient * (1.0 - 0.3 * vignette), uLamp);
+  vec3 irr = uAmbientTint * ambient + (1.0 - ambient) * lit * uTint;
+  // Relief catches the room light from the upper left: a few percent, like real fibres.
+  // Crinkled cotton: the relief catches light from the upper left (bounded, so ink stays crisp).
+  irr *= clamp(1.0 + (-n.x * 0.35 - n.y * 0.55) * (0.6 + 2.2 * uCrinkle), 1.0 - 0.16 * uCrinkle - 0.04, 1.0 + 0.16 * uCrinkle + 0.04);
+  // A sheet is never perfectly flat: its side edges fall off gently and darken a little.
+  float side = min(uv.x, 1.0 - uv.x) * uSize.x;
+  irr *= mix(0.9, 1.0, smoothstep(0.0, 28.0, side));
+  vec3 albedo = parchment(p);
+  float g = hash12(gl_FragCoord.xy + fract(uTime * 7.31) * 113.0) - 0.5;
+  vec3 c = albedo * irr + g * (uGrain * 0.045 + 1.5 / 255.0);
+  outColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+}`;
+
+const paper = (() => {
+  const gl = paperCanvas.getContext('webgl2', {premultipliedAlpha: false, antialias: false});
+  let program = null;
+  const u = {};
+  if (gl) {
+    const compile = (type, source) => {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+      return shader;
+    };
+    try {
+      program = gl.createProgram();
+      gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+      gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+      gl.useProgram(program);
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(program, 'aPos');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      for (const name of ['uSize', 'uScale', 'uSource', 'uLightPos', 'uLightDir', 'uCone', 'uExposure', 'uWindow', 'uPane', 'uTint',
+        'uLamp', 'uAmbient', 'uAmbientTint', 'uBump', 'uGrain', 'uTime', 'uAge', 'uSeed', 'uFold', 'uMottle', 'uCrinkle', 'uLaid', 'uLinen']) {
+        u[name] = gl.getUniformLocation(program, name);
+      }
+    } catch (error) {
+      console.error('Paper shader failed:', error);
+      program = null;
+    }
+  }
+
+  function rig() {
+    const t = THEMES[settings.theme];
+    const W = L.sheetW;
+    const H = L.sheetH;
+    const half = (clamp(settings.spread, 5, 170) / 2) * Math.PI / 180;
+    const cone = [Math.cos(half), Math.cos(half * (1 - 0.85 * settings.softness))];
+    const sourceIndex = {carriage: 0, 'desk-lamp': 1, moonlight: 2}[t.source];
+    let pos = [0, 0, 1];
+    let dir = [0, 0, -1];
+    let reference;
+    let win = [W / 2, H / 2, W, H];
+    let pane = [120, 8];
+    if (t.source === 'carriage') {
+      const headX = carriage.x.position - L.sheetX;
+      const railY = L.bailY - L.sheetTop + 12;
+      pos = [headX, railY, 12 + 0.02 * H];
+      const aim = [headX, railY - 0.6 * settings.reach * H, 0];
+      dir = norm([aim[0] - pos[0], aim[1] - pos[1], aim[2] - pos[2]]);
+      reference = [headX, railY - 0.5 * settings.reach * H];
+    } else if (t.source === 'desk-lamp') {
+      pos = [t.position[0] * W, t.position[1] * H, (0.3 + 0.4 * settings.reach) * H];
+      const aim = [W * 0.5, H * 0.58, 0];
+      dir = norm([aim[0] - pos[0], aim[1] - pos[1], aim[2] - pos[2]]);
+      reference = aim;
+    } else {
+      const azimuth = Math.atan2(0.5 - t.position[1], 0.5 - t.position[0]);
+      const elevation = 40 * Math.PI / 180;
+      dir = norm([Math.cos(azimuth) * Math.cos(elevation), Math.sin(azimuth) * Math.cos(elevation), -Math.sin(elevation)]);
+      const pw = W * 0.62 * settings.reach;
+      const ph = H * 0.7 * settings.reach;
+      win = [W * (0.5 + (t.position[0] - 0.5) * 0.45), H * (0.5 + (t.position[1] - 0.5) * 0.45), pw, ph];
+      pane = [Math.max(60, Math.min(pw, ph) / 2), 4 + 40 * settings.softness];
+      reference = [win[0], win[1]];
+    }
+    let E;
+    if (t.source === 'moonlight') E = Math.max(0, -dir[2]);
+    else {
+      const d = [reference[0] - pos[0], reference[1] - pos[1], -pos[2]];
+      const d2 = Math.max(1, dot(d, d));
+      const r = norm(d);
+      E = (smooth(cone[0], cone[1], dot(r, dir)) * Math.max(0, -r[2])) / d2;
+    }
+    return {sourceIndex, pos, dir, cone, exposure: E > 0 ? settings.intensity / E : 0, win, pane};
+  }
+
+  function lightAt(r, x, y) {
+    if (r.sourceIndex === 2) {
+      const [wx, wy, ww, wh] = r.win;
+      const edge = Math.max(0.02, r.pane[1] / Math.max(ww, wh));
+      const aperture = smooth(0.5, 0.5 - edge * 2, Math.abs((x - wx) / ww)) * smooth(0.5, 0.5 - edge * 2, Math.abs((y - wy) / wh));
+      return 1 - Math.exp(-Math.max(0, -r.dir[2]) * aperture * r.exposure);
+    }
+    const d = [x - r.pos[0], y - r.pos[1], -r.pos[2]];
+    const d2 = Math.max(1, dot(d, d));
+    const ray = norm(d);
+    return 1 - Math.exp(-((smooth(r.cone[0], r.cone[1], dot(ray, r.dir)) * Math.max(0, -ray[2])) / d2) * r.exposure);
+  }
+
+  function render(time) {
+    if (!program) return;
+    const t = THEMES[settings.theme];
+    const r = rig();
+    gl.viewport(0, 0, paperCanvas.width, paperCanvas.height);
+    gl.uniform2f(u.uSize, L.sheetW, L.sheetH);
+    gl.uniform1f(u.uScale, L.dpr);
+    gl.uniform1i(u.uSource, r.sourceIndex);
+    gl.uniform3fv(u.uLightPos, r.pos);
+    gl.uniform3fv(u.uLightDir, r.dir);
+    gl.uniform2fv(u.uCone, r.cone);
+    gl.uniform1f(u.uExposure, r.exposure);
+    gl.uniform4fv(u.uWindow, r.win);
+    gl.uniform2fv(u.uPane, r.pane);
+    const tint = hex(t.light);
+    const peak = Math.max(...tint);
+    gl.uniform3fv(u.uTint, tint.map((c) => c / peak));
+    gl.uniform1f(u.uLamp, settings.lamp ? 1 : 0);
+    // Ambient floor keeps ink/paper contrast >= 4.5:1 (app: lightingLimits() for multiply).
+    const pp = currentPaper();
+    gl.uniform1f(u.uAmbient, clamp(1 - t.shade * (0.55 + 0.45 * settings.intensity), pp.appearance === 'light' ? 0.55 : 0.62, 1));
+    const room = hex(t.room);
+    gl.uniform3fv(u.uAmbientTint, room.map((c) => mix(1, 0.6 + c * 1.5, 0.4)));
+    gl.uniform1f(u.uBump, 0.4 + 0.6 * settings.softness);
+    gl.uniform1f(u.uGrain, reduceMotion ? 0 : settings.grain);
+    gl.uniform1f(u.uTime, time / 1000);
+    gl.uniform1f(u.uAge, pp.age);
+    gl.uniform1f(u.uMottle, pp.mottle);
+    gl.uniform1f(u.uCrinkle, pp.crinkle * settings.texture);
+    gl.uniform1f(u.uLaid, pp.laid * Math.min(1, settings.texture));
+    gl.uniform1f(u.uLinen, pp.linen * Math.min(1, settings.texture));
+    gl.uniform1f(u.uSeed, 3.7);
+    gl.uniform1f(u.uFold, L.sheetH * 0.38);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  // Screen layer: dust motes in the light, the bulb's glare, the glow around the cursor.
+  const motes = Array.from({length: 110}, (_, i) => ({x: hash(i * 3.1), y: hash(i * 7.7), z: hash(i * 1.9), phase: hash(i * 5.3) * 100, size: 0.5 + hash(i * 9.1) * 1.6}));
+  const sprite = document.createElement('canvas');
+  sprite.width = sprite.height = 32;
+  {
+    const s = sprite.getContext('2d');
+    const g = s.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.22, 'rgba(255,255,255,0.6)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    s.fillStyle = g;
+    s.fillRect(0, 0, 32, 32);
+  }
+  function renderGlow(time) {
+    const t = THEMES[settings.theme];
+    const ctx = glowCanvas.getContext('2d');
+    ctx.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+    ctx.clearRect(0, 0, L.sheetW, L.sheetH);
+    if (!settings.lamp) return;
+    const r = rig();
+    const lc = hex(t.light);
+    const seconds = time / 1000;
+    if (settings.particles > 0 && !reduceMotion) {
+      const count = Math.round(motes.length * settings.particles);
+      for (let i = 0; i < count; i++) {
+        const m = motes[i];
+        const speed = 0.4 + m.z;
+        const x = ((((m.x + Math.sin(seconds * 0.05 * speed + m.phase) * 0.04 + seconds * 0.004 * (m.z - 0.5)) % 1) + 1) % 1) * L.sheetW;
+        const y = ((((m.y - seconds * 0.006 * speed + Math.cos(seconds * 0.07 + m.phase) * 0.03) % 1) + 1) % 1) * L.sheetH;
+        const inLight = lightAt(r, x, y);
+        if (inLight < 0.05) continue;
+        const twinkle = 0.5 + 0.5 * Math.sin(seconds * (0.8 + m.z * 2.2) + m.phase);
+        const size = m.size * (1 + m.z * 1.6);
+        ctx.globalAlpha = clamp(inLight * twinkle * (currentPaper().appearance === 'light' ? 0.5 : 0.9), 0, 1);
+        ctx.drawImage(sprite, x - size * 2, y - size * 2, size * 4, size * 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (r.sourceIndex === 0) {
+      const g = ctx.createRadialGradient(r.pos[0], r.pos[1], 0, r.pos[0], r.pos[1], 110 * settings.intensity);
+      g.addColorStop(0, rgb(lc, 0.45));
+      g.addColorStop(1, rgb(lc, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, L.sheetW, L.sheetH);
+    }
+    const cx = L.gridX + (cursor.col + 0.5) * cellW;
+    const cy = L.gridY + (cursor.row - visibleStart() + 0.5) * LINE + feed.position * LINE;
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
+    cg.addColorStop(0, rgb(lc, 0.14));
+    cg.addColorStop(1, rgb(lc, 0));
+    ctx.fillStyle = cg;
+    ctx.fillRect(cx - 34, cy - 34, 68, 68);
+  }
+  return {render, renderGlow};
+})();
+
+// ------------------------------------------------------------------------------------------------
+// The typewriter: a lit 3D model (Three.js, physically based materials, soft shadows)
+const machine = (() => {
+  const renderer = new THREE.WebGLRenderer({canvas: machineCanvas, antialias: true, alpha: true, powerPreference: 'high-performance'});
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.VSMShadowMap;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  function studyEnvironment() {
+    const room = new THREE.Scene();
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 20), new THREE.MeshBasicMaterial({color: 0x0b0907, side: THREE.BackSide}));
+    room.add(walls);
+    const panel = (w, h, color, strength, position, look) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({color: new THREE.Color(color).multiplyScalar(strength), side: THREE.DoubleSide}));
+      m.position.set(...position);
+      m.lookAt(...look);
+      room.add(m);
+    };
+    panel(6, 2.2, 0xffe2b8, 6, [-4, 5.8, 3], [0, 0, 0]);     // warm softbox above-left
+    panel(2.2, 7, 0xcfd8ff, 2.2, [9.8, 1, -2], [0, 0, 0]);   // cool window on the right
+    panel(14, 0.5, 0xffffff, 3, [0, 5.9, -6], [0, 0, 0]);     // long strip for edge highlights
+    panel(10, 6, 0x3a2a1c, 1, [0, -5.9, 0], [0, 10, 0]);      // warm desk bounce
+    panel(12, 5, 0xfff0dc, 1.15, [1, 1.5, 9.8], [0, 0, 0]);   // soft panel behind the viewer, for front-facing chrome
+    return pmrem.fromScene(room, 0.02).texture;
+  }
+  const envTexture = studyEnvironment();
+
+  let scene = null;
+  let camera = null;
+  const parts = {};
+  const textures = {};
+
+  function knurlTexture(ridges) {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 8;
+    const x = c.getContext('2d');
+    const img = x.createImageData(512, 8);
+    for (let i = 0; i < 512; i++) {
+      const nx = Math.sin((i / 512) * ridges * Math.PI * 2) * 0.85;
+      for (let j = 0; j < 8; j++) {
+        const k = (j * 512 + i) * 4;
+        img.data[k] = (nx * 0.5 + 0.5) * 255;
+        img.data[k + 1] = 128;
+        img.data[k + 2] = 255;
+        img.data[k + 3] = 255;
+      }
+    }
+    x.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+  function grainTexture(scale, contrast) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const img = x.createImageData(256, 256);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = 128 + (hash(i * 0.37) - 0.5) * contrast;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(scale, scale);
+    return t;
+  }
+  function parchmentTexture(color) {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 128;
+    const x = c.getContext('2d');
+    x.fillStyle = color;
+    x.fillRect(0, 0, 512, 128);
+    for (let i = 0; i < 2600; i++) {
+      x.fillStyle = `rgba(${90 + hash(i) * 60}, ${60 + hash(i + 1) * 40}, 30, ${hash(i + 2) * 0.05})`;
+      x.fillRect(hash(i + 3) * 512, hash(i + 4) * 128, 1 + hash(i + 5) * 14, 1 + hash(i + 6) * 2);
+    }
+    const g = x.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, 'rgba(80, 50, 20, 0)');
+    g.addColorStop(1, 'rgba(80, 50, 20, 0.35)');
+    x.fillStyle = g;
+    x.fillRect(0, 0, 512, 128);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  function scaleTexture(width, height, cols, cell, offset) {
+    const k = 3;
+    const c = document.createElement('canvas');
+    c.width = Math.round(width * k);
+    c.height = Math.round(height * k);
+    const x = c.getContext('2d');
+    x.scale(k, k);
+    const bg = x.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, '#1a140f');
+    bg.addColorStop(0.5, '#0e0b08');
+    bg.addColorStop(1, '#16110c');
+    x.fillStyle = bg;
+    x.fillRect(0, 0, width, height);
+    // Fine centre rule.
+    x.fillStyle = 'rgba(236, 224, 198, 0.55)';
+    x.fillRect(offset - 2, height * 0.5 - 0.4, cols * cell + 4, 0.8);
+    const cream = 'rgba(238, 227, 202, 0.95)';
+    const red = 'rgba(214, 78, 56, 0.95)';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    for (let col = 0; col <= cols; col++) {
+      const px = offset + col * cell;
+      const major = col % 10 === 0;
+      const half = col % 5 === 0;
+      // Upper ticks hang from the top edge; lower ticks rise from the centre rule.
+      x.fillStyle = cream;
+      x.fillRect(px - 0.4, 1.5, 0.8, major ? height * 0.24 : half ? height * 0.17 : height * 0.1);
+      x.fillStyle = half ? red : 'rgba(214, 78, 56, 0.55)';
+      x.fillRect(px - 0.4, height * 0.5, 0.8, half ? height * 0.1 : height * 0.06);
+    }
+    x.font = `700 ${Math.round(height * 0.2)}px ${monoFont()}`;
+    for (let col = 10; col <= cols; col += 10) {
+      x.fillStyle = cream;
+      x.fillText(String(col), offset + col * cell, height * 0.36);
+    }
+    for (let col = 5; col <= cols; col += 10) {
+      x.fillStyle = red;
+      x.fillText(String(col), offset + col * cell, height * 0.78);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  }
+
+  // Gold-leaf lettering: an alpha mask for the letters, a soft bump for their raised edges.
+  function gildedLettering(text, width, height) {
+    const k = 4;
+    const make = (blur) => {
+      const c = document.createElement('canvas');
+      c.width = Math.round(width * k);
+      c.height = Math.round(height * k);
+      const x = c.getContext('2d');
+      x.fillStyle = '#000';
+      x.fillRect(0, 0, c.width, c.height);
+      x.filter = blur ? `blur(${blur * k}px)` : 'none';
+      x.fillStyle = '#fff';
+      x.font = `500 ${Math.round(height * 0.5 * k)}px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.letterSpacing = `${Math.round(height * 0.62 * k)}px`;
+      x.fillText(text, c.width / 2 + height * 0.31 * k, c.height / 2 + height * 0.04 * k);
+      const t = new THREE.CanvasTexture(c);
+      t.anisotropy = 8;
+      return t;
+    };
+    return new THREE.MeshPhysicalMaterial({
+      color: 0xffd98a, metalness: 1, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.08, envMapIntensity: 3,
+      emissive: 0x6b4512, emissiveIntensity: 0.9,
+      alphaMap: make(0), transparent: true, bumpMap: make(0.9), bumpScale: 2.2
+    });
+  }
+
+  function badgeTexture(text, color) {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 64;
+    const x = c.getContext('2d');
+    x.font = `500 40px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
+    x.textAlign = 'center';
+    x.letterSpacing = '18px';
+    x.fillStyle = color;
+    x.fillText(text, 256, 46);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  function materials(t) {
+    textures.knurl = textures.knurl || knurlTexture(60);
+    textures.grain = textures.grain || grainTexture(6, 40);
+    const env = t.env;
+    return {
+      chrome: new THREE.MeshStandardMaterial({color: 0xf0f0f2, metalness: 1, roughness: 0.1, envMapIntensity: 1.7}),
+      steel: new THREE.MeshStandardMaterial({color: 0xb7bcc3, metalness: 1, roughness: 0.32, envMapIntensity: 1.2}),
+      brass: new THREE.MeshStandardMaterial({color: new THREE.Color(t.trim), metalness: 1, roughness: 0.22, envMapIntensity: 1.4}),
+      enamel: new THREE.MeshPhysicalMaterial({color: 0x0a0908, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.0, roughnessMap: textures.grain}),
+      enamelDeep: new THREE.MeshStandardMaterial({color: 0x050404, roughness: 0.85, envMapIntensity: env * 0.4}),
+      rubber: new THREE.MeshStandardMaterial({color: 0x171514, roughness: 0.78, envMapIntensity: env * 0.6, bumpMap: textures.grain, bumpScale: 0.4}),
+      knurledRubber: new THREE.MeshStandardMaterial({color: 0x1a1817, roughness: 0.62, envMapIntensity: env * 0.7, normalMap: textures.knurl}),
+      bakelite: new THREE.MeshPhysicalMaterial({color: 0x0f0c0a, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.15, envMapIntensity: env, normalMap: textures.knurl}),
+      gunmetal: new THREE.MeshStandardMaterial({color: 0x3b3d42, metalness: 1, roughness: 0.48, envMapIntensity: env * 0.7}),
+      ribbonBlack: new THREE.MeshStandardMaterial({color: 0x121110, roughness: 0.9, side: THREE.DoubleSide}),
+      ribbonRed: new THREE.MeshStandardMaterial({color: 0x86251b, roughness: 0.85, side: THREE.DoubleSide}),
+      fabric: new THREE.MeshStandardMaterial({color: 0x0d0b0a, roughness: 0.95, bumpMap: textures.grain, bumpScale: 0.6}),
+      paper: new THREE.MeshStandardMaterial({map: parchmentTexture(currentPaper().paper), roughness: 0.92, envMapIntensity: env * 0.4}),
+      bulb: new THREE.MeshStandardMaterial({color: 0xfff3dc, emissive: new THREE.Color(t.light), emissiveIntensity: 3.2, roughness: 0.2}),
+      gold: new THREE.MeshPhysicalMaterial({color: 0xe2b45a, metalness: 1, roughness: 0.2, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity: 1.7})
+    };
+  }
+
+  const cylX = (r, length, segments = 64) => new THREE.CylinderGeometry(r, r, length, segments, 1).rotateZ(Math.PI / 2);
+  function mesh(geometry, material, {cast = true, receive = true} = {}) {
+    const m = new THREE.Mesh(geometry, material);
+    m.castShadow = cast;
+    m.receiveShadow = receive;
+    return m;
+  }
+
+  function build() {
+    if (scene) disposeScene();
+    const t = THEMES[settings.theme];
+    const {W, H, dpr, sheetX, sheetW, sheetTop, sheetH, platenY, platenR, bailY, machineH} = L;
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(W, H, false);
+    machineCanvas.style.width = `${W}px`;
+    machineCanvas.style.height = `${H}px`;
+    renderer.toneMappingExposure = t.exposure;
+    scene = new THREE.Scene();
+    scene.environment = envTexture;
+    camera = new THREE.OrthographicCamera(0, W, 0, -H, -4000, 4000);
+    camera.position.set(0, 0, 1000);
+    const mat = materials(t);
+    parts.mat = mat;
+
+    const gridLeft = sheetX + L.gridX;
+    const gridRight = gridLeft + L.cols * cellW;
+    const reach = Math.min(sheetX * 0.42, 130);
+    const platenLeft = sheetX - reach;
+    const platenRight = sheetX + sheetW + reach;
+    const platenLen = platenRight - platenLeft;
+    const platenCx = (platenLeft + platenRight) / 2;
+
+    // Paper occluder: hides what is behind the sheet (the DOM terminal shows through).
+    const occluder = new THREE.Mesh(new THREE.PlaneGeometry(sheetW, sheetH), new THREE.MeshBasicMaterial({colorWrite: false}));
+    occluder.position.set(sheetX + sheetW / 2, -(sheetTop + sheetH / 2), 0);
+    occluder.renderOrder = -1;
+    scene.add(occluder);
+    // Shadows cast onto the sheet.
+    const catcher = new THREE.Mesh(new THREE.PlaneGeometry(sheetW, sheetH), new THREE.ShadowMaterial({opacity: currentPaper().appearance === 'light' ? 0.4 : 0.6, color: 0x1a0f05}));
+    catcher.position.set(sheetX + sheetW / 2, -(sheetTop + sheetH / 2), 0.2);
+    catcher.receiveShadow = true;
+    scene.add(catcher);
+
+    // Parchment curling over the platen.
+    const curl = mesh(new THREE.CylinderGeometry(platenR + 1.2, platenR + 1.2, sheetW, 64, 1, true, -Math.PI * 0.02, Math.PI * 0.62).rotateZ(Math.PI / 2), mat.paper, {cast: false});
+    curl.position.set(sheetX + sheetW / 2, -platenY, -platenR);
+    curl.rotation.x = Math.PI;
+    scene.add(curl);
+    // Platen, shaft, end caps, side frames and knobs.
+    const platen = mesh(cylX(platenR, platenLen, 96), mat.rubber);
+    platen.position.set(platenCx, -platenY, -platenR);
+    scene.add(platen);
+    parts.platen = platen;
+    const shaft = mesh(cylX(5, platenLen + 140, 24), mat.chrome);
+    shaft.position.copy(platen.position);
+    scene.add(shaft);
+    const earW = clamp(sheetX * 0.16, 18, 40);
+    const knobW = clamp(sheetX * 0.2, 24, 58);
+    for (const side of [-1, 1]) {
+      const endX = side < 0 ? platenLeft : platenRight;
+      const cap = mesh(cylX(platenR * 0.92, 6, 64), mat.chrome);
+      cap.position.set(endX + side * 3, -platenY, -platenR);
+      scene.add(cap);
+      const ear = mesh(new RoundedBoxGeometry(earW, platenR * 3.4, platenR * 2.6, 4, 6), mat.enamel);
+      ear.position.set(endX + side * (earW / 2 + 6), -(platenY + platenR * 0.15), -platenR * 0.9);
+      scene.add(ear);
+      const knobX = endX + side * (earW + 12 + knobW / 2);
+      const knob = mesh(cylX(platenR * 1.08, knobW, 96), mat.bakelite);
+      knob.position.set(knobX, -platenY, -platenR);
+      scene.add(knob);
+      const hub = mesh(cylX(platenR * 0.42, 4, 48), mat.chrome);
+      hub.position.set(knobX + side * (knobW / 2 + 1), -platenY, -platenR);
+      scene.add(hub);
+      const collar = mesh(cylX(platenR * 0.55, 10, 48), mat.chrome);
+      collar.position.set(knobX - side * (knobW / 2 + 5), -platenY, -platenR);
+      scene.add(collar);
+    }
+    // Carriage-return lever.
+    const leverCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(platenLeft - earW / 2, -(platenY - platenR * 0.5), 6),
+      new THREE.Vector3(platenLeft - earW - 6, -(platenY - platenR * 1.8), 22),
+      new THREE.Vector3(platenLeft - earW - 40, -(platenY - platenR * 2.5), 30),
+      new THREE.Vector3(platenLeft - earW - 70, -(platenY - platenR * 2.6), 26)
+    ]);
+    scene.add(mesh(new THREE.TubeGeometry(leverCurve, 48, 3.2, 12), mat.chrome));
+    const grip = mesh(new THREE.CapsuleGeometry(6.5, 16, 8, 16).rotateZ(Math.PI / 2), mat.bakelite);
+    grip.position.copy(leverCurve.getPoint(1)).add(new THREE.Vector3(-10, 0, 0));
+    scene.add(grip);
+
+    // Paper bail with knurled rubber rollers.
+    const bailLeft = platenLeft - 4;
+    const bailRight = platenRight + 4;
+    const bail = mesh(cylX(3.6, bailRight - bailLeft, 32), mat.chrome);
+    bail.position.set((bailLeft + bailRight) / 2, -bailY, 9);
+    scene.add(bail);
+    for (const x of [bailLeft, bailRight]) {
+      const out = x < platenCx ? -1 : 1;
+      const arm = new THREE.CatmullRomCurve3([new THREE.Vector3(x, -bailY, 9), new THREE.Vector3(x + out * 4, -(bailY + platenR * 0.6), 2), new THREE.Vector3(x + out * 8, -platenY, -platenR * 0.4)]);
+      scene.add(mesh(new THREE.TubeGeometry(arm, 24, 2.6, 10), mat.chrome));
+    }
+    const rollerW = clamp(sheetW * 0.055, 30, 56);
+    const rollerR = clamp(machineH * 0.045, 9, 14);
+    for (const f of [0.2, 0.8]) {
+      const x = sheetX + sheetW * f;
+      const roller = mesh(cylX(rollerR, rollerW, 64), mat.knurledRubber);
+      roller.position.set(x, -bailY, 9 + rollerR * 0.3);
+      scene.add(roller);
+      for (const side of [-1, 1]) {
+        const cap = mesh(cylX(rollerR * 0.75, 3, 32), mat.chrome);
+        cap.position.set(x + side * (rollerW / 2 + 1.5), -bailY, 9 + rollerR * 0.3);
+        scene.add(cap);
+      }
+    }
+
+    // Body: a clear-coated enamel case, tilted so its deck faces the viewer.
+    const bodyTilt = 0.42;
+    const deckVisible = machineH * 0.17;
+    const deckDepth = deckVisible / Math.sin(bodyTilt);
+    const frontVisible = H - (platenY + platenR * 1.05 + deckVisible) + 40;
+    const bodyHeight = frontVisible / Math.cos(bodyTilt);
+    const bodyW = platenRight - platenLeft + 2 * (earW + knobW * 0.6);
+    const body = new THREE.Group();
+    body.position.set(platenCx, -(platenY + platenR * 1.05 + deckVisible), 30);
+    body.rotation.x = bodyTilt;
+    scene.add(body);
+    // Side profile (u = depth from the front, v = height), extruded along the width.
+    const shoulder = Math.min(28, deckDepth * 0.3);
+    const profile = new THREE.Shape();
+    profile.moveTo(deckDepth, 0);
+    profile.lineTo(shoulder, 0);
+    profile.absarc(shoulder, -shoulder, shoulder, Math.PI / 2, Math.PI, false);
+    profile.lineTo(0, -bodyHeight * 0.55);
+    profile.quadraticCurveTo(-4, -bodyHeight * 0.75, 2, -bodyHeight);
+    profile.lineTo(deckDepth, -bodyHeight);
+    profile.closePath();
+    const shellGeometry = new THREE.ExtrudeGeometry(profile, {depth: bodyW, bevelEnabled: true, bevelThickness: 6, bevelSize: 6, bevelSegments: 5, curveSegments: 24});
+    shellGeometry.rotateY(Math.PI / 2);
+    shellGeometry.translate(-bodyW / 2, -6, -6);
+    const shell = mesh(shellGeometry, mat.enamel);
+    body.add(shell);
+    const trimFront = mesh(cylX(1.8, bodyW - 40, 24), mat.brass);
+    trimFront.position.set(0, -shoulder - 6, 1.5);
+    body.add(trimFront);
+    const trimBack = mesh(cylX(1.6, bodyW - 60, 24), mat.chrome);
+    trimBack.position.set(0, 0.6, -deckDepth + 6);
+    body.add(trimBack);
+    parts.body = body;
+    parts.deckDepth = deckDepth;
+
+    // Type-bar basket: a recessed channel across the deck.
+    const channel = mesh(new RoundedBoxGeometry(gridRight - gridLeft + 70, 8, deckDepth * 0.62, 3, 3), mat.enamelDeep, {cast: false});
+    channel.position.set((gridLeft + gridRight) / 2 - platenCx, -2.5, -deckDepth * 0.5);
+    body.add(channel);
+
+    // The type head assembly follows the printing column.
+    const head = new THREE.Group();
+    scene.add(head);
+    parts.head = head;
+    const basket = new THREE.Group();
+    body.add(basket);
+    parts.basket = basket;
+    // The segment: a semicircular steel ring facing the viewer, slotted, with the type bars fanned around it.
+    const segR = clamp(deckDepth * 0.95, 40, 130);
+    const seg = new THREE.Group();
+    seg.position.set(0, -segR * 0.7, -deckDepth * 0.22);
+    seg.rotation.x = -bodyTilt;
+    basket.add(seg);
+    const arcStart = Math.PI * 0.14;
+    const arcLength = Math.PI * 0.72;
+    const ring = mesh(new THREE.RingGeometry(segR * 0.8, segR, 120, 1, arcStart, arcLength), mat.steel, {cast: false});
+    seg.add(ring);
+    const rimOuter = mesh(new THREE.TorusGeometry(segR, 1.1, 8, 120, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
+    const rimInner = mesh(new THREE.TorusGeometry(segR * 0.8, 0.9, 8, 120, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
+    rimOuter.position.z = 0.6;
+    rimInner.position.z = 0.6;
+    seg.add(rimOuter, rimInner);
+    const slots = 46;
+    for (let i = 0; i < slots; i++) {
+      const a = arcStart + (arcLength * (i + 0.5)) / slots;
+      const slotMark = mesh(new THREE.PlaneGeometry(0.9, segR * 0.15), mat.enamelDeep, {cast: false});
+      slotMark.position.set(Math.cos(a) * segR * 0.9, Math.sin(a) * segR * 0.9, 0.3);
+      slotMark.rotation.z = a - Math.PI / 2;
+      seg.add(slotMark);
+    }
+    // Type bars: resting outside the ring, each pointing at the printing point.
+    const bars = 40;
+    const barLength = segR * 0.42;
+    parts.bars = [];
+    for (let i = 0; i < bars; i++) {
+      const a = arcStart + (arcLength * (i + 0.5)) / bars;
+      const pivot = new THREE.Group();
+      pivot.position.set(Math.cos(a) * segR * 1.38, Math.sin(a) * segR * 1.38, -1);
+      pivot.rotation.z = a + Math.PI / 2;
+      const bar = mesh(new THREE.BoxGeometry(1.1, barLength, 0.9), mat.steel, {cast: false});
+      bar.position.y = barLength / 2;
+      pivot.add(bar);
+      seg.add(pivot);
+      parts.bars.push(pivot);
+    }
+    parts.barLength = barLength;
+
+    // Ribbon spools on the deck.
+    const spoolR = clamp(sheetX * 0.62, 40, 112);
+    parts.spools = [];
+    for (const side of [-1, 1]) {
+      const x = side < 0 ? Math.max(sheetX + spoolR * 0.15, spoolR + 8) : Math.min(sheetX + sheetW - spoolR * 0.15, W - spoolR - 8);
+      const spool = new THREE.Group();
+      spool.position.set(x - platenCx, 0, -deckDepth * 0.5);
+      const flange = mesh(new THREE.CylinderGeometry(spoolR, spoolR, 2.5, 72), mat.gunmetal);
+      flange.position.y = 1.5;
+      const wound = mesh(new THREE.CylinderGeometry(spoolR * 0.84, spoolR * 0.84, 13, 72), mat.fabric);
+      wound.position.y = 9;
+      const rim = mesh(new THREE.TorusGeometry(spoolR * 0.97, 1.6, 10, 72).rotateX(Math.PI / 2), mat.chrome);
+      rim.position.y = 16;
+      const hub = mesh(new THREE.CylinderGeometry(spoolR * 0.16, spoolR * 0.16, 7, 32), mat.chrome);
+      hub.position.y = 18;
+      const spokes = new THREE.Group();
+      spokes.position.y = 16.5;
+      for (let k = 0; k < 3; k++) {
+        const spoke = mesh(new THREE.BoxGeometry(spoolR * 0.62, 1.6, 3), mat.gunmetal);
+        spoke.position.x = spoolR * 0.31;
+        const holder = new THREE.Group();
+        holder.rotation.y = (k * Math.PI * 2) / 3;
+        holder.add(spoke);
+        spokes.add(holder);
+      }
+      spool.add(flange, wound, rim, hub, spokes);
+      body.add(spool);
+      parts.spools.push({group: spool, spokes, side, radius: spoolR});
+    }
+
+    // Card holder, vibrator, needle and lamp on the head.
+    const cw = clamp(machineH * 0.2, 44, 64);
+    const top = bailY + 10;
+    const holderBottom = platenY + platenR * 1.0;
+    const holderH = holderBottom - top;
+    const plateShape = new THREE.Shape();
+    plateShape.moveTo(-cw / 2, 0);
+    plateShape.lineTo(cw / 2, 0);
+    plateShape.lineTo(cw / 2, holderH * 0.45);
+    plateShape.lineTo(cw * 0.34 + 4.5, holderH * 0.45);
+    plateShape.lineTo(cw * 0.34 + 4.5, holderH - 10);
+    plateShape.lineTo(cw * 0.34, holderH);
+    plateShape.lineTo(cw * 0.34 - 4.5, holderH - 10);
+    plateShape.lineTo(cw * 0.34 - 4.5, holderH * 0.55);
+    plateShape.lineTo(-cw * 0.34 + 4.5, holderH * 0.55);
+    plateShape.lineTo(-cw * 0.34 + 4.5, holderH - 10);
+    plateShape.lineTo(-cw * 0.34, holderH);
+    plateShape.lineTo(-cw * 0.34 - 4.5, holderH - 10);
+    plateShape.lineTo(-cw * 0.34 - 4.5, holderH * 0.45);
+    plateShape.lineTo(-cw / 2, holderH * 0.45);
+    plateShape.closePath();
+    const slot = new THREE.Path();
+    slot.absellipse(0, holderH * 0.22, 2.8, holderH * 0.15, 0, Math.PI * 2, false);
+    plateShape.holes.push(slot);
+    const plate = mesh(new THREE.ExtrudeGeometry(plateShape, {depth: 2.2, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8, bevelSegments: 3}), mat.chrome);
+    plate.position.set(0, -holderBottom, 14);
+    head.add(plate);
+    for (const side of [-1, 1]) {
+      const screw = mesh(new THREE.CylinderGeometry(3.4, 3.4, 2, 24).rotateX(Math.PI / 2), mat.steel);
+      screw.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.16), 17.5);
+      const slotMark = mesh(new THREE.BoxGeometry(5, 0.9, 0.6), mat.enamelDeep, {cast: false});
+      slotMark.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.16), 18.6);
+      slotMark.rotation.z = 0.5;
+      head.add(screw, slotMark);
+    }
+    // Ribbon vibrator: a U-shaped fork carrying the two-colour ribbon.
+    const vibrator = new THREE.Group();
+    vibrator.position.set(0, -(top + holderH * 0.25), 16);
+    const forkShape = new THREE.Shape();
+    forkShape.moveTo(-14, 6);
+    forkShape.lineTo(-14, -9);
+    forkShape.lineTo(14, -9);
+    forkShape.lineTo(14, 6);
+    forkShape.lineTo(11.5, 6);
+    forkShape.lineTo(11.5, -6.5);
+    forkShape.lineTo(-11.5, -6.5);
+    forkShape.lineTo(-11.5, 6);
+    forkShape.closePath();
+    vibrator.add(mesh(new THREE.ExtrudeGeometry(forkShape, {depth: 1.6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 2}), mat.chrome));
+    const ribbonTop = mesh(new THREE.BoxGeometry(23, 3.6, 1.2), mat.ribbonBlack);
+    ribbonTop.position.set(0, 0.2, 0.6);
+    const ribbonBottom = mesh(new THREE.BoxGeometry(23, 3.4, 1.2), mat.ribbonRed);
+    ribbonBottom.position.set(0, -3.3, 0.6);
+    vibrator.add(ribbonTop, ribbonBottom);
+    head.add(vibrator);
+    parts.vibrator = vibrator;
+    parts.vibratorY = vibrator.position.y;
+    // The needle (type guide pointer).
+    const needle = mesh(new THREE.CylinderGeometry(0.7, 0.7, holderH * 0.55, 12), mat.brass);
+    needle.position.set(0, -(top + holderH * 0.28), 15.5);
+    const tip = mesh(new THREE.ConeGeometry(2.6, 7, 16), mat.brass);
+    tip.position.set(0, -(top - 4), 15.5);
+    head.add(needle, tip);
+    // Paper guide wire resting on the sheet under the typing line.
+    const wire = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-cw * 0.55, -(bailY + 8), 4), new THREE.Vector3(-cw * 0.55, -(bailY - 6), 2.4),
+      new THREE.Vector3(0, -(bailY - 9), 2), new THREE.Vector3(cw * 0.55, -(bailY - 6), 2.4), new THREE.Vector3(cw * 0.55, -(bailY + 8), 4)
+    ]);
+    head.add(mesh(new THREE.TubeGeometry(wire, 40, 0.9, 8), mat.chrome));
+    const striker = mesh(new THREE.BoxGeometry(2.2, 2, 1), mat.steel);
+    striker.visible = false;
+    scene.add(striker);
+    parts.striker = striker;
+
+    // Front panel layout, in screen pixels below the front edge (local y = -screen / cos(tilt)).
+    const frontScreen = H - (platenY + platenR * 1.05 + deckVisible);
+    const toLocal = (screen) => -screen / Math.cos(bodyTilt);
+    const scaleTop = Math.max(10, frontScreen * 0.1);
+    const scaleH = clamp(frontScreen * 0.42, 30, 56);
+    const scaleW = gridRight - gridLeft + 36;
+    const scaleX = (gridLeft + gridRight) / 2 - platenCx;
+    const scaleY = toLocal(scaleTop + scaleH / 2);
+    const scaleLocalH = scaleH / Math.cos(bodyTilt);
+    const scale = mesh(new THREE.PlaneGeometry(scaleW, scaleLocalH), new THREE.MeshStandardMaterial({map: scaleTexture(scaleW, scaleH, L.cols, cellW, 18), roughness: 0.38, metalness: 0.05, envMapIntensity: 0.7, emissive: 0xffffff, emissiveMap: null, emissiveIntensity: 0}), {cast: false});
+    scale.material.emissiveMap = scale.material.map;
+    scale.material.emissiveIntensity = 0.35;
+    scale.position.set(scaleX, scaleY, 1.2);
+    body.add(scale);
+    const frame = mesh(new RoundedBoxGeometry(scaleW + 10, scaleLocalH + 10, 2, 2, 2.5), mat.chrome, {cast: false});
+    frame.position.set(scaleX, scaleY, -0.6);
+    body.add(frame);
+    const pointer = mesh(new THREE.ConeGeometry(5.5, 13, 3).rotateZ(Math.PI), mat.gold);
+    pointer.position.set(0, scaleY + scaleLocalH / 2 + 4, 3);
+    body.add(pointer);
+    parts.pointer = pointer;
+    // Gilded pinstripes above and below the scale.
+    for (const offset of [-scaleLocalH / 2 - 10, scaleLocalH / 2 + 12]) {
+      for (const k of [0, 3.2]) {
+        const stripe = mesh(new THREE.BoxGeometry(bodyW - 120 - k * 10, 0.9, 0.6), mat.gold, {cast: false});
+        stripe.position.set(0, scaleY + offset + (offset < 0 ? -k : k), 0.6);
+        body.add(stripe);
+      }
+    }
+    // Nameplate: gold-leaf lettering only, small and widely spaced, with a little relief.
+    const plateScreenH = clamp((frontScreen - scaleTop - scaleH) * 0.32, 11, 20);
+    const plateY = toLocal(scaleTop + scaleH + Math.max(14, (frontScreen - scaleTop - scaleH) * 0.42));
+    const plateW = plateScreenH * 13;
+    const plateLocalH = plateScreenH / Math.cos(bodyTilt) + 8;
+    const letters = gildedLettering('NOCTURNE', plateW, plateLocalH);
+    const lettering = mesh(new THREE.PlaneGeometry(plateW, plateLocalH), letters, {cast: false});
+    lettering.position.set(0, plateY, 1.4);
+    body.add(lettering);
+
+    parts.ribbon = [mesh(new THREE.BufferGeometry(), mat.ribbonBlack), mesh(new THREE.BufferGeometry(), mat.ribbonRed)];
+    parts.ribbon.forEach((r) => scene.add(r));
+
+
+    // Lights: hemisphere fill, a shadow-casting key, a rim for chrome edges, and the theme's lamp.
+    const lc = new THREE.Color(t.light);
+    scene.add(new THREE.HemisphereLight(new THREE.Color(t.room).lerp(new THREE.Color(0xffffff), 0.35), 0x050403, t.source === 'carriage' ? 0.55 : 0.4));
+    const key = new THREE.DirectionalLight(0xfff2e0, 2.4);
+    const keyDir = t.source === 'desk-lamp' ? [0.55, 0.75, 0.6] : t.source === 'moonlight' ? [-0.6, 0.7, 0.55] : [-0.35, 0.8, 0.75];
+    key.position.set(W / 2 + keyDir[0] * 1500, -H * 0.7 + keyDir[1] * 1500, keyDir[2] * 1500);
+    key.target.position.set(W / 2, -H * 0.75, 0);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    const sc = key.shadow.camera;
+    sc.left = -W * 0.75;
+    sc.right = W * 0.75;
+    sc.top = H * 0.7;
+    sc.bottom = -H * 0.7;
+    sc.near = 100;
+    sc.far = 4000;
+    key.shadow.bias = -0.0006;
+    key.shadow.normalBias = 0.4;
+    key.shadow.radius = 7;
+    key.shadow.blurSamples = 20;
+    if (t.source === 'moonlight') key.color = new THREE.Color(0xc8d2ff);
+    if (t.source === 'desk-lamp') key.color = lc.clone().lerp(new THREE.Color(0xffffff), 0.35);
+    scene.add(key, key.target);
+    parts.key = key;
+    const rim = new THREE.DirectionalLight(0xffffff, 1.1);
+    rim.position.set(W / 2, 400, -900);
+    scene.add(rim);
+    const fill = new THREE.DirectionalLight(t.source === 'carriage' ? 0xd8e0ff : 0x9aa4c8, 0.45);
+    fill.position.set(W * 1.4, -H * 0.4, 700);
+    scene.add(fill);
+    const bulb = mesh(new THREE.SphereGeometry(3.4, 24, 16), mat.bulb, {cast: false, receive: false});
+    bulb.position.set(0, -(top + 2), 22);
+    const lamp = new THREE.PointLight(lc, 0, 0, 2);
+    lamp.position.set(0, -(top + 2), 30);
+    // Halo around the bulb (additive), as the eye and a lens see a small bright source.
+    const haloCanvas = document.createElement('canvas');
+    haloCanvas.width = haloCanvas.height = 128;
+    const hx = haloCanvas.getContext('2d');
+    const hg = hx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    hg.addColorStop(0, 'rgba(255,255,255,1)');
+    hg.addColorStop(0.08, 'rgba(255,255,255,0.7)');
+    hg.addColorStop(0.3, 'rgba(255,255,255,0.12)');
+    hg.addColorStop(1, 'rgba(255,255,255,0)');
+    hx.fillStyle = hg;
+    hx.fillRect(0, 0, 128, 128);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(haloCanvas), color: lc, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false}));
+    halo.scale.set(90, 90, 1);
+    halo.position.copy(bulb.position).add(new THREE.Vector3(0, 0, 6));
+    head.add(bulb, lamp, halo);
+    parts.halo = halo;
+    parts.bulb = bulb;
+    parts.lamp = lamp;
+    parts.top = top;
+    parts.platenCx = platenCx;
+    parts.segR = segR;
+    document.getElementById('loading').hidden = true;
+  }
+
+  function ribbonBand(curve, offset, width, segments) {
+    const positions = [];
+    const normals = [];
+    const index = [];
+    for (let i = 0; i <= segments; i++) {
+      const u = i / segments;
+      const p = curve.getPoint(u);
+      const tangent = curve.getTangent(u);
+      const side = new THREE.Vector3(-tangent.y, tangent.x, 0).normalize();
+      const centre = p.clone().addScaledVector(side, offset);
+      const a = centre.clone().addScaledVector(side, width / 2);
+      const b = centre.clone().addScaledVector(side, -width / 2);
+      positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+      normals.push(side.x * 0.3, side.y * 0.3, 0.95, -side.x * 0.3, -side.y * 0.3, 0.95);
+    }
+    for (let i = 0; i < segments; i++) {
+      const k = i * 2;
+      index.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    g.setIndex(index);
+    return g;
+  }
+
+  function ribbonPoints() {
+    // From the top of the left spool, rising to the vibrator, and down to the right spool.
+    const spoolTop = (sp) => parts.body.localToWorld(new THREE.Vector3(sp.group.position.x - sp.side * sp.radius * 0.55, 16, sp.group.position.z - sp.radius * 0.2));
+    const [ls, rs] = parts.spools;
+    const left = parts.vibrator.localToWorld(new THREE.Vector3(-11, -1.5, 0.6));
+    const right = parts.vibrator.localToWorld(new THREE.Vector3(11, -1.5, 0.6));
+    const a = spoolTop(ls);
+    const b = spoolTop(rs);
+    const towards = (from, to, k) => from.clone().lerp(to, k).add(new THREE.Vector3(0, 0, 8));
+    return [a, towards(a, left, 0.5), left, right, towards(b, right, 0.5), b];
+  }
+
+  function update() {
+    const t = THEMES[settings.theme];
+    const cx = carriage.x.position;
+    parts.head.position.x = cx;
+    parts.basket.position.x = cx - parts.platenCx;
+    parts.pointer.position.x = cx - parts.platenCx;
+    parts.platen.rotation.x = platenRoll.angle * Math.PI * 2;
+    parts.vibrator.position.y = parts.vibratorY + carriage.vibrator.position * 7;
+    for (const s of parts.spools) s.spokes.rotation.y = carriage.spool * s.side;
+    scene.updateMatrixWorld(true);
+    const points = ribbonPoints();
+    parts.ribbon.forEach((r, i) => {
+      const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
+      r.geometry.dispose();
+      r.geometry = ribbonBand(curve, i === 0 ? 1.8 : -1.8, 3.6, 160);
+    });
+    const swing = clamp(carriage.strike.position, 0, 1);
+    const striker = parts.striker;
+    if (swing > 0.02) {
+      const bar = parts.bars[Math.floor(carriage.strike.bar * (parts.bars.length - 1))];
+      const from = bar.localToWorld(new THREE.Vector3(0, parts.barLength, 0));
+      const to = new THREE.Vector3(cx, -(parts.top + 3), 16);
+      const tipPos = from.clone().lerp(to, swing);
+      const pivot = bar.localToWorld(new THREE.Vector3(0, 0, 0));
+      striker.geometry.dispose();
+      striker.geometry = new THREE.BoxGeometry(2.4, 2.4, Math.max(1, pivot.distanceTo(tipPos)));
+      striker.position.copy(pivot).lerp(tipPos, 0.5);
+      striker.lookAt(tipPos);
+      striker.visible = true;
+    } else striker.visible = false;
+    const lampOn = settings.lamp && t.source === 'carriage';
+    parts.lamp.intensity = lampOn ? 26000 * settings.intensity : 0;
+    parts.bulb.visible = lampOn;
+    parts.halo.visible = lampOn;
+    parts.halo.material.opacity = 0.55 * settings.intensity;
+    parts.key.intensity = (t.source === 'carriage' ? 3.0 : 2.2) * (settings.lamp ? 1 : 0.6);
+  }
+
+  function render() {
+    if (!scene) return;
+    update();
+    renderer.render(scene, camera);
+  }
+
+  function disposeScene() {
+    scene.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
+    });
+    scene = null;
+  }
+
+  return {build, render};
+})();
+
+// ------------------------------------------------------------------------------------------------
+// Sound (mirrors lib/nocturne/typewriter/sound-engine.ts, condensed)
+const audio = (() => {
+  let context = null;
+  const buffers = {};
+  const rnd = (seed) => { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = Math.imul(s ^ (s >>> 15), s | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const noise = (ctx, seconds, r) => { const b = ctx.createBuffer(1, Math.ceil(seconds * ctx.sampleRate), ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1; return b; };
+  const env = (ctx, at, peak, decay) => { const g = ctx.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak, at + 0.0006); g.gain.exponentialRampToValueAtTime(0.0001, at + decay); return g; };
+  const burst = (ctx, out, r, type, f, q, at, peak, decay) => { if (peak <= 0) return; const s = ctx.createBufferSource(); s.buffer = noise(ctx, decay + 0.02, r); const bq = ctx.createBiquadFilter(); bq.type = type; bq.frequency.value = f; bq.Q.value = q; s.connect(bq).connect(env(ctx, at, peak, decay)).connect(out); s.start(at); };
+  const thump = (ctx, out, f, at, peak, decay) => { const o = ctx.createOscillator(); o.frequency.setValueAtTime(f * 1.6, at); o.frequency.exponentialRampToValueAtTime(f, at + 0.02); o.connect(env(ctx, at, peak, decay)).connect(out); o.start(at); o.stop(at + decay + 0.05); };
+  async function render(kind, seed) {
+    const dur = {key: 0.18, space: 0.22, ret: 0.62, bell: 1.6}[kind];
+    const ctx = new OfflineAudioContext(1, Math.ceil(dur * 44100), 44100);
+    const r = rnd(seed);
+    const out = ctx.createGain();
+    out.connect(ctx.destination);
+    const j = () => 0.92 + r() * 0.16;
+    if (kind === 'key' || kind === 'space') {
+      const w = kind === 'space' ? 1.25 : 1;
+      burst(ctx, out, r, 'highpass', 2600 * j(), 0.7, 0, 0.75 / w, 0.012);
+      thump(ctx, out, 140 * j() * (2 - w), 0, 0.9 * w, 0.05);
+      burst(ctx, out, r, 'bandpass', 3300 * j(), 16, 0.002, kind === 'space' ? 0 : 0.16, 0.1);
+      burst(ctx, out, r, 'bandpass', 1800 * j(), 2, 0.024 + r() * 0.008, 0.2, 0.01);
+    } else if (kind === 'ret') {
+      for (let i = 0; i < 5; i++) burst(ctx, out, r, 'bandpass', 2200 + r() * 400, 3, i * 0.026, 0.45 - i * 0.06, 0.008);
+      const s = ctx.createBufferSource();
+      s.buffer = noise(ctx, 0.4, r);
+      const bq = ctx.createBiquadFilter();
+      bq.type = 'bandpass';
+      bq.Q.value = 1.4;
+      bq.frequency.setValueAtTime(1900, 0.12);
+      bq.frequency.exponentialRampToValueAtTime(520, 0.44);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, 0.12);
+      g.gain.linearRampToValueAtTime(0.32, 0.18);
+      g.gain.exponentialRampToValueAtTime(0.0001, 0.46);
+      s.connect(bq).connect(g).connect(out);
+      s.start(0.12);
+      thump(ctx, out, 98, 0.46, 1, 0.08);
+      burst(ctx, out, r, 'highpass', 1500, 0.7, 0.46, 0.5, 0.02);
+    } else {
+      for (const [f, p, d] of [[2093, 0.5, 1.3], [5230, 0.12, 0.6], [3150, 0.09, 0.9]]) {
+        const o = ctx.createOscillator();
+        o.frequency.value = f;
+        o.connect(env(ctx, 0, p, d)).connect(out);
+        o.start(0);
+        o.stop(d + 0.1);
+      }
+    }
+    return ctx.startRendering();
+  }
+  (async () => {
+    for (const kind of ['key', 'space', 'ret', 'bell']) {
+      buffers[kind] = [];
+      for (let i = 0; i < 4; i++) buffers[kind].push(await render(kind, i * 7919 + kind.length));
+    }
+  })().catch(() => {});
+  const r = rnd(Date.now());
+  return {
+    play(kind) {
+      if (!settings.sound || !buffers[kind] || !buffers[kind].length) return;
+      if (!context) { try { context = new AudioContext({latencyHint: 'interactive'}); } catch { return; } }
+      if (context.state === 'suspended') context.resume();
+      const s = context.createBufferSource();
+      s.buffer = buffers[kind][Math.floor(r() * buffers[kind].length)];
+      s.playbackRate.value = 1 + (r() - 0.5) * 0.045;
+      const g = context.createGain();
+      g.gain.value = settings.volume * (kind === 'ret' || kind === 'bell' ? 0.8 : 1) * (0.9 + r() * 0.2);
+      s.connect(g).connect(context.destination);
+      s.start();
+    }
+  };
+})();
+
+// ------------------------------------------------------------------------------------------------
+// Typing (the app observes the real terminal instead)
+let bellArmed = true;
+function strike(ch) {
+  const line = lines[lines.length - 1];
+  line.push({ch, color: 'ink', at: performance.now() + 28});
+  cursor.col += wide(ch) ? 2 : 1;
+  carriage.strike = {position: 0, velocity: 34, bar: hash(ch.charCodeAt(0))};
+  carriage.vibrator.velocity = 16;
+  carriage.spool += 0.07;
+  if (cursor.col >= L.cols - 8 && bellArmed) {
+    bellArmed = false;
+    setTimeout(() => audio.play('bell'), 40);
+  }
+  if (cursor.col >= L.cols - 1) newLine(false);
+}
+function newLine(withSound = true) {
+  lines.push([...'$ '].map((ch) => ({ch, color: 'muted', at: -1e9})));
+  cursor = {row: lines.length - 1, col: 2};
+  bellArmed = true;
+  feed.position = 1;
+  platenRoll.target += 1 / 36;
+  if (withSound) audio.play('ret');
+}
+function onKey(event) {
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.target.closest && event.target.closest('#studio')) return;
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    newLine();
+  } else if (event.key === 'Backspace') {
+    event.preventDefault();
+    const line = lines[lines.length - 1];
+    if (line.length > 2) {
+      const removed = line.pop();
+      cursor.col -= wide(removed.ch) ? 2 : 1;
+      audio.play('key');
+    }
+  } else if (event.key.length === 1) {
+    event.preventDefault();
+    strike(event.key);
+    audio.play(event.key === ' ' ? 'space' : 'key');
+  } else return;
+  document.getElementById('hint').style.opacity = '0';
+  dirty = true;
+}
+document.addEventListener('keydown', onKey);
+
+// ------------------------------------------------------------------------------------------------
+// Studio
+function slider(container, key, label, min, max, step, format, relayout = false) {
+  const id = `s-${key}`;
+  const wrap = document.createElement('div');
+  wrap.className = 'slider';
+  wrap.innerHTML = `<div class="head"><label class="label" for="${id}"></label><span class="value"></span></div><input id="${id}" type="range">`;
+  wrap.querySelector('label').textContent = label;
+  const input = wrap.querySelector('input');
+  const value = wrap.querySelector('.value');
+  Object.assign(input, {min, max, step, value: settings[key]});
+  const show = () => { value.textContent = format(settings[key]); };
+  input.addEventListener('input', () => {
+    settings[key] = Number(input.value);
+    show();
+    if (relayout) layout();
+    dirty = true;
+  });
+  show();
+  container.appendChild(wrap);
+}
+const pct = (v) => `${Math.round(v * 100)}%`;
+const typeGroup = document.getElementById('type-group');
+slider(typeGroup, 'fontSize', 'Type size', 11, 22, 0.5, (v) => `${v}px`, true);
+slider(typeGroup, 'lineHeight', 'Line spacing', 1.2, 1.9, 0.05, (v) => v.toFixed(2), true);
+const lampGroup = document.getElementById('lamp-group');
+slider(lampGroup, 'intensity', 'Intensity', 0, 2, 0.01, pct);
+slider(lampGroup, 'spread', 'Spread', 20, 160, 1, (v) => `${Math.round(v)}°`);
+slider(lampGroup, 'reach', 'Reach', 0.2, 2, 0.01, pct);
+slider(lampGroup, 'softness', 'Softness', 0, 1, 0.01, pct);
+slider(lampGroup, 'particles', 'Dust in the beam', 0, 1, 0.01, pct);
+slider(lampGroup, 'grain', 'Film grain', 0, 1, 0.01, pct);
+const paperGroup = document.getElementById('paper-group');
+{
+  const row = document.createElement('div');
+  row.className = 'themes';
+  row.id = 'papers';
+  for (const [id, pp] of Object.entries(PAPERS)) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.paper = id;
+    button.innerHTML = '<span class="swatch"></span><span></span>';
+    button.querySelector('.swatch').style.background = `linear-gradient(135deg, ${pp.paper} 60%, ${pp.ink} 60%)`;
+    button.lastElementChild.textContent = pp.name;
+    button.addEventListener('click', () => {
+      settings.paper = id;
+      applyTheme(settings.theme);
+      machine.build();
+    });
+    row.appendChild(button);
+  }
+  paperGroup.appendChild(row);
+}
+slider(paperGroup, 'texture', 'Texture depth', 0, 1.6, 0.01, pct);
+slider(paperGroup, 'impression', 'Type impression', 0, 1, 0.01, pct);
+slider(document.getElementById('sound-group'), 'volume', 'Volume', 0, 1, 0.01, pct);
+
+const themesEl = document.getElementById('themes');
+for (const [id, t] of Object.entries(THEMES)) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.theme = id;
+  button.innerHTML = '<span class="swatch"></span><span></span>';
+  button.querySelector('.swatch').style.background = `linear-gradient(135deg, ${t.room} 50%, ${t.light} 50%)`;
+  button.lastElementChild.textContent = t.name;
+  button.addEventListener('click', () => {
+    applyTheme(id);
+    machine.build();
+  });
+  themesEl.appendChild(button);
+}
+function applyTheme(id) {
+  settings.theme = id;
+  const t = THEMES[id];
+  const root = document.documentElement.style;
+  root.setProperty('--paper', currentPaper().paper);
+  root.setProperty('--ink', currentPaper().ink);
+  root.setProperty('--accent', t.accent);
+  root.setProperty('--room', t.room);
+  root.setProperty('--room-edge', t.roomEdge);
+  root.setProperty('--glow', rgb(hex(t.light), settings.lamp ? 0.11 : 0.02));
+  root.setProperty('--lx', `${Math.round(t.position[0] * 100)}%`);
+  root.setProperty('--ly', `${Math.round(clamp(t.position[1], 0, 1) * 60)}%`);
+  document.getElementById('where').textContent = `${t.name} · ~/manuscripts`;
+  for (const b of themesEl.children) b.setAttribute('aria-pressed', String(b.dataset.theme === id));
+  for (const b of document.getElementById('papers')?.children || []) b.setAttribute('aria-pressed', String(b.dataset.paper === settings.paper));
+  dirty = true;
+}
+function bindToggle(button, key, also) {
+  const sync = () => {
+    button.setAttribute('aria-checked', String(settings[key]));
+    if (also) also.setAttribute('aria-pressed', String(settings[key]));
+  };
+  const flip = () => {
+    settings[key] = !settings[key];
+    sync();
+    applyTheme(settings.theme);
+  };
+  button.addEventListener('click', flip);
+  if (also) also.addEventListener('click', flip);
+  sync();
+}
+bindToggle(document.getElementById('lamp-toggle'), 'lamp', document.getElementById('t-lamp'));
+bindToggle(document.getElementById('sound-toggle'), 'sound', document.getElementById('t-sound'));
+document.getElementById('t-studio').addEventListener('click', (e) => {
+  const studio = document.getElementById('studio');
+  studio.hidden = !studio.hidden;
+  e.currentTarget.setAttribute('aria-pressed', String(!studio.hidden));
+});
+
+// ------------------------------------------------------------------------------------------------
+// Frame loop: only work that changes
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  const targetX = cursorX();
+  if (targetX < carriage.x.position - 4 * cellW) carriage.mode = 'return';
+  const before = carriage.x.position;
+  carriage.x = stepImpact(carriage.x, targetX, carriage.mode === 'return' ? RETURN : ESCAPEMENT, dt);
+  if (carriage.x.position === targetX && carriage.x.velocity === 0) carriage.mode = 'step';
+  const s = carriage.strike;
+  if (s.position !== 0 || s.velocity !== 0) {
+    const next = stepSpring(s, 0, 7, 0.45, dt);
+    carriage.strike = {...s, ...next};
+    if (carriage.strike.position < 0) carriage.strike.position = 0;
+  }
+  const v = stepSpring(carriage.vibrator, 0, 10, 0.6, dt);
+  carriage.vibrator.position = v.position;
+  carriage.vibrator.velocity = v.velocity;
+  const fed = stepSpring(feed, 0, 8, 0.9, dt);
+  feed.position = fed.position;
+  feed.velocity = fed.velocity;
+  const rolled = stepSpring({position: platenRoll.angle, velocity: platenRoll.velocity}, platenRoll.target, 6, 0.9, dt);
+  platenRoll.angle = rolled.position;
+  platenRoll.velocity = rolled.velocity;
+  const moving = before !== carriage.x.position || carriage.strike.position !== 0 || carriage.vibrator.position !== 0 || feed.position !== 0 || platenRoll.angle !== platenRoll.target;
+  const ambient = settings.lamp && !reduceMotion && (settings.particles > 0 || settings.grain > 0);
+  const inking = drawText(now);
+  if (dirty || moving || ambient || inking) {
+    paper.render(now);
+    paper.renderGlow(now);
+  }
+  if (dirty || moving) machine.render();
+  dirty = false;
+  requestAnimationFrame(frame);
+}
+
+window.addEventListener('resize', layout);
+applyTheme(settings.theme);
+document.fonts.ready.then(() => {
+  layout();
+  requestAnimationFrame(frame);
+});
+</script>
