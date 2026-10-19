@@ -316,7 +316,8 @@ function layout() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const narrow = W < 720;
   const machineH = clamp(H * 0.3, 160, 300);
-  const sheetW = Math.min(W - (narrow ? 64 : 2 * clamp(W * 0.16, 90, 280)), 1020);
+  // Side margins about 8% of the width: room for the platen ends and knobs, no wide empty bands.
+  const sheetW = Math.min(W - (narrow ? 40 : 2 * clamp(W * 0.085, 64, 150)), 1240);
   const sheetX = Math.round((W - sheetW) / 2);
   const machineTop = H - machineH;
   const platenR = machineH * 0.12;
@@ -328,7 +329,7 @@ function layout() {
   ctx.font = `${settings.fontSize}px ${monoFont()}`;
   cellW = ctx.measureText('M').width;
   const textBottom = bailY - 16;
-  const padX = Math.max(28, Math.round(sheetW * 0.07));
+  const padX = Math.max(26, Math.round(sheetW * 0.06));
   const cols = Math.max(20, Math.floor((sheetW - 2 * padX) / cellW));
   const gridX = Math.round((sheetW - cols * cellW) / 2);
   const rows = Math.max(4, Math.floor((textBottom - 40) / LINE));
@@ -933,7 +934,7 @@ const machine = (() => {
 
     const gridLeft = sheetX + L.gridX;
     const gridRight = gridLeft + L.cols * cellW;
-    const reach = Math.min(sheetX * 0.42, 130);
+    const reach = Math.min(sheetX * 0.45, 90);
     const platenLeft = sheetX - reach;
     const platenRight = sheetX + sheetW + reach;
     const platenLen = platenRight - platenLeft;
@@ -963,8 +964,8 @@ const machine = (() => {
     const shaft = mesh(cylX(5, platenLen + 140, 24), mat.chrome);
     shaft.position.copy(platen.position);
     scene.add(shaft);
-    const earW = clamp(sheetX * 0.16, 18, 40);
-    const knobW = clamp(sheetX * 0.2, 24, 58);
+    const earW = clamp(sheetX * 0.18, 14, 30);
+    const knobW = clamp(sheetX * 0.24, 18, 40);
     for (const side of [-1, 1]) {
       const endX = side < 0 ? platenLeft : platenRight;
       const cap = mesh(cylX(platenR * 0.92, 6, 64), mat.chrome);
@@ -973,7 +974,7 @@ const machine = (() => {
       const ear = mesh(new RoundedBoxGeometry(earW, platenR * 3.4, platenR * 2.6, 4, 6), mat.enamel);
       ear.position.set(endX + side * (earW / 2 + 6), -(platenY + platenR * 0.15), -platenR * 0.9);
       scene.add(ear);
-      const knobX = endX + side * (earW + 12 + knobW / 2);
+      const knobX = endX + side * (earW + 6 + knobW / 2);
       const knob = mesh(cylX(platenR * 1.08, knobW, 96), mat.bakelite);
       knob.position.set(knobX, -platenY, -platenR);
       scene.add(knob);
@@ -985,11 +986,12 @@ const machine = (() => {
       scene.add(collar);
     }
     // Carriage-return lever.
+    const leverReach = clamp(sheetX * 0.45, 22, 70);
     const leverCurve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(platenLeft - earW / 2, -(platenY - platenR * 0.5), 6),
-      new THREE.Vector3(platenLeft - earW - 6, -(platenY - platenR * 1.8), 22),
-      new THREE.Vector3(platenLeft - earW - 40, -(platenY - platenR * 2.5), 30),
-      new THREE.Vector3(platenLeft - earW - 70, -(platenY - platenR * 2.6), 26)
+      new THREE.Vector3(platenLeft - earW - leverReach * 0.1, -(platenY - platenR * 1.8), 22),
+      new THREE.Vector3(platenLeft - earW - leverReach * 0.55, -(platenY - platenR * 2.5), 30),
+      new THREE.Vector3(platenLeft - earW - leverReach, -(platenY - platenR * 2.6), 26)
     ]);
     scene.add(mesh(new THREE.TubeGeometry(leverCurve, 48, 3.2, 12), mat.chrome));
     const grip = mesh(new THREE.CapsuleGeometry(6.5, 16, 8, 16).rotateZ(Math.PI / 2), mat.bakelite);
