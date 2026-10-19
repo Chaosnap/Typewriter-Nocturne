@@ -59,7 +59,7 @@ test('a Nocturne theme drives xterm colours and fonts through the config', (t) =
   t.is(result.foregroundColor, THEMES['paper-and-ink'].palette.ink);
   t.is(result.colors.red, THEMES['paper-and-ink'].palette.ansi.red);
   t.is((result.colors as unknown as Record<string, string>).limeGreen, '#32CD32');
-  t.true(result.fontFamily.startsWith('"IBM Plex Mono"'));
+  t.true(result.fontFamily.startsWith('"Courier Prime"'));
   t.is(result.fontSize, settings.typography.fontSize);
   t.is(result.cursorShape, 'BLOCK');
 });

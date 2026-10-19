@@ -51,5 +51,9 @@
   "editor:deleteEndLine": "command+delete",
   "editor:clearBuffer": "command+k",
   "editor:break": "ctrl+c",
-  "plugins:update": "command+shift+u"
+  "plugins:update": "command+shift+u",
+  "nocturne:focus-mode": "command+shift+enter",
+  "nocturne:lighting": "command+shift+l",
+  "nocturne:studio": "command+shift+,",
+  "nocturne:sound": "command+shift+m"
 }

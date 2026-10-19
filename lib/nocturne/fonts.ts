@@ -40,7 +40,7 @@ const FACES = [
 ];
 
 function loadFaces(timeoutMs: number): Promise<void> {
-  if (typeof document === 'undefined' || !document.fonts) {
+  if (typeof document === 'undefined' || !('fonts' in document)) {
     return Promise.resolve();
   }
   const loads = Promise.all(FACES.map((face) => document.fonts.load(face).catch(() => []))).then(() => undefined);

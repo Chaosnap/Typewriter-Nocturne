@@ -89,7 +89,7 @@ test('lighting presets: off disables, cinematic is stronger than balanced', (t) 
 });
 
 test('typography presets apply font and metrics', (t) => {
-  const manuscript = applyTypographyPreset(defaultSettings(), 'manuscript').typography;
-  t.is(manuscript.font, 'courier-prime');
-  t.is(manuscript.preset, 'manuscript');
+  const study = applyTypographyPreset(defaultSettings(), 'study').typography;
+  t.is(study.font, 'ibm-plex-mono');
+  t.is(study.preset, 'study');
 });

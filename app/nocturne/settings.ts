@@ -176,13 +176,13 @@ export function defaultSettings(): NocturneSettings {
       quality: 'auto'
     },
     typography: {
-      preset: 'study',
-      font: 'ibm-plex-mono',
+      preset: 'manuscript',
+      font: 'courier-prime',
       customFamily: '',
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: 400,
-      fontWeightBold: 600,
-      lineHeight: 1.3,
+      fontWeightBold: 700,
+      lineHeight: 1.4,
       letterSpacing: 0,
       ligatures: false,
       cursorStyle: 'block',

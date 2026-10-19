@@ -51,6 +51,38 @@ const viewMenu = (
         click(item, focusedWindow) {
           execCommand('zoom:out', focusedWindow);
         }
+      },
+      // [nocturne]
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Focus Mode',
+        accelerator: commandKeys['nocturne:focus-mode'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:focus-mode', focusedWindow);
+        }
+      },
+      {
+        label: 'Lamp On / Off',
+        accelerator: commandKeys['nocturne:lighting'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:lighting', focusedWindow);
+        }
+      },
+      {
+        label: 'Typewriter Sound On / Off',
+        accelerator: commandKeys['nocturne:sound'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:sound', focusedWindow);
+        }
+      },
+      {
+        label: 'Nocturne Studio…',
+        accelerator: commandKeys['nocturne:studio'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:studio', focusedWindow);
+        }
       }
     ]
   };

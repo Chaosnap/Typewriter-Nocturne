@@ -49,5 +49,9 @@
   "editor:deleteEndLine": "ctrl+end",
   "editor:clearBuffer": "ctrl+shift+k",
   "editor:break": "ctrl+c",
-  "plugins:update": "ctrl+shift+u"
+  "plugins:update": "ctrl+shift+u",
+  "nocturne:focus-mode": "ctrl+shift+enter",
+  "nocturne:lighting": "ctrl+shift+l",
+  "nocturne:studio": "ctrl+shift+,",
+  "nocturne:sound": "ctrl+alt+m"
 }

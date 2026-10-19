@@ -6,7 +6,17 @@ import {updatePlugins} from './plugins';
 import {installCLI} from './utils/cli-install';
 import * as systemContextMenu from './utils/system-context-menu';
 
+// [nocturne] Commands of the Nocturne visual layer run in the renderer; the main process only
+// forwards them so menus and keymaps share one path.
+const nocturneCommand = (name: string) => (focusedWindow?: BrowserWindow) => {
+  focusedWindow?.webContents.send('nocturne:command', name);
+};
+
 const commands: Record<string, (focusedWindow?: BrowserWindow) => void> = {
+  'nocturne:focus-mode': nocturneCommand('focus-mode'),
+  'nocturne:lighting': nocturneCommand('lighting'),
+  'nocturne:studio': nocturneCommand('studio'),
+  'nocturne:sound': nocturneCommand('sound'),
   'window:new': () => {
     // If window is created on the same tick, it will consume event too
     setTimeout(app.createWindow, 0);
