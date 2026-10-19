@@ -5,7 +5,7 @@
 // keystrokes for the afterimage / ink-bloom effects. It never writes to the terminal, never
 // subscribes to PTY data and never delays input.
 
-import type {IDisposable, Terminal} from 'xterm';
+import type {IBufferCell, IDisposable, Terminal} from 'xterm';
 
 import {extraTerminalOptions} from '../../app/nocturne/apply-config';
 
@@ -15,6 +15,13 @@ import {getSettings, subscribe} from './store';
 let activeUid: string | null = null;
 
 const PRINTABLE = /^[^\p{C}]$/u;
+
+function foregroundOf(cell: IBufferCell): number | string | null {
+  if (cell.isFgRGB()) {
+    return `#${cell.getFgColor().toString(16).padStart(6, '0')}`;
+  }
+  return cell.isFgPalette() ? cell.getFgColor() : null;
+}
 
 function applyExtraOptions(term: Terminal) {
   const options = extraTerminalOptions(getSettings());
@@ -61,6 +68,7 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       rows: term.rows,
       alternate: buffer.type === 'alternate',
       visible: buffer.viewportY === buffer.baseY,
+      viewportY: buffer.viewportY,
       grid: {left: rect.left, top: rect.top, width: rect.width, height: rect.height}
     };
 
@@ -72,10 +80,12 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
         emit('strike', {
           uid,
           char: pending.char,
-          x: rect.left + pending.col * cellWidth,
-          y: rect.top + pending.row * cellHeight,
+          col: pending.col,
+          line: buffer.baseY + pending.row,
+          cellWidth,
           width: cellWidth * Math.max(1, cell.getWidth()),
-          height: cellHeight
+          fg: foregroundOf(cell),
+          bold: cell.isBold() !== 0
         });
         pending = null;
       }

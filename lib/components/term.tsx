@@ -17,6 +17,7 @@ import {WebLinksAddon} from 'xterm-addon-web-links';
 import {WebglAddon} from 'xterm-addon-webgl';
 
 import type {TermProps} from '../../typings/hyper';
+import {attachTerminal} from '../nocturne/terminal-bridge';
 import terms from '../terms';
 import processClipboard from '../utils/paste';
 import {decorate} from '../utils/plugins';
@@ -315,6 +316,9 @@ export default class Term extends React.PureComponent<
         }));
       })
     );
+
+    // [nocturne] Read-only bridge: cursor geometry and echoed keystrokes for the visual layer.
+    this.disposableListeners.push(attachTerminal(props.uid, this.term));
 
     window.addEventListener('paste', this.onWindowPaste, {
       capture: true

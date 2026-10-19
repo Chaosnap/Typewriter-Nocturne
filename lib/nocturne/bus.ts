@@ -17,6 +17,8 @@ export type CursorFrame = {
   alternate: boolean;
   /** Whether the cursor row is inside the visible viewport (false while scrolled back). */
   visible: boolean;
+  /** Buffer line shown in the top row of the viewport. */
+  viewportY: number;
   /** The text grid (`.xterm-screen`) in client coordinates. */
   grid: {left: number; top: number; width: number; height: number};
 };
@@ -24,10 +26,15 @@ export type CursorFrame = {
 export type StrikeEvent = {
   uid: string;
   char: string;
-  x: number;
-  y: number;
+  /** Cell of the glyph: column, and absolute buffer line (so it can follow scrolling). */
+  col: number;
+  line: number;
+  cellWidth: number;
+  /** Width of the glyph (two cells for wide characters). */
   width: number;
-  height: number;
+  /** Foreground: null = default ink, a number = palette index, a string = `#rrggbb`. */
+  fg: number | string | null;
+  bold: boolean;
 };
 
 export type KeyKind = 'key' | 'space' | 'return' | 'backspace' | 'composition';

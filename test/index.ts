@@ -43,6 +43,7 @@ const writeTestConfig = () => {
     config: {
       // Renders terminal rows into the DOM so the test can read real output.
       screenReaderMode: true,
+      windowSize: [1280, 820],
       shell: isWindows ? 'powershell.exe' : '/bin/bash',
       shellArgs: isWindows ? ['-NoLogo', '-NoProfile'] : ['--noprofile', '--norc'],
       env: isWindows ? {} : {PS1: '$ ', LC_ALL: process.platform === 'darwin' ? 'en_US.UTF-8' : 'C.UTF-8'}
@@ -65,6 +66,19 @@ const screenshot = async (name: string) => {
     await fs.writeFile(`dist/tmp/${process.platform}_${name}.png`, Buffer.from(image, 'base64'));
   }
 };
+
+/** Sends Nocturne settings to the window as the main process does when another window saves them. */
+const setNocturne = (settings: Record<string, unknown>) =>
+  app.evaluate(({BrowserWindow}, value) => {
+    BrowserWindow.getAllWindows()[0].webContents.send('nocturne:settings:changed', value);
+  }, settings);
+
+const nocturneCommand = (name: string) =>
+  app.evaluate(({BrowserWindow}, value) => {
+    BrowserWindow.getAllWindows()[0].webContents.send('nocturne:command', value);
+  }, name);
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const terminalText = () =>
   page.evaluate(() => {
@@ -173,4 +187,52 @@ test.serial('resizing the window resizes the PTY', async (t) => {
 
   t.true(wide > narrow, `expected more columns after widening (narrow=${narrow}, wide=${wide})`);
   await screenshot('resized');
+});
+
+const LOOKS: [string, Record<string, unknown>][] = [
+  ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: false}],
+  ['midnight-study', {theme: 'midnight-study', paper: {style: 'night'}, focusMode: false}],
+  ['moonlit-poetry', {theme: 'moonlit-poetry', paper: {style: 'laid'}, focusMode: false}],
+  ['parchment', {theme: 'paper-and-ink', paper: {style: 'parchment'}, focusMode: false}],
+  ['focus-mode', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true}]
+];
+
+test.serial('the typewriter stage renders every theme and paper over a live shell', async (t) => {
+  await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].setSize(1280, 820));
+  await pause(1500);
+  await run(isWindows ? 'Clear-Host' : 'clear');
+  await run('echo "Every line of code, a line of verse"');
+  await waitForText('Every line of code, a line of verse');
+  // Leave a half-typed command so the type head stands in the middle of the line.
+  await page.keyboard.type('echo "Sonnet XVIII');
+
+  const stage = await page.evaluate(() => {
+    const hasWebGL = (selector: string) => {
+      const canvas = document.querySelector<HTMLCanvasElement>(selector);
+      return Boolean(canvas && !canvas.hidden && canvas.getContext('webgl2'));
+    };
+    return {
+      nocturne: document.querySelector('.tn-nocturne') !== null,
+      machine: hasWebGL('.tn-machine'),
+      paperLight: hasWebGL('.tn-paper-light')
+    };
+  });
+  t.log(`WebGL 2 contexts: typewriter ${stage.machine}, paper light ${stage.paperLight}`);
+  t.true(stage.nocturne, 'the Nocturne stage wraps the terminal');
+
+  for (const [name, settings] of LOOKS) {
+    await setNocturne(settings);
+    await pause(2500);
+    await screenshot(`nocturne-${name}`);
+  }
+
+  await setNocturne(LOOKS[0][1]);
+  await nocturneCommand('studio');
+  await pause(2500);
+  await screenshot('nocturne-studio');
+  await nocturneCommand('studio');
+
+  // The half-typed command is still in the shell's line editor: effects never touched the input.
+  await run('"');
+  t.truthy(await waitForText(/Sonnet XVIII[\s\S]*Sonnet XVIII/));
 });

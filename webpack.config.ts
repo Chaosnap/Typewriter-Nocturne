@@ -88,7 +88,9 @@ const config: webpack.Configuration[] = [
     entry: './lib/index.tsx',
     output: {
       path: path.join(__dirname, 'target', 'renderer'),
-      filename: 'bundle.js'
+      filename: 'bundle.js',
+      // [nocturne] Bundled fonts are emitted next to the bundle and loaded relative to index.html.
+      publicPath: 'renderer/'
     },
     module: {
       rules: [
@@ -105,6 +107,12 @@ const config: webpack.Configuration[] = [
         {
           test: /\.css$/,
           use: ['style-loader', 'css-loader']
+        },
+        // [nocturne] Fonts referenced by the @fontsource stylesheets (SIL OFL 1.1).
+        {
+          test: /\.(woff2?|ttf|otf)$/i,
+          type: 'asset/resource',
+          generator: {filename: 'fonts/[name][ext]'}
         }
       ]
     },

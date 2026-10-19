@@ -8,6 +8,7 @@ import type {HyperState, HyperProps, HyperDispatch} from '../../typings/hyper';
 import * as uiActions from '../actions/ui';
 import {getRegisteredKeys, getCommandHandler, shouldPreventDefault} from '../command-registry';
 import type Terms from '../components/terms';
+import {NocturneShell} from '../nocturne/components/shell';
 import {connect} from '../utils/plugins';
 
 import {HeaderContainer} from './header';
@@ -100,8 +101,10 @@ const Hyper = forwardRef<HTMLDivElement, HyperProps>((props, ref) => {
         style={{fontFamily: uiFontFamily, borderColor, borderWidth}}
         className={`hyper_main ${isMac_ && 'hyper_mainRounded'} ${fullScreen ? 'fullScreen' : ''}`}
       >
-        <HeaderContainer />
-        <TermsContainer ref_={onTermsRef} />
+        {/* [nocturne] The typewriter stage wraps Hyper's header and terminals without changing them. */}
+        <NocturneShell header={<HeaderContainer />}>
+          <TermsContainer ref_={onTermsRef} />
+        </NocturneShell>
         {props.customInnerChildren}
       </div>
 

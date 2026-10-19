@@ -4,7 +4,8 @@ import Config from 'electron-store';
 
 export const defaults = {
   windowPosition: [50, 50] as [number, number],
-  windowSize: [540, 380] as [number, number]
+  // [nocturne] Room for the sheet and the typewriter below it.
+  windowSize: [1180, 800] as [number, number]
 };
 
 // local storage

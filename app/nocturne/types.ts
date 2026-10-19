@@ -77,6 +77,8 @@ export type NocturneTheme = {
     filmGrain: number;
     vignette: number;
   };
+  /** The 3D typewriter: colour of the brass trim, strength of reflections, camera exposure. */
+  scene: {trim: string; environment: number; exposure: number};
   /** Multiplier for chrome animation durations. */
   motion: number;
 };

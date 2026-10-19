@@ -9,8 +9,8 @@ export const paperAndInk: NocturneTheme = {
   epithet: 'Warm ivory, antique ink, a walnut desk at dusk.',
   appearance: 'light',
   palette: {
-    room: '#2a1f18',
-    roomEdge: '#120d0a',
+    room: '#241a14',
+    roomEdge: '#070504',
     paper: '#f4ecdb',
     paperEdge: '#e1d1b0',
     paperShadow: 'rgba(24, 14, 6, 0.55)',
@@ -53,11 +53,12 @@ export const paperAndInk: NocturneTheme = {
   },
   light: {
     source: 'carriage',
-    color: '#ffd79a',
+    color: '#ffd29a',
     position: {x: 0.5, y: 1},
-    shade: 0.28
+    shade: 0.42
   },
   atmosphere: {particles: 0.1, filmGrain: 0.08, vignette: 0.35},
+  scene: {trim: '#c9a35c', environment: 0.55, exposure: 1},
   motion: 1
 };
 
@@ -67,7 +68,7 @@ export const midnightStudy: NocturneTheme = {
   epithet: 'Charcoal and walnut under an amber desk lamp.',
   appearance: 'dark',
   palette: {
-    room: '#0d0a08',
+    room: '#140f0b',
     roomEdge: '#030202',
     paper: '#1c1714',
     paperEdge: '#2c241e',
@@ -112,10 +113,11 @@ export const midnightStudy: NocturneTheme = {
   light: {
     source: 'desk-lamp',
     color: '#ffb35c',
-    position: {x: 0.82, y: 0.08},
-    shade: 0.55
+    position: {x: 0.84, y: 0.04},
+    shade: 0.5
   },
   atmosphere: {particles: 0.2, filmGrain: 0.12, vignette: 0.6},
+  scene: {trim: '#c9a45c', environment: 0.32, exposure: 0.9},
   motion: 1
 };
 
@@ -125,8 +127,8 @@ export const moonlitPoetry: NocturneTheme = {
   epithet: 'Violet night, cool moonlight, silver and ink.',
   appearance: 'dark',
   palette: {
-    room: '#0b0b14',
-    roomEdge: '#040409',
+    room: '#0e0e1a',
+    roomEdge: '#030307',
     paper: '#171826',
     paperEdge: '#26283e',
     paperShadow: 'rgba(0, 0, 8, 0.7)',
@@ -169,11 +171,12 @@ export const moonlitPoetry: NocturneTheme = {
   },
   light: {
     source: 'moonlight',
-    color: '#cdd6ff',
-    position: {x: 0.12, y: -0.1},
-    shade: 0.5
+    color: '#c9d4ff',
+    position: {x: 0.14, y: -0.1},
+    shade: 0.48
   },
   atmosphere: {particles: 0.35, filmGrain: 0.1, vignette: 0.55},
+  scene: {trim: '#b7bdd6', environment: 0.3, exposure: 0.85},
   motion: 1.15
 };
 

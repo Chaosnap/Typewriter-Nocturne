@@ -5,6 +5,7 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {Provider} from 'react-redux';
 
+import {applyNocturneToConfig, configAffectingKey} from '../app/nocturne/apply-config';
 import type {configOptions} from '../typings/config';
 
 import {loadConfig, reloadConfig} from './actions/config';
@@ -15,11 +16,15 @@ import * as termGroupActions from './actions/term-groups';
 import * as uiActions from './actions/ui';
 import * as updaterActions from './actions/updater';
 import HyperContainer from './containers/hyper';
+import {fontsReady} from './nocturne/fonts';
+import {getSettings, subscribe as onNocturneChange} from './nocturne/store';
 import rpc from './rpc';
 import configureStore from './store/configure-store';
 import * as config from './utils/config';
 import {getBase64FileData} from './utils/file';
 import * as plugins from './utils/plugins';
+
+import './nocturne/styles/nocturne.css';
 
 // On Linux, the default zoom was somehow changed with Electron 3 (or maybe 2).
 // Setting zoom factor to 1.2 brings back the normal default size
@@ -33,6 +38,10 @@ Object.defineProperty(window, 'store', {get: () => store_});
 Object.defineProperty(window, 'rpc', {get: () => rpc});
 Object.defineProperty(window, 'config', {get: () => config});
 Object.defineProperty(window, 'plugins', {get: () => plugins});
+
+// [nocturne] Typography, paper colours and margins reach xterm.js through Hyper's normal config
+// path, exactly as an equivalent hyper.json would. Lighting changes never reload the config.
+const withNocturne = (configData: configOptions) => applyNocturneToConfig(configData, getSettings());
 
 const fetchFileData = (configData: configOptions) => {
   const configInfo: configOptions = {...configData, bellSound: null};
@@ -50,11 +59,20 @@ const fetchFileData = (configData: configOptions) => {
 };
 
 // initialize config
-store_.dispatch(loadConfig(config.getConfig()));
-fetchFileData(config.getConfig());
+store_.dispatch(loadConfig(withNocturne(config.getConfig())));
+fetchFileData(withNocturne(config.getConfig()));
+
+let nocturneKey = configAffectingKey(getSettings());
+onNocturneChange(() => {
+  const key = configAffectingKey(getSettings());
+  if (key !== nocturneKey) {
+    nocturneKey = key;
+    store_.dispatch(reloadConfig({...withNocturne(config.getConfig()), bellSound: store_.getState().ui.bellSound}));
+  }
+});
 
 config.subscribe(() => {
-  const configInfo = config.getConfig();
+  const configInfo = withNocturne(config.getConfig());
   configInfo.bellSound = store_.getState().ui.bellSound;
   // The only async part of the config is the bellSound so we will check if the bellSoundURL
   // has changed to determine if we should re-read this file and dispatch an update to the config
@@ -70,8 +88,11 @@ config.subscribe(() => {
 // initialize communication with main electron process
 // and subscribe to all user intents for example from menus
 rpc.on('ready', () => {
-  store_.dispatch(init());
-  store_.dispatch(uiActions.setFontSmoothing());
+  // [nocturne] A terminal measures its cell grid from the font loaded when it opens.
+  void fontsReady.then(() => {
+    store_.dispatch(init());
+    store_.dispatch(uiActions.setFontSmoothing());
+  });
 });
 
 rpc.on('session add', (data) => {

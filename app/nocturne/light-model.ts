@@ -10,8 +10,8 @@
 // by paper fibres in the shader) and θ the angle from the lamp's axis. The result is exposed so
 // that a reference point on the page receives `intensity` and tone-mapped with 1 − e^(−E·k).
 //
-// lib/nocturne/lighting/shader.ts contains the GLSL version of `irradiance`; this TypeScript
-// version drives the CPU fallback renderer and the unit tests.
+// lib/nocturne/lighting/paper-light.ts contains the GLSL version of `irradiance`; this TypeScript
+// version positions the dust motes in the beam and drives the unit tests.
 
 import {spreadToCosine} from './lighting-math';
 import type {LightingSettings, LightSource, NocturneTheme} from './types';
@@ -70,7 +70,7 @@ export function windowGobo(rig: LightRig, x: number, y: number): number {
   const aperture = smoothstep(0.5, 0.5 - edge * 2, Math.abs(u)) * smoothstep(0.5, 0.5 - edge * 2, Math.abs(v));
   const mullionEdge = Math.min(0.45, 0.04 + w.softness / w.pane);
   const bars = panes((x - w.x) / w.pane + 0.5, mullionEdge) * panes((y - w.y) / w.pane + 0.5, mullionEdge);
-  return aperture * (0.35 + 0.65 * bars);
+  return aperture * (0.3 + 0.7 * bars);
 }
 
 /** Irradiance (before exposure) at sheet point (x, y) for a paper normal. */
@@ -122,7 +122,7 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
 
   if (source === 'carriage') {
     // A small lamp on the carriage, just above the paper, shining up the page.
-    const lamp: Vec3 = [sheet.headX, sheet.railY + 4, 10 + 0.02 * height];
+    const lamp: Vec3 = [sheet.headX, sheet.railY, 12 + 0.02 * height];
     const aim: Vec3 = [sheet.headX, sheet.railY - 0.6 * settings.reach * height, 0];
     rig = {...base, position: lamp, direction: normalize([aim[0] - lamp[0], aim[1] - lamp[1], aim[2] - lamp[2]])};
     reference = [sheet.headX, sheet.railY - 0.5 * settings.reach * height];

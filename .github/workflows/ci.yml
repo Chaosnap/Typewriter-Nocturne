@@ -27,3 +27,54 @@ jobs:
     name: Build
     uses: ./.github/workflows/build.yml
     secrets: inherit
+
+  screenshots:
+    name: Publish app screenshots
+    needs: build
+    # The end-to-end tests photograph the packaged app on every platform. On pushes to main the
+    # pictures are force-pushed to the `ci-screenshots` branch so they can be viewed without
+    # downloading artifacts. Pushes made with GITHUB_TOKEN never start another workflow run.
+    if: ${{ !cancelled() && github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: diagnostics-*
+          path: diagnostics
+
+      - name: Push screenshots to the ci-screenshots branch
+        env:
+          TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p shots
+          find diagnostics -name '*.png' -exec cp {} shots/ \;
+          if [ -z "$(ls -A shots)" ]; then
+            echo "::warning::No screenshots were produced by this run."
+            exit 0
+          fi
+          cd shots
+          {
+            echo '# Typewriter Nocturne: app screenshots'
+            echo
+            echo 'Taken by the end-to-end tests of the packaged app on GitHub-hosted runners.'
+            echo
+            echo "Commit: $GITHUB_SHA"
+            echo "Run: $RUN_URL"
+            echo
+            for f in *.png; do echo "![$f]($f)"; done
+          } > README.md
+          git init -q -b ci-screenshots
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -q -m "Screenshots for $GITHUB_SHA"
+          auth="$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push -q -f "https://github.com/$REPOSITORY.git" ci-screenshots
+          ls -1 *.png

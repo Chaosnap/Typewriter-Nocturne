@@ -1,0 +1,70 @@
+// Geometry of the typewriter stage for a given window size: where the sheet, the platen, the paper
+// bail and the terminal sit. The DOM shell, the paper light and the 3D machine all read this one
+// layout, so they agree to the pixel. Mirrors layout() in docs/preview/index.html.
+//
+// Coordinates are CSS pixels relative to the stage (the area below the toolbar). The sheet starts
+// a little above the stage so its top edge is never seen; it runs down behind the platen.
+
+export type Box = {x: number; y: number; width: number; height: number};
+
+export type StageLayout = {
+  width: number;
+  height: number;
+  /** Whether the typewriter is drawn (false in focus mode or when the carriage is turned off). */
+  machine: boolean;
+  machineHeight: number;
+  machineTop: number;
+  sheet: Box;
+  platenY: number;
+  platenRadius: number;
+  /** The paper bail: the chrome bar that holds the sheet against the platen. */
+  bailY: number;
+  /** The terminal's box. Text ends above the bail, so the machine never covers a character. */
+  text: Box;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+export const SHEET_OVERHANG = 12;
+
+export function stageLayout(width: number, height: number, machine: boolean): StageLayout {
+  if (!machine) {
+    const whole = {x: 0, y: 0, width, height};
+    return {
+      width,
+      height,
+      machine: false,
+      machineHeight: 0,
+      machineTop: height,
+      sheet: whole,
+      platenY: height,
+      platenRadius: 0,
+      bailY: height,
+      text: whole
+    };
+  }
+
+  const machineHeight = clamp(height * 0.3, 160, 300);
+  // Side margins of about 8.5% leave room for the platen ends and knobs without wide empty bands.
+  const margins = width < 720 ? 40 : 2 * clamp(width * 0.085, 64, 150);
+  const sheetWidth = Math.round(Math.max(160, Math.min(width - margins, 1240)));
+  const sheetX = Math.round((width - sheetWidth) / 2);
+  const machineTop = height - machineHeight;
+  const platenRadius = machineHeight * 0.12;
+  const platenY = machineTop + machineHeight * 0.24;
+  const bailY = machineTop + machineHeight * 0.08;
+  const textHeight = Math.max(80, Math.round(bailY - 16));
+
+  return {
+    width,
+    height,
+    machine: true,
+    machineHeight,
+    machineTop,
+    sheet: {x: sheetX, y: -SHEET_OVERHANG, width: sheetWidth, height: Math.ceil(platenY + SHEET_OVERHANG)},
+    platenY,
+    platenRadius,
+    bailY,
+    text: {x: sheetX, y: 0, width: sheetWidth, height: textHeight}
+  };
+}
