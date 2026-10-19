@@ -132,14 +132,27 @@ test.serial('exit codes come from the shell, not the terminal', async (t) => {
   t.truthy(await waitForText('exit-code-3'));
 });
 
-test.serial('CJK text survives input and output', async (t) => {
+test.serial('CJK wide characters render from program output', async (t) => {
+  // UTF-8 octal escapes keep the command itself ASCII; the shell prints 纸与墨.
+  if (isWindows) {
+    await run('Write-Output ([string][char]0x7EB8 + [char]0x4E0E + [char]0x58A8 + "-out")');
+  } else {
+    await run("printf '\\347\\272\\270\\344\\270\\216\\345\\242\\250-out\\n'");
+  }
+  t.truthy(await waitForText('纸与墨-out'));
+  await screenshot('cjk');
+});
+
+test.serial('pasting CJK text reaches the shell intact', async (t) => {
   if (isWindows) {
     t.pass('Covered by the manual acceptance checklist on Windows (console code page).');
     return;
   }
-  await run('echo "纸与墨-ok"');
-  t.truthy(await waitForText(/纸与墨-ok[\s\S]*纸与墨-ok/));
-  await screenshot('cjk');
+  await app.evaluate(({clipboard}) => clipboard.writeText('echo "纸与墨-paste"'));
+  // Same call the Edit → Paste menu role makes; it exercises xterm's paste and bracketed-paste path.
+  await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].webContents.paste());
+  await page.keyboard.press('Enter');
+  t.truthy(await waitForText(/纸与墨-paste[\s\S]*纸与墨-paste/));
 });
 
 test.serial('resizing the window resizes the PTY', async (t) => {

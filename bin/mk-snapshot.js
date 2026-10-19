@@ -42,10 +42,14 @@ async function main() {
   }
 
   console.log(`Generating startup blob in "${outputBlobPath}"`);
-  childProcess.execFileSync(
-    path.resolve(__dirname, '..', 'node_modules', '.bin', 'mksnapshot' + (process.platform === 'win32' ? '.cmd' : '')),
-    [snapshotScriptPath, '--output_dir', outputBlobPath]
-  );
+  // [nocturne] Run electron-mksnapshot's JS entry point with the current Node binary instead of
+  // the `.bin/mksnapshot.cmd` shim: since the CVE-2024-27980 fix, Node refuses to spawn .cmd files
+  // without a shell on Windows (spawnSync EINVAL).
+  const mksnapshotPackage = require.resolve('electron-mksnapshot/package.json');
+  const mksnapshotEntry = path.join(path.dirname(mksnapshotPackage), require(mksnapshotPackage).bin.mksnapshot);
+  childProcess.execFileSync(process.execPath, [mksnapshotEntry, snapshotScriptPath, '--output_dir', outputBlobPath], {
+    stdio: 'inherit'
+  });
 }
 
 main().catch((err) => {
