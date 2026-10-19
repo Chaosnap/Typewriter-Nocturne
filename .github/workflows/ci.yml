@@ -3,7 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    # Design previews and docs do not change the app; skipping them keeps a running build alive.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'assets/nocturne/thumbnails/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'assets/nocturne/thumbnails/**'
   workflow_dispatch:
 
 concurrency:
