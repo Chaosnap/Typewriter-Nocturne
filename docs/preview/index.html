@@ -48,6 +48,8 @@
   .tool[aria-pressed="true"] { opacity: 1; background: var(--glow); border-color: var(--panel-line); }
   .tool svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   #stage { position: relative; min-height: 0; overflow: hidden; cursor: text; }
+  /* On wide screens the Studio docks: the stage shrinks so paper and machine stay centred in view. */
+  @media (min-width: 1100px) { #app.studio-open #stage { margin-right: 332px; } }
   #sheet { position: absolute; z-index: 1; background: var(--paper); overflow: hidden; }
   #sheet canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
   #paper { mix-blend-mode: multiply; }
@@ -1673,11 +1675,16 @@ function bindToggle(button, key, also) {
 }
 bindToggle(document.getElementById('lamp-toggle'), 'lamp', document.getElementById('t-lamp'));
 bindToggle(document.getElementById('sound-toggle'), 'sound', document.getElementById('t-sound'));
-document.getElementById('t-studio').addEventListener('click', (e) => {
-  const studio = document.getElementById('studio');
-  studio.hidden = !studio.hidden;
-  e.currentTarget.setAttribute('aria-pressed', String(!studio.hidden));
+function setStudioOpen(open) {
+  document.getElementById('studio').hidden = !open;
+  document.getElementById('t-studio').setAttribute('aria-pressed', String(open));
+  document.getElementById('app').classList.toggle('studio-open', open);
+  if (L.W) layout();
+}
+document.getElementById('t-studio').addEventListener('click', () => {
+  setStudioOpen(document.getElementById('studio').hidden);
 });
+setStudioOpen(true);
 
 // ------------------------------------------------------------------------------------------------
 // Frame loop: only work that changes
