@@ -841,10 +841,17 @@ const machine = (() => {
       x.filter = blur ? `blur(${blur * k}px)` : 'none';
       x.fillStyle = '#fff';
       x.font = `600 ${Math.round(height * 0.6 * k)}px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
-      x.textAlign = 'center';
+      // Lay the letters out by hand (no reliance on canvas letterSpacing) and centre the exact ink width.
+      x.textAlign = 'left';
       x.textBaseline = 'middle';
-      x.letterSpacing = `${Math.round(height * 0.3 * k)}px`;
-      x.fillText(text, c.width / 2 + height * 0.15 * k, c.height / 2 + height * 0.05 * k);
+      const spacing = height * 0.3 * k;
+      const widths = Array.from(text, (ch) => x.measureText(ch).width);
+      const total = widths.reduce((sum, w) => sum + w, 0) + spacing * (widths.length - 1);
+      let cursorX = (c.width - total) / 2;
+      Array.from(text).forEach((ch, i) => {
+        x.fillText(ch, cursorX, c.height / 2 + height * 0.05 * k);
+        cursorX += widths[i] + spacing;
+      });
       const t = new THREE.CanvasTexture(c);
       t.anisotropy = 8;
       return t;
@@ -854,21 +861,6 @@ const machine = (() => {
       emissive: 0x8a5a16, emissiveIntensity: 1.1,
       alphaMap: make(0), transparent: true, bumpMap: make(0.9), bumpScale: 2.2
     });
-  }
-
-  function badgeTexture(text, color) {
-    const c = document.createElement('canvas');
-    c.width = 512;
-    c.height = 64;
-    const x = c.getContext('2d');
-    x.font = `500 40px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
-    x.textAlign = 'center';
-    x.letterSpacing = '18px';
-    x.fillStyle = color;
-    x.fillText(text, 256, 46);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
   }
 
   function materials(t) {
