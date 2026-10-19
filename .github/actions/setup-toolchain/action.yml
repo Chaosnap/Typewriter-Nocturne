@@ -1,0 +1,66 @@
+name: Set up toolchain
+description: >
+  Node.js, Python (for node-gyp) and pnpm, restores the pnpm store cache and installs
+  dependencies with the frozen lockfile. The install runs Hyper's postinstall chain:
+  V8 snapshots, native module rebuild for Electron (node-pty) and schema generation.
+
+inputs:
+  node-version:
+    description: Node.js version used for the build toolchain
+    required: false
+    default: '18.20.8'
+  python-version:
+    description: Python version used by node-gyp
+    required: false
+    default: '3.11'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      id: python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Set up Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Set up pnpm (version from package.json#packageManager)
+      uses: pnpm/action-setup@v4
+
+    - name: Locate pnpm store
+      id: pnpm-store
+      shell: bash
+      run: echo "dir=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore pnpm store
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.pnpm-store.outputs.dir }}
+        key: ${{ runner.os }}-${{ runner.arch }}-pnpm-${{ hashFiles('pnpm-lock.yaml', 'app/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-pnpm-
+
+    - name: Restore Electron download cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~/Library/Caches/electron
+          ~/Library/Caches/electron-builder
+          ~/AppData/Local/electron/Cache
+          ~/AppData/Local/electron-builder/Cache
+        key: ${{ runner.os }}-${{ runner.arch }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-electron-
+
+    - name: Install dependencies (frozen lockfile)
+      shell: bash
+      env:
+        npm_config_python: ${{ steps.python.outputs.python-path }}
+        npm_config_node_gyp: ${{ github.workspace }}${{ runner.os == 'Windows' && '\node_modules\node-gyp\bin\node-gyp.js' || '/node_modules/node-gyp/bin/node-gyp.js' }}
+      run: bin/ci/run-step.sh "Install dependencies" pnpm install --frozen-lockfile

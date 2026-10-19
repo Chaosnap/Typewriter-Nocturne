@@ -1,55 +1,163 @@
+// End-to-end smoke test of the packaged application.
+//
+// Launches the unpacked build produced by electron-builder with an isolated
+// configuration directory, then drives a real shell through the real PTY and
+// reads the result back from xterm.js' accessibility tree. Screenshots of the
+// rendered window are written to dist/tmp/ and uploaded by CI.
+
 // Native
+import os from 'os';
 import path from 'path';
 
 // Packages
 import test from 'ava';
 import fs from 'fs-extra';
 import {_electron} from 'playwright';
-import type {ElectronApplication} from 'playwright';
+import type {ElectronApplication, Page} from 'playwright';
+
+const isWindows = process.platform === 'win32';
 
 let app: ElectronApplication;
+let page: Page;
 
-test.before(async () => {
-  let pathToBinary;
-
+const pathToBinary = () => {
   switch (process.platform) {
     case 'linux':
-      pathToBinary = path.join(__dirname, '../dist/linux-unpacked/hyper');
-      break;
-
-    case 'darwin':
-      pathToBinary = path.join(__dirname, '../dist/mac/Hyper.app/Contents/MacOS/Hyper');
-      break;
-
+      return path.join(__dirname, '../dist/linux-unpacked/typewriter-nocturne');
+    case 'darwin': {
+      const dir = process.arch === 'arm64' ? 'mac-arm64' : 'mac';
+      return path.join(__dirname, `../dist/${dir}/Typewriter Nocturne.app/Contents/MacOS/Typewriter Nocturne`);
+    }
     case 'win32':
-      pathToBinary = path.join(__dirname, '../dist/win-unpacked/Hyper.exe');
-      break;
-
+      return path.join(__dirname, '../dist/win-unpacked/Typewriter Nocturne.exe');
     default:
-      throw new Error('Path to the built binary needs to be defined for this platform in test/index.js');
+      throw new Error('Path to the built binary needs to be defined for this platform in test/index.ts');
   }
+};
 
-  app = await _electron.launch({
-    executablePath: pathToBinary
+const writeTestConfig = () => {
+  const configHome = fs.mkdtempSync(path.join(os.tmpdir(), 'nocturne-e2e-'));
+  const configDir = path.join(configHome, 'TypewriterNocturne');
+  fs.mkdirpSync(configDir);
+  fs.writeJSONSync(path.join(configDir, 'hyper.json'), {
+    config: {
+      // Renders terminal rows into the DOM so the test can read real output.
+      screenReaderMode: true,
+      shell: isWindows ? 'powershell.exe' : '/bin/bash',
+      shellArgs: isWindows ? ['-NoLogo', '-NoProfile'] : ['--noprofile', '--norc'],
+      env: isWindows ? {} : {PS1: '$ ', LC_ALL: process.platform === 'darwin' ? 'en_US.UTF-8' : 'C.UTF-8'}
+    },
+    plugins: [],
+    localPlugins: [],
+    keymaps: {}
   });
-  await app.firstWindow();
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  return configHome;
+};
+
+const screenshot = async (name: string) => {
+  const image = await app.evaluate(({BrowserWindow}) =>
+    BrowserWindow.getAllWindows()[0]
+      ?.capturePage()
+      .then((img) => img.toPNG().toString('base64'))
+  );
+  if (image) {
+    await fs.mkdirp('dist/tmp');
+    await fs.writeFile(`dist/tmp/${process.platform}_${name}.png`, Buffer.from(image, 'base64'));
+  }
+};
+
+const terminalText = () =>
+  page.evaluate(() => {
+    const tree = document.querySelector('.term_active .xterm-accessibility-tree');
+    return tree ? tree.textContent || '' : '';
+  });
+
+const waitForText = async (needle: string | RegExp, timeoutMs = 20000) => {
+  const started = Date.now();
+  let text = '';
+  while (Date.now() - started < timeoutMs) {
+    text = await terminalText();
+    if (typeof needle === 'string' ? text.includes(needle) : needle.test(text)) {
+      return text;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Timed out waiting for ${String(needle)}. Terminal text was:\n${text}`);
+};
+
+const run = async (command: string) => {
+  await page.keyboard.type(command);
+  await page.keyboard.press('Enter');
+};
+
+test.before(async () => {
+  const configHome = writeTestConfig();
+  app = await _electron.launch({
+    executablePath: pathToBinary(),
+    args: process.platform === 'linux' ? ['--no-sandbox'] : [],
+    env: {...process.env, XDG_CONFIG_HOME: configHome}
+  });
+  page = await app.firstWindow();
+  await page.waitForSelector('.term_active .xterm', {timeout: 30000});
+  await page.waitForSelector('.term_active .xterm-accessibility-tree', {timeout: 30000});
+  // Give the shell a moment to print its prompt.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  await page.click('.term_active .xterm');
 });
 
-test.after(async () => {
-  await app
-    .evaluate(({BrowserWindow}) =>
-      BrowserWindow.getFocusedWindow()
-        ?.capturePage()
-        .then((img) => img.toPNG().toString('base64'))
-    )
-    .then((img) => Buffer.from(img || '', 'base64'))
-    .then(async (imageBuffer) => {
-      await fs.writeFile(`dist/tmp/${process.platform}_test.png`, imageBuffer);
-    });
-  await app.close();
+test.after.always(async () => {
+  if (app) {
+    await screenshot('final').catch(() => undefined);
+    await app.close();
+  }
 });
 
-test('see if dev tools are open', async (t) => {
+test.serial('dev tools are closed', async (t) => {
   t.false(await app.evaluate(({webContents}) => !!webContents.getFocusedWebContents()?.isDevToolsOpened()));
+});
+
+test.serial('a real shell echoes command output through the PTY', async (t) => {
+  await run(isWindows ? 'Write-Output ("nocturne-" + 6*7)' : 'echo "nocturne-$((6*7))"');
+  const text = await waitForText('nocturne-42');
+  t.true(text.includes('nocturne-42'));
+  await screenshot('echo');
+});
+
+test.serial('exit codes come from the shell, not the terminal', async (t) => {
+  if (isWindows) {
+    await run('cmd /c exit 3; Write-Output ("exit-code-" + $LASTEXITCODE)');
+  } else {
+    await run('(exit 3); echo "exit-code-$?"');
+  }
+  t.truthy(await waitForText('exit-code-3'));
+});
+
+test.serial('CJK text survives input and output', async (t) => {
+  if (isWindows) {
+    t.pass('Covered by the manual acceptance checklist on Windows (console code page).');
+    return;
+  }
+  await run('echo "纸与墨-ok"');
+  t.truthy(await waitForText(/纸与墨-ok[\s\S]*纸与墨-ok/));
+  await screenshot('cjk');
+});
+
+test.serial('resizing the window resizes the PTY', async (t) => {
+  const readCols = async (marker: string) => {
+    await run(isWindows ? `Write-Output ("${marker}-" + [Console]::WindowWidth)` : `echo "${marker}-$(tput cols)"`);
+    const text = await waitForText(new RegExp(`${marker}-\\d+`));
+    const matches = [...text.matchAll(new RegExp(`${marker}-(\\d+)`, 'g'))];
+    return Number(matches[matches.length - 1][1]);
+  };
+
+  await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].setSize(820, 560));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const narrow = await readCols('cols-narrow');
+
+  await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].setSize(1280, 760));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const wide = await readCols('cols-wide');
+
+  t.true(wide > narrow, `expected more columns after widening (narrow=${narrow}, wide=${wide})`);
+  await screenshot('resized');
 });

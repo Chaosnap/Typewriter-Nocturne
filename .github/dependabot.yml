@@ -1,25 +1,22 @@
 version: 2
 updates:
-- package-ecosystem: npm
-  directory: "/"
-  schedule:
-    interval: weekly
-    time: '11:00'
-  open-pull-requests-limit: 30
-  target-branch: canary
-  versioning-strategy: increase
-- package-ecosystem: npm
-  directory: "/app"
-  schedule:
-    interval: weekly
-    time: '11:00'
-  open-pull-requests-limit: 30
-  target-branch: canary
-  versioning-strategy: increase
-- package-ecosystem: github-actions
-  directory: "/"
-  schedule:
-    interval: weekly
-    time: '11:00'
-  open-pull-requests-limit: 30
-  target-branch: canary
+  # Version bumps for GitHub Actions only. npm dependencies receive security updates
+  # (Dependabot regenerates pnpm lockfiles in the cloud); routine npm bumps are done
+  # deliberately because Electron, node-pty and xterm.js must move together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: main
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: main
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: monthly
+    target-branch: main
+    open-pull-requests-limit: 0

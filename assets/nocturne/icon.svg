@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Typewriter Nocturne — application icon.
+  Original artwork, hand-authored vector (no external images, fonts or traced material).
+  A sheet of ivory paper rising from a rubber platen with brass knobs, lit from below by a
+  small carriage lamp, with a crescent moon in a walnut night.
+  License: MIT (same as the project). Rendered to PNG in CI by bin/ci/render-assets.sh.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="walnut" cx="50%" cy="28%" r="85%">
+      <stop offset="0" stop-color="#4b3426"/>
+      <stop offset="0.5" stop-color="#2b1d15"/>
+      <stop offset="1" stop-color="#110b08"/>
+    </radialGradient>
+    <linearGradient id="grain" x1="0" y1="0" x2="1" y2="0.25">
+      <stop offset="0" stop-color="#6a4a34" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#6a4a34" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#6a4a34" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f0df"/>
+      <stop offset="0.7" stop-color="#ecdfc4"/>
+      <stop offset="1" stop-color="#d9c8a6"/>
+    </linearGradient>
+    <linearGradient id="lamp" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#ffe7c2" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#fff4e2" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="lampPool" cx="50%" cy="100%" r="60%">
+      <stop offset="0" stop-color="#ffb862" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffb862" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="platen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b4b40"/>
+      <stop offset="0.18" stop-color="#2c231e"/>
+      <stop offset="0.6" stop-color="#15100d"/>
+      <stop offset="1" stop-color="#0a0706"/>
+    </linearGradient>
+    <radialGradient id="brass" cx="38%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#f6dfa8"/>
+      <stop offset="0.45" stop-color="#c99a4d"/>
+      <stop offset="1" stop-color="#6b4b1f"/>
+    </radialGradient>
+    <linearGradient id="brassBar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1d595"/>
+      <stop offset="1" stop-color="#8a6428"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#e9e6f2" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e9e6f2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="tile">
+      <rect x="100" y="100" width="824" height="824" rx="184"/>
+    </clipPath>
+    <clipPath id="sheet">
+      <path d="M300 214 Q512 190 724 214 L724 660 L300 660 Z"/>
+    </clipPath>
+    <mask id="crescent">
+      <rect x="0" y="0" width="1024" height="1024" fill="#000"/>
+      <circle cx="770" cy="236" r="58" fill="#fff"/>
+      <circle cx="796" cy="216" r="52" fill="#000"/>
+    </mask>
+  </defs>
+
+  <!-- Walnut tile -->
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="url(#walnut)"/>
+  <g clip-path="url(#tile)" fill="none" stroke="url(#grain)" stroke-width="5" stroke-linecap="round">
+    <path d="M60 760 C260 720 420 800 620 760 S900 700 1000 740"/>
+    <path d="M60 812 C240 780 450 850 640 808 S880 760 1000 800"/>
+    <path d="M60 868 C260 840 430 900 650 862 S900 820 1000 860"/>
+    <path d="M60 140 C300 170 520 110 740 150 S940 130 1000 160"/>
+  </g>
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="none" stroke="#7b5a40" stroke-opacity="0.35" stroke-width="4"/>
+
+  <!-- Night sky: crescent moon and two stars -->
+  <circle cx="770" cy="236" r="120" fill="url(#moonGlow)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="#ebe7f3" mask="url(#crescent)"/>
+  <circle cx="842" cy="330" r="5" fill="#ebe7f3" fill-opacity="0.8"/>
+  <circle cx="676" cy="164" r="4" fill="#ebe7f3" fill-opacity="0.6"/>
+
+  <!-- Paper shadow and sheet -->
+  <path d="M300 230 Q512 206 724 230 L732 676 L292 676 Z" fill="#000" fill-opacity="0.55" filter="url(#softShadow)"/>
+  <path d="M300 214 Q512 190 724 214 L724 660 L300 660 Z" fill="url(#paper)"/>
+
+  <g clip-path="url(#sheet)">
+    <!-- Carriage lamp light falling on the sheet -->
+    <path d="M478 640 L546 640 L760 160 L264 160 Z" fill="url(#lamp)"/>
+    <ellipse cx="512" cy="660" rx="230" ry="120" fill="url(#lampPool)"/>
+    <!-- Paper fibres -->
+    <g fill="#9c8a68" fill-opacity="0.35">
+      <circle cx="356" cy="250" r="2.4"/>
+      <circle cx="652" cy="276" r="2"/>
+      <circle cx="604" cy="520" r="2.6"/>
+      <circle cx="338" cy="566" r="2"/>
+      <circle cx="690" cy="430" r="1.8"/>
+      <circle cx="430" cy="604" r="2.2"/>
+    </g>
+    <!-- Typed lines: a prompt, a cursor, and words struck in antique ink -->
+    <g fill="#2a211a">
+      <path d="M346 276 L392 304 L346 332" fill="none" stroke="#2a211a" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="418" y="318" width="64" height="18" rx="5"/>
+    </g>
+    <g fill="#2a211a" fill-opacity="0.62">
+      <rect x="346" y="392" width="92" height="14" rx="7"/>
+      <rect x="452" y="392" width="64" height="14" rx="7"/>
+      <rect x="530" y="392" width="118" height="14" rx="7"/>
+      <rect x="346" y="440" width="140" height="14" rx="7"/>
+      <rect x="500" y="440" width="84" height="14" rx="7"/>
+      <rect x="346" y="488" width="70" height="14" rx="7"/>
+      <rect x="430" y="488" width="104" height="14" rx="7"/>
+    </g>
+  </g>
+
+  <!-- Platen roller with brass knobs and type guide -->
+  <rect x="176" y="618" width="672" height="92" rx="46" fill="url(#platen)"/>
+  <rect x="200" y="626" width="624" height="10" rx="5" fill="#a08c7c" fill-opacity="0.35"/>
+  <path d="M486 618 L538 618 L524 590 L500 590 Z" fill="url(#brassBar)"/>
+  <rect x="508" y="560" width="8" height="34" rx="3" fill="url(#brassBar)"/>
+  <circle cx="512" cy="704" r="9" fill="#ffb760"/>
+  <circle cx="512" cy="704" r="26" fill="#ffb760" fill-opacity="0.25"/>
+  <circle cx="176" cy="664" r="66" fill="url(#brass)"/>
+  <circle cx="176" cy="664" r="38" fill="none" stroke="#5c3f17" stroke-opacity="0.55" stroke-width="6"/>
+  <circle cx="848" cy="664" r="66" fill="url(#brass)"/>
+  <circle cx="848" cy="664" r="38" fill="none" stroke="#5c3f17" stroke-opacity="0.55" stroke-width="6"/>
+</svg>

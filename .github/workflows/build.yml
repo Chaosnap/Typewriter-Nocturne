@@ -1,0 +1,195 @@
+# Reusable build pipeline shared by CI (every push / PR) and Release (version tags).
+# Everything here runs on GitHub-hosted runners: nothing is compiled on a developer machine.
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version stamped into the packages (defaults to <package.json version>-dev.<run number>)
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FORCE_COLOR: '1'
+
+jobs:
+  artwork:
+    name: Render artwork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install librsvg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+
+      - name: Render SVG sources to PNG
+        run: bin/ci/run-step.sh "Render artwork" bin/ci/render-assets.sh
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: rendered-artwork
+          path: |
+            build/icon.png
+            app/static/
+            dist/assets/
+          if-no-files-found: error
+          retention-days: 30
+
+  validate:
+    name: Validate · lint, types, unit tests, licences
+    needs: artwork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: rendered-artwork
+          path: .
+
+      - uses: ./.github/actions/setup-toolchain
+
+      - name: Lint (ESLint + Prettier)
+        run: bin/ci/run-step.sh "Lint" pnpm run lint
+
+      - name: Unit tests (AVA)
+        if: ${{ !cancelled() }}
+        run: bin/ci/run-step.sh "Unit tests" pnpm run test:unit
+
+      - name: Build verification (webpack, TypeScript type check, minify)
+        if: ${{ !cancelled() }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bin/ci/run-step.sh "Build verification" pnpm run build
+
+      - name: Production dependency licences
+        if: ${{ !cancelled() }}
+        run: bin/ci/run-step.sh "Licence check" node bin/ci/check-licenses.js . app
+
+      - name: Upload diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: diagnostics-validate
+          path: ci-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  package:
+    name: Package · ${{ matrix.name }}
+    needs: artwork
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64 + x64 (DMG)
+            os: macos-15
+            slug: macos
+            builder: --mac dmg --arm64 --x64
+          - name: Windows x64 (NSIS installer)
+            os: windows-latest
+            slug: windows-x64
+            builder: --win nsis --x64
+          - name: Linux x64 (AppImage + DEB)
+            os: ubuntu-22.04
+            slug: linux-x64
+            builder: --linux AppImage deb --x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: rendered-artwork
+          path: .
+
+      - uses: ./.github/actions/setup-toolchain
+
+      - name: Resolve build version
+        id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          base="$(node -p "require('./app/package.json').version")"
+          if [ -n "$REQUESTED_VERSION" ]; then
+            version="$REQUESTED_VERSION"
+          else
+            version="${base}-dev.${{ github.run_number }}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Building version ${version} from ${GITHUB_SHA}"
+
+      - name: Compile (webpack + TypeScript)
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bin/ci/run-step.sh "Compile" pnpm run build
+
+      - name: Package with electron-builder
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional signing material. When absent the build is unsigned (see docs/INSTALL.md).
+          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          for var in CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD APPLE_ID APPLE_PASSWORD; do
+            if [ -z "${!var}" ]; then unset "$var"; fi
+          done
+          if [ -z "${CSC_LINK:-}" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
+          bin/ci/run-step.sh "Package" pnpm exec electron-builder ${{ matrix.builder }} \
+            --publish never -c.extraMetadata.version="${{ steps.version.outputs.version }}"
+
+      - name: Collect installers, checksums and build info
+        run: bin/ci/run-step.sh "Collect artifacts" bin/ci/collect-artifacts.sh "${{ matrix.slug }}" "${{ steps.version.outputs.version }}"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: typewriter-nocturne-${{ matrix.slug }}-${{ steps.version.outputs.version }}
+          path: dist/release/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Install virtual display (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+
+      - name: Smoke test the packaged app (real PTY, Playwright)
+        env:
+          NOCTURNE_E2E: '1'
+        run: |
+          mkdir -p dist/tmp
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            bin/ci/run-step.sh "E2E smoke test" xvfb-run -a --server-args="-screen 0 1440x900x24" pnpm run test:e2e
+          else
+            bin/ci/run-step.sh "E2E smoke test" pnpm run test:e2e
+          fi
+
+      - name: Upload screenshots and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: diagnostics-${{ matrix.slug }}
+          path: |
+            ci-logs/
+            dist/tmp/*.png
+            dist/*.yml
+            dist/builder-debug.yml
+          if-no-files-found: ignore
+          retention-days: 14

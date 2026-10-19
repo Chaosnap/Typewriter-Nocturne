@@ -1,116 +1,61 @@
-![](https://assets.vercel.com/image/upload/v1549723846/repositories/hyper/hyper-3-repo-banner.png)
+<p align="center">
+  <img src="assets/nocturne/icon.svg" width="128" height="128" alt="Typewriter Nocturne icon: an ivory sheet on a platen under a crescent moon">
+</p>
+
+<h1 align="center">Typewriter Nocturne</h1>
+
+<p align="center"><em>Every line of code should feel like writing poetry.</em></p>
 
 <p align="center">
-  <a aria-label="Vercel logo" href="https://vercel.com">
-    <img src="https://img.shields.io/badge/MADE%20BY%20Vercel-000000.svg?style=for-the-badge&logo=vercel&labelColor=000000&logoWidth=20">
-  </a>
- </p>
-  
-[![Node CI](https://github.com/vercel/hyper/workflows/Node%20CI/badge.svg?event=push)](https://github.com/vercel/hyper/actions?query=workflow%3A%22Node+CI%22+branch%3Acanary+event%3Apush)
-[![Changelog #213](https://img.shields.io/badge/changelog-%23213-lightgrey.svg)](https://changelog.com/213)
+  <a href="https://github.com/Chaosnap/Typewriter-Nocturne/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Chaosnap/Typewriter-Nocturne/actions/workflows/ci.yml/badge.svg"></a>
+</p>
 
-For more details, head to: https://hyper.is
+Typewriter Nocturne is a cross-platform terminal with the soul of a writing desk: paper and ink, brass
+and walnut, a carriage lamp, the sound of type bars. Underneath it is a complete, real terminal: it is a
+fork of [Hyper](https://github.com/vercel/hyper), with xterm.js and node-pty running your actual shell, so
+zsh, bash, PowerShell, Git, Python, Node.js, SSH, Vim, tmux and every other TUI program work as they do in
+any good terminal.
 
-## Project goals
+> **Status: early development (Phase 1 of 6).** The fork, rebrand, cloud build pipeline and architecture are in
+> place; the literary themes, Lighting Studio and typewriter engine are being built next. See
+> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the plan and what is already implemented.
 
-The goal of the project is to create a beautiful and extensible experience for command-line interface users, built on open web standards. In the beginning, our focus will be primarily around speed, stability and the development of the correct API for extension authors.
+| Paper & Ink | Midnight Study | Moonlit Poetry |
+| --- | --- | --- |
+| <img src="assets/nocturne/thumbnails/paper-and-ink.svg" alt="Paper & Ink theme preview"> | <img src="assets/nocturne/thumbnails/midnight-study.svg" alt="Midnight Study theme preview"> | <img src="assets/nocturne/thumbnails/moonlit-poetry.svg" alt="Moonlit Poetry theme preview"> |
 
-In the future, we anticipate the community will come up with innovative additions to enhance what could be the simplest, most powerful and well-tested interface for productivity.
+*Theme concept previews: original artwork, not screenshots. Screenshots of the real app come from CI.*
 
-## Usage
+## Principles
 
-[Download the latest release!](https://hyper.is/#installation)
+* **A real terminal first.** No fake prompt, no reimplemented parser or PTY. Exit codes, environment, working
+  directory, keyboard behaviour, IME input and bracketed paste come straight from Hyper and your shell.
+* **Effects never touch your data.** Lighting and typewriter feedback sit on top of the terminal; they never
+  delay, intercept or rewrite keystrokes or program output. Every effect can be turned off, and Focus Mode
+  removes all decoration at once.
+* **Typography that respects the grid.** Strict monospace cells for the terminal, CJK double-width characters
+  intact; serif type only for the chrome around it.
+* **Built in the cloud.** Every dependency install, native rebuild, test and installer is produced by GitHub
+  Actions. See [docs/INSTALL.md](docs/INSTALL.md) for downloads and the caveats of unsigned builds.
 
-### Linux
-#### Arch and derivatives
-Hyper is available in the [AUR](https://aur.archlinux.org/packages/hyper/). Use an AUR [package manager](https://wiki.archlinux.org/index.php/AUR_helpers) e.g. [paru](https://github.com/Morganamilo/paru)
+## Downloads
 
-```sh
-paru -S hyper
+Development builds are attached to each [CI run](https://github.com/Chaosnap/Typewriter-Nocturne/actions/workflows/ci.yml)
+(macOS arm64/x64 DMG, Windows x64 installer, Linux x64 AppImage and DEB). Tagged versions are published on the
+[Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) page with SHA-256 checksums.
+
+## Contributing
+
+Edit, commit and push; GitHub Actions does the rest:
+
+```text
+change code → push → CI (lint · types · unit tests · licences · packages · e2e on a real PTY) → read logs → fix → push
 ```
 
-#### NixOS
-Hyper is available as [Nix package](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/misc/hyper/default.nix), to install the app run this command:
+Upstream tracking and merge instructions are in [UPSTREAM.md](UPSTREAM.md).
 
-```sh
-nix-env -i hyper
-```
+## Licence
 
-### macOS
-
-Use [Homebrew Cask](https://brew.sh) to download the app by running these commands:
-
-```bash
-brew update
-brew install --cask hyper
-```
-
-### Windows
-
-Use [chocolatey](https://chocolatey.org/) to install the app by running the following command (package information can be found [here](https://chocolatey.org/packages/hyper/)):
-
-```bash
-choco install hyper
-```
-
-**Note:** The version available on [Homebrew Cask](https://brew.sh), [Chocolatey](https://chocolatey.org), [Snapcraft](https://snapcraft.io/store) or the [AUR](https://aur.archlinux.org) may not be the latest. Please consider downloading it from [here](https://hyper.is/#installation) if that's the case.
-
-## Contribute
-
-Regardless of the platform you are working on, you will need to have pnpm available. The recommended way is to enable it with Corepack: `corepack enable pnpm`.
-
-1. Install necessary packages:
-  * Windows
-    - Be sure to run `pnpm add --global windows-build-tools` from an elevated prompt (as an administrator) to install `windows-build-tools`.
-  * macOS
-    - Once you have enabled pnpm, you can skip this section!
-  * Linux (You can see [here](https://en.wikipedia.org/wiki/List_of_Linux_distributions) what your Linux is based on.)
-    - RPM-based
-        + `GraphicsMagick`
-        + `libicns-utils`
-        + `xz` (Installed by default on some distributions.)
-    - Debian-based
-        + `graphicsmagick`
-        + `icnsutils`
-        + `xz-utils`
-2. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device
-3. Install the dependencies: `pnpm install`
-4. Build the code and watch for changes: `pnpm run dev`
-5. To run `hyper`
-  * `pnpm run app` from another terminal tab/window/pane
-  * If you are using **Visual Studio Code**, select `Launch Hyper` in debugger configuration to launch a new Hyper instance with debugger attached.
-  * If you interrupt `pnpm run dev`, you'll need to relaunch it each time you want to test something. Webpack will watch changes and will rebuild renderer code when needed (and only what have changed). You'll just have to relaunch electron by using `pnpm run app` or VSCode launch task.
-
-To make sure that your code works in the finished application, you can generate the binaries like this:
-
-```bash
-pnpm run dist
-```
-
-After that, you will see the binary in the `./dist` folder!
-
-#### Known issues that can happen during development
-
-##### Error building `node-pty`
-
-If after building during development you get an alert dialog related to `node-pty` issues,
-make sure its build process is working correctly by running `pnpm run rebuild-node-pty`.
-
-If you are on macOS, this typically is related to Xcode issues (like not having agreed
-to the Terms of Service by running `sudo xcodebuild` after a fresh Xcode installation).
-
-##### Error with `C++` on macOS when running `pnpm install`
-
-If you are getting compiler errors when running `pnpm install` add the environment variable `export CXX=clang++`
-
-##### Error with `codesign` on macOS when running `pnpm run dist`
-
-If you have issues in the `codesign` step when running `pnpm run dist` on macOS, you can temporarily disable code signing locally by setting
-`export CSC_IDENTITY_AUTO_DISCOVERY=false` for the current terminal session.
-
-## Related Repositories
-
-- [Website](https://github.com/vercel/hyper-site)
-- [Sample Extension](https://github.com/vercel/hyperpower)
-- [Sample Theme](https://github.com/vercel/hyperyellow)
-- [Awesome Hyper](https://github.com/bnb/awesome-hyper)
+MIT. Typewriter Nocturne is built on [Hyper](https://github.com/vercel/hyper), © Vercel, Inc., also MIT; the
+original licence is kept in [LICENSE](LICENSE) and shipped in every installer under `licenses/`. All artwork in
+`assets/nocturne/` is original and released under the same licence.
