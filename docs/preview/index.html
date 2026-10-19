@@ -239,6 +239,24 @@ function stepImpact(body, target, p, dt) {
   }
   return {position, velocity};
 }
+// The head hangs from its rail like a pendulum: horizontal acceleration of the carriage tips it
+// (pseudo-force -a/L), gravity restores it, friction in the bushings damps it.
+function stepSway(body, acceleration, dt) {
+  const w = 2 * Math.PI * 4.2;
+  const zeta = 0.16;
+  const length = 3600;
+  let {position, velocity} = body;
+  let remaining = clamp(dt, 0, 0.1);
+  while (remaining > 0) {
+    const h = Math.min(1 / 480, remaining);
+    remaining -= h;
+    velocity += (-w * w * position - 2 * zeta * w * velocity - acceleration / length) * h;
+    position = clamp(position + velocity * h, -0.09, 0.09);
+  }
+  if (Math.abs(position) < 1e-4 && Math.abs(velocity) < 1e-3) return {position: 0, velocity: 0};
+  return {position, velocity};
+}
+
 function stepSpring(body, target, frequency, damping, dt) {
   const w = 2 * Math.PI * frequency;
   let {position, velocity} = body;
@@ -288,7 +306,7 @@ let cellW = 9;
 let LINE = 22;
 let dirty = true;
 
-const carriage = {x: {position: 0, velocity: 0}, mode: 'step', strike: {position: 0, velocity: 0, bar: 0}, vibrator: {position: 0, velocity: 0}, spool: 0};
+const carriage = {x: {position: 0, velocity: 0}, mode: 'step', strike: {position: 0, velocity: 0}, vibrator: {position: 0, velocity: 0}, sway: {position: 0, velocity: 0}, spool: 0};
 const feed = {position: 0, velocity: 0};
 const platenRoll = {angle: 0, target: 0, velocity: 0};
 
@@ -1045,66 +1063,6 @@ const machine = (() => {
     const head = new THREE.Group();
     scene.add(head);
     parts.head = head;
-    const basket = new THREE.Group();
-    body.add(basket);
-    parts.basket = basket;
-    // The segment: a broad brushed-steel ring facing the viewer, grooved and slotted, with the type
-    // bars crossing it and their slugs resting outside.
-    // Like a real basket, the ring is centred on the printing point and hangs below it, so the
-    // shorter inner arc is on top and every type bar points up at the printing point.
-    const segR = clamp(machineH * 0.42, 56, 130);
-    const seg = new THREE.Group();
-    seg.position.set(0, -(bailY + 8), 6);
-    head.add(seg);
-    const arcStart = Math.PI * 1.22;
-    const arcLength = Math.PI * 0.56;
-    textures.brushed = textures.brushed || brushedTexture();
-    const bandMaterial = new THREE.MeshStandardMaterial({color: 0xc9ccd1, metalness: 0.92, roughness: 0.36, roughnessMap: textures.brushed, envMapIntensity: 1.9});
-    const band = mesh(new THREE.RingGeometry(segR * 0.78, segR, 180, 1, arcStart, arcLength), bandMaterial, {cast: false});
-    seg.add(band);
-    const groove = mesh(new THREE.RingGeometry(segR * 0.84, segR * 0.865, 180, 1, arcStart, arcLength), mat.enamelDeep, {cast: false});
-    groove.position.z = 0.25;
-    seg.add(groove);
-    for (const radius of [segR, segR * 0.78]) {
-      const rim = mesh(new THREE.TorusGeometry(radius, 1.3, 10, 160, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
-      rim.position.z = 0.4;
-      seg.add(rim);
-    }
-    for (const a of [arcStart, arcStart + arcLength]) {
-      const cap = mesh(new RoundedBoxGeometry(segR * 0.26, 7, 3, 2, 1.2), mat.chrome, {cast: false});
-      cap.position.set(Math.cos(a) * segR * 0.89, Math.sin(a) * segR * 0.89, 0.8);
-      cap.rotation.z = a;
-      seg.add(cap);
-      const screwHead = mesh(new THREE.SphereGeometry(2.4, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.5), mat.nickel, {cast: false});
-      screwHead.position.set(Math.cos(a) * segR * 0.89, Math.sin(a) * segR * 0.89, 2.4);
-      seg.add(screwHead);
-    }
-    const slots = 52;
-    for (let i = 0; i < slots; i++) {
-      const a = arcStart + (arcLength * (i + 0.5)) / slots;
-      const slotMark = mesh(new THREE.PlaneGeometry(1, segR * 0.11), mat.enamelDeep, {cast: false});
-      slotMark.position.set(Math.cos(a) * segR * 0.93, Math.sin(a) * segR * 0.93, 0.3);
-      slotMark.rotation.z = a - Math.PI / 2;
-      seg.add(slotMark);
-    }
-    // Type bars: polished steel, crossing the band and pointing at the printing point.
-    const bars = 52;
-    const barLength = segR * 0.6;
-    parts.bars = [];
-    for (let i = 0; i < bars; i++) {
-      const a = arcStart + (arcLength * (i + 0.5)) / bars;
-      const pivot = new THREE.Group();
-      pivot.position.set(Math.cos(a) * segR * 1.38, Math.sin(a) * segR * 1.38, 0.9);
-      pivot.rotation.z = a + Math.PI / 2;
-      const bar = mesh(new THREE.BoxGeometry(0.9, barLength, 0.8), mat.chrome, {cast: false});
-      bar.position.y = barLength / 2;
-      const slug = mesh(new RoundedBoxGeometry(2.6, 4.2, 1.6, 1, 0.5), mat.steel, {cast: false});
-      slug.position.y = -1.5;
-      pivot.add(bar, slug);
-      seg.add(pivot);
-      parts.bars.push(pivot);
-    }
-    parts.barLength = barLength;
 
     // Ribbon spools on the deck.
     const spoolR = clamp(Math.min(sheetX * 0.5, machineH * 0.3), 34, 84);
@@ -1230,10 +1188,6 @@ const machine = (() => {
       new THREE.Vector3(0, -(bailY - 9), 2), new THREE.Vector3(cw * 0.55, -(bailY - 6), 2.4), new THREE.Vector3(cw * 0.55, -(bailY + 8), 4)
     ]);
     head.add(mesh(new THREE.TubeGeometry(wire, 40, 0.9, 8), mat.chrome));
-    const striker = mesh(new THREE.BoxGeometry(2.2, 2, 1), mat.steel);
-    striker.visible = false;
-    scene.add(striker);
-    parts.striker = striker;
 
     // Front panel layout, in screen pixels below the front edge (local y = -screen / cos(tilt)).
     const frontScreen = H - (platenY + platenR * 1.05 + deckVisible);
@@ -1348,11 +1302,62 @@ const machine = (() => {
     halo.position.copy(bulb.position).add(new THREE.Vector3(0, 0, 6));
     head.add(bulb, lamp, halo);
     parts.halo = halo;
+
+    // The head rides a polished guide rail on two bushings; a rack below has one tooth per text
+    // column, so the escapement advances the head exactly one tooth per keystroke. The head hangs
+    // from the rail (pivot), so it sways with inertia when it accelerates or hits the margin stop.
+    const railY = platenY + platenR * 1.35;
+    const railZ = 24;
+    const rail = mesh(cylX(3.2, platenLen + 30, 32), mat.chrome);
+    rail.position.set(platenCx, -railY, railZ);
+    scene.add(rail);
+    const rackW = gridRight - gridLeft + 40;
+    const rack = mesh(new RoundedBoxGeometry(rackW, 5, 4, 2, 1), mat.steel);
+    rack.position.set((gridLeft + gridRight) / 2, -(railY + 9), railZ - 3);
+    scene.add(rack);
+    const teeth = new THREE.InstancedMesh(new THREE.BoxGeometry(Math.max(0.9, cellW * 0.38), 2.6, 3.2), mat.steel, L.cols + 1);
+    const toothMatrix = new THREE.Matrix4();
+    for (let c = 0; c <= L.cols; c++) {
+      toothMatrix.makeTranslation(gridLeft + c * cellW, -(railY + 5.4), railZ - 3);
+      teeth.setMatrixAt(c, toothMatrix);
+    }
+    teeth.castShadow = true;
+    teeth.receiveShadow = true;
+    scene.add(teeth);
+
+    const swingPivot = new THREE.Group();
+    swingPivot.position.set(0, -railY, railZ);
+    head.add(swingPivot);
+    const carrier = new THREE.Group();
+    carrier.position.set(0, railY, -railZ);
+    swingPivot.add(carrier);
+    const strikeGroup = new THREE.Group();
+    carrier.add(strikeGroup);
+    // Everything built on the head so far (card holder, vibrator, needle, wire, lamp) is carried.
+    for (const child of [...head.children]) if (child !== swingPivot) strikeGroup.add(child);
+    // Carrier body between the card holder and the rail, bushings round the rail, and the pawl.
+    const blockTop = holderBottom - 5;
+    const blockBottom = railY + 10;
+    const block = mesh(new RoundedBoxGeometry(cw * 1.18, blockBottom - blockTop, 17, 4, 3), mat.nickel);
+    block.position.set(0, -(blockTop + blockBottom) / 2, railZ - 4);
+    carrier.add(block);
+    for (const side of [-1, 1]) {
+      const bushing = mesh(cylX(5.2, 9, 32), mat.nickel);
+      bushing.position.set(side * cw * 0.42, -railY, railZ);
+      carrier.add(bushing);
+      const bolt = mesh(new THREE.SphereGeometry(2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.45), mat.steel, {cast: false});
+      bolt.position.set(side * cw * 0.3, -(blockTop + blockBottom) / 2, railZ + 4.6);
+      carrier.add(bolt);
+    }
+    const pawl = mesh(new THREE.BoxGeometry(2.2, 7, 2.4), mat.steel);
+    pawl.position.set(0, -(railY + 7.5), railZ - 3);
+    carrier.add(pawl);
+    parts.swing = swingPivot;
+    parts.strikeGroup = strikeGroup;
     parts.bulb = bulb;
     parts.lamp = lamp;
     parts.top = top;
     parts.platenCx = platenCx;
-    parts.segR = segR;
     document.getElementById('loading').hidden = true;
   }
 
@@ -1398,7 +1403,6 @@ const machine = (() => {
     const t = THEMES[settings.theme];
     const cx = carriage.x.position;
     parts.head.position.x = cx;
-    parts.basket.position.x = cx - parts.platenCx;
     parts.pointer.position.x = cx - parts.platenCx;
     parts.platen.rotation.x = platenRoll.angle * Math.PI * 2;
     parts.vibrator.position.y = parts.vibratorY + carriage.vibrator.position * 7;
@@ -1410,20 +1414,9 @@ const machine = (() => {
       r.geometry.dispose();
       r.geometry = ribbonBand(curve, i === 0 ? 1.8 : -1.8, 3.6, 160);
     });
-    const swing = clamp(carriage.strike.position, 0, 1);
-    const striker = parts.striker;
-    if (swing > 0.02) {
-      const bar = parts.bars[Math.floor(carriage.strike.bar * (parts.bars.length - 1))];
-      const from = bar.localToWorld(new THREE.Vector3(0, parts.barLength, 0));
-      const to = new THREE.Vector3(cx, -(parts.top + 3), 16);
-      const tipPos = from.clone().lerp(to, swing);
-      const pivot = bar.localToWorld(new THREE.Vector3(0, 0, 0));
-      striker.geometry.dispose();
-      striker.geometry = new THREE.BoxGeometry(2.4, 2.4, Math.max(1, pivot.distanceTo(tipPos)));
-      striker.position.copy(pivot).lerp(tipPos, 0.5);
-      striker.lookAt(tipPos);
-      striker.visible = true;
-    } else striker.visible = false;
+    // The head sways on its rail and strikes towards the paper.
+    parts.swing.rotation.z = carriage.sway.position;
+    parts.strikeGroup.position.z = -3.5 * clamp(carriage.strike.position, 0, 1.2);
     const lampOn = settings.lamp && t.source === 'carriage';
     parts.lamp.intensity = lampOn ? 26000 * settings.intensity : 0;
     parts.bulb.visible = lampOn;
@@ -1530,7 +1523,7 @@ function strike(ch) {
   const line = lines[lines.length - 1];
   line.push({ch, color: 'ink', at: performance.now() + 28});
   cursor.col += wide(ch) ? 2 : 1;
-  carriage.strike = {position: 0, velocity: 34, bar: hash(ch.charCodeAt(0))};
+  carriage.strike = {position: 0, velocity: 30};
   carriage.vibrator.velocity = 16;
   carriage.spool += 0.07;
   if (cursor.col >= L.cols - 8 && bellArmed) {
@@ -1695,13 +1688,16 @@ function frame(now) {
   const targetX = cursorX();
   if (targetX < carriage.x.position - 4 * cellW) carriage.mode = 'return';
   const before = carriage.x.position;
+  const velocityBefore = carriage.x.velocity;
   carriage.x = stepImpact(carriage.x, targetX, carriage.mode === 'return' ? RETURN : ESCAPEMENT, dt);
+  const acceleration = dt > 0 ? (carriage.x.velocity - velocityBefore) / dt : 0;
+  carriage.sway = reduceMotion ? {position: 0, velocity: 0} : stepSway(carriage.sway, acceleration, dt);
   if (carriage.x.position === targetX && carriage.x.velocity === 0) carriage.mode = 'step';
   const s = carriage.strike;
   if (s.position !== 0 || s.velocity !== 0) {
-    const next = stepSpring(s, 0, 7, 0.45, dt);
-    carriage.strike = {...s, ...next};
-    if (carriage.strike.position < 0) carriage.strike.position = 0;
+    // The head is thrown forward, stopped by the platen, and springs back.
+    const next = stepSpring(s, 0, 9, 0.5, dt);
+    carriage.strike = next.position < 0 ? {position: 0, velocity: 0} : next;
   }
   const v = stepSpring(carriage.vibrator, 0, 10, 0.6, dt);
   carriage.vibrator.position = v.position;
@@ -1712,7 +1708,7 @@ function frame(now) {
   const rolled = stepSpring({position: platenRoll.angle, velocity: platenRoll.velocity}, platenRoll.target, 6, 0.9, dt);
   platenRoll.angle = rolled.position;
   platenRoll.velocity = rolled.velocity;
-  const moving = before !== carriage.x.position || carriage.strike.position !== 0 || carriage.vibrator.position !== 0 || feed.position !== 0 || platenRoll.angle !== platenRoll.target;
+  const moving = before !== carriage.x.position || carriage.strike.position !== 0 || carriage.vibrator.position !== 0 || carriage.sway.position !== 0 || feed.position !== 0 || platenRoll.angle !== platenRoll.target;
   const ambient = settings.lamp && !reduceMotion && (settings.particles > 0 || settings.grain > 0);
   const inking = drawText(now);
   if (dirty || moving || ambient || inking) {
