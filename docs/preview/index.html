@@ -766,51 +766,40 @@ const machine = (() => {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   }
-  function scaleTexture(width, height, cols, cell, offset) {
-    // An engraved ivory-on-black scale: hairline ticks, slender serif numerals, a vermilion
-    // half-scale below a fine centre rule, and a double gilt hairline border.
+  // Engraving for the nickel scale bar: black hairline ticks and serif numerals, red half-scale.
+  function scaleEngraving(width, height, cols, cell, offset) {
     const k = 4;
     const c = document.createElement('canvas');
     c.width = Math.round(width * k);
     c.height = Math.round(height * k);
     const x = c.getContext('2d');
     x.scale(k, k);
-    const bg = x.createLinearGradient(0, 0, 0, height);
-    bg.addColorStop(0, '#120e0b');
-    bg.addColorStop(0.5, '#0a0807');
-    bg.addColorStop(1, '#110d0a');
-    x.fillStyle = bg;
-    x.fillRect(0, 0, width, height);
-    const gilt = 'rgba(214, 176, 104, 0.9)';
-    x.strokeStyle = gilt;
-    x.lineWidth = 0.6;
-    x.strokeRect(1.2, 1.2, width - 2.4, height - 2.4);
-    x.lineWidth = 0.3;
-    x.strokeRect(3, 3, width - 6, height - 6);
-    const ivory = 'rgba(238, 228, 206, 0.92)';
-    const vermilion = 'rgba(206, 86, 62, 0.92)';
+    const ink = 'rgba(22, 17, 13, 0.95)';
+    const red = 'rgba(168, 44, 28, 0.95)';
     const mid = height * 0.56;
-    x.fillStyle = 'rgba(238, 228, 206, 0.5)';
-    x.fillRect(offset - 2, mid, cols * cell + 4, 0.35);
+    x.fillStyle = ink;
+    x.fillRect(offset - 2, mid - 0.25, cols * cell + 4, 0.5);
     for (let col = 0; col <= cols; col++) {
       const px = offset + col * cell;
       const major = col % 10 === 0;
       const half = col % 5 === 0;
-      x.fillStyle = ivory;
-      const len = major ? height * 0.2 : half ? height * 0.14 : height * 0.08;
-      x.fillRect(px - 0.18, mid - len, 0.36, len);
-      x.fillStyle = vermilion;
-      x.fillRect(px - 0.15, mid, 0.3, half ? height * 0.09 : height * 0.045);
+      const len = major ? height * 0.26 : half ? height * 0.18 : height * 0.1;
+      x.fillStyle = ink;
+      x.fillRect(px - 0.24, mid - len, 0.48, len);
+      if (half) {
+        x.fillStyle = red;
+        x.fillRect(px - 0.2, mid, 0.4, height * 0.1);
+      }
     }
     const serif = getComputedStyle(document.documentElement).getPropertyValue('--font-ui');
     x.textAlign = 'center';
     x.textBaseline = 'alphabetic';
-    x.font = `500 ${(height * 0.22).toFixed(1)}px ${serif}`;
-    x.fillStyle = ivory;
-    for (let col = 10; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, mid - height * 0.25);
-    x.font = `italic 500 ${(height * 0.19).toFixed(1)}px ${serif}`;
-    x.fillStyle = vermilion;
-    for (let col = 5; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, height * 0.88);
+    x.font = `600 ${(height * 0.27).toFixed(1)}px ${serif}`;
+    x.fillStyle = ink;
+    for (let col = 10; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, mid - height * 0.3);
+    x.font = `italic 600 ${(height * 0.24).toFixed(1)}px ${serif}`;
+    x.fillStyle = red;
+    for (let col = 5; col <= cols; col += 10) x.fillText(String(col), offset + col * cell, height * 0.96);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
@@ -851,18 +840,18 @@ const machine = (() => {
       x.fillRect(0, 0, c.width, c.height);
       x.filter = blur ? `blur(${blur * k}px)` : 'none';
       x.fillStyle = '#fff';
-      x.font = `500 ${Math.round(height * 0.5 * k)}px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
+      x.font = `600 ${Math.round(height * 0.6 * k)}px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui')}`;
       x.textAlign = 'center';
       x.textBaseline = 'middle';
-      x.letterSpacing = `${Math.round(height * 0.62 * k)}px`;
-      x.fillText(text, c.width / 2 + height * 0.31 * k, c.height / 2 + height * 0.04 * k);
+      x.letterSpacing = `${Math.round(height * 0.3 * k)}px`;
+      x.fillText(text, c.width / 2 + height * 0.15 * k, c.height / 2 + height * 0.05 * k);
       const t = new THREE.CanvasTexture(c);
       t.anisotropy = 8;
       return t;
     };
     return new THREE.MeshPhysicalMaterial({
-      color: 0xffd98a, metalness: 1, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.08, envMapIntensity: 3,
-      emissive: 0x6b4512, emissiveIntensity: 0.9,
+      color: 0xffd47a, metalness: 1, roughness: 0.26, clearcoat: 0.6, clearcoatRoughness: 0.06, envMapIntensity: 3.2,
+      emissive: 0x8a5a16, emissiveIntensity: 1.1,
       alphaMap: make(0), transparent: true, bumpMap: make(0.9), bumpScale: 2.2
     });
   }
@@ -1254,45 +1243,62 @@ const machine = (() => {
 
     // Front panel layout, in screen pixels below the front edge (local y = -screen / cos(tilt)).
     const frontScreen = H - (platenY + platenR * 1.05 + deckVisible);
-    const toLocal = (screen) => -screen / Math.cos(bodyTilt);
-    const scaleTop = shoulder * Math.cos(bodyTilt) + clamp(frontScreen * 0.08, 6, 14);
-    const scaleH = clamp(frontScreen * 0.3, 24, 40);
-    const scaleW = gridRight - gridLeft + 36;
+    const cosT = Math.cos(bodyTilt);
+    const toLocal = (screen) => -screen / cosT;
+    // Paper scale: a polished nickel bar, engraved in black with a red half-scale, screwed on.
+    const barTop = shoulder * cosT + clamp(frontScreen * 0.1, 7, 14);
+    const barH = clamp(frontScreen * 0.24, 18, 30);
+    const scaleW = gridRight - gridLeft + 44;
     const scaleX = (gridLeft + gridRight) / 2 - platenCx;
-    const scaleY = toLocal(scaleTop + scaleH / 2);
-    const scaleLocalH = scaleH / Math.cos(bodyTilt);
-    const scale = mesh(new THREE.PlaneGeometry(scaleW, scaleLocalH), new THREE.MeshStandardMaterial({map: scaleTexture(scaleW, scaleH, L.cols, cellW, 18), roughness: 0.38, metalness: 0.05, envMapIntensity: 0.7, emissive: 0xffffff, emissiveMap: null, emissiveIntensity: 0}), {cast: false});
-    scale.material.emissiveMap = scale.material.map;
-    scale.material.emissiveIntensity = 0.35;
-    scale.position.set(scaleX, scaleY, 1.2);
-    body.add(scale);
-    // A slim gilded needle riding on the scale's top edge.
-    const needleShape = new THREE.Shape();
-    needleShape.moveTo(-2.6, 0);
-    needleShape.lineTo(2.6, 0);
-    needleShape.lineTo(0, -scaleLocalH * 0.42);
-    needleShape.closePath();
-    const pointer = mesh(new THREE.ExtrudeGeometry(needleShape, {depth: 0.8, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 2}), mat.gold, {cast: false});
-    pointer.position.set(0, scaleY + scaleLocalH / 2 + 3, 1.6);
+    const scaleY = toLocal(barTop + barH / 2);
+    const barLocalH = barH / cosT;
+    // The bar is angled up towards the viewer, as scale bars are, and finished in satin nickel.
+    const scaleGroup = new THREE.Group();
+    scaleGroup.position.set(scaleX, scaleY, 1.6);
+    scaleGroup.rotation.x = -bodyTilt * 0.85;
+    body.add(scaleGroup);
+    const satinNickel = new THREE.MeshPhysicalMaterial({color: 0xe2ded6, metalness: 0.6, roughness: 0.3, clearcoat: 0.4, clearcoatRoughness: 0.12, envMapIntensity: 1.8});
+    scaleGroup.add(mesh(new RoundedBoxGeometry(scaleW, barH, 3.2, 4, Math.min(3, barH * 0.2)), satinNickel));
+    const engravingMaterial = new THREE.MeshStandardMaterial({map: scaleEngraving(scaleW - 28, barH * 0.86, L.cols, cellW, 8), transparent: true, roughness: 0.6, metalness: 0});
+    const engraving = mesh(new THREE.PlaneGeometry(scaleW - 28, barH * 0.86), engravingMaterial, {cast: false});
+    engraving.position.z = 1.65;
+    scaleGroup.add(engraving);
+    for (const side of [-1, 1]) {
+      const sx = side * (scaleW / 2 - 7);
+      const dome = mesh(new THREE.SphereGeometry(2.6, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.45), mat.nickel, {cast: false});
+      dome.position.set(sx, 0, 1.6);
+      const slotMark = mesh(new THREE.BoxGeometry(4, 0.6, 0.4), mat.enamelDeep, {cast: false});
+      slotMark.position.set(sx, 0, 2.8);
+      slotMark.rotation.z = 0.7 * side;
+      scaleGroup.add(dome, slotMark);
+    }
+    // A gilded arrowhead riding on the bar's top edge.
+    const arrow = new THREE.Shape();
+    arrow.moveTo(-4.5, 0);
+    arrow.lineTo(4.5, 0);
+    arrow.lineTo(0, -7.5);
+    arrow.closePath();
+    const pointer = mesh(new THREE.ExtrudeGeometry(arrow, {depth: 1.2, bevelEnabled: true, bevelThickness: 0.6, bevelSize: 0.5, bevelSegments: 3}), mat.gold, {cast: false});
+    pointer.position.set(0, scaleY + barLocalH / 2 + 6.5, 4.2);
     body.add(pointer);
     parts.pointer = pointer;
-    // Gilded pinstripes above and below the scale.
-    for (const offset of [-scaleLocalH / 2 - 7, scaleLocalH / 2 + 8]) {
-      for (const k of [0, 2.6]) {
-        const stripe = mesh(new THREE.BoxGeometry(bodyW - 120 - k * 10, k ? 0.45 : 0.8, 0.5), mat.gold, {cast: false});
-        stripe.position.set(0, scaleY + offset + (offset < 0 ? -k : k), 0.6);
-        body.add(stripe);
-      }
-    }
-    // Nameplate: gold-leaf lettering only, small and widely spaced, with a little relief.
-    const plateScreenH = clamp((frontScreen - scaleTop - scaleH) * 0.32, 11, 20);
-    const plateY = toLocal(scaleTop + scaleH + Math.max(14, (frontScreen - scaleTop - scaleH) * 0.42));
-    const plateW = plateScreenH * 13;
-    const plateLocalH = plateScreenH / Math.cos(bodyTilt) + 8;
-    const letters = gildedLettering('NOCTURNE', plateW, plateLocalH);
-    const lettering = mesh(new THREE.PlaneGeometry(plateW, plateLocalH), letters, {cast: false});
+    // Nameplate: gold-leaf lettering between two fine gilt rules with diamond terminals.
+    const below = frontScreen - barTop - barH;
+    const letterH = clamp(below * 0.22, 11, 17);
+    const plateY = toLocal(barTop + barH + clamp(below * 0.42, 14, 34));
+    const plateW = letterH * 9.5;
+    const plateLocalH = letterH / cosT + 6;
+    const lettering = mesh(new THREE.PlaneGeometry(plateW, plateLocalH), gildedLettering('NOCTURNE', plateW, plateLocalH), {cast: false});
     lettering.position.set(0, plateY, 1.4);
     body.add(lettering);
+    for (const side of [-1, 1]) {
+      const ruleW = clamp(plateW * 0.55, 40, 120);
+      const rule = mesh(new THREE.BoxGeometry(ruleW, 0.7, 0.5), mat.gold, {cast: false});
+      rule.position.set(side * (plateW / 2 + ruleW / 2 + 6), plateY, 1.0);
+      const diamond = mesh(new THREE.BoxGeometry(3.2, 3.2, 0.8).rotateZ(Math.PI / 4), mat.gold, {cast: false});
+      diamond.position.set(side * (plateW / 2 + ruleW + 9), plateY, 1.0);
+      body.add(rule, diamond);
+    }
 
     parts.ribbon = [mesh(new THREE.BufferGeometry(), mat.ribbonBlack), mesh(new THREE.BufferGeometry(), mat.ribbonRed)];
     parts.ribbon.forEach((r) => scene.add(r));
