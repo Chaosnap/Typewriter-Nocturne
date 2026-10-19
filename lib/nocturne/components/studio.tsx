@@ -6,7 +6,14 @@ import React from 'react';
 import {PAPER_IDS, PAPERS} from '../../../app/nocturne/papers';
 import {applyLightingPreset, FONTS} from '../../../app/nocturne/settings';
 import {THEMES} from '../../../app/nocturne/themes';
-import type {FontId, LightingPresetId, NocturneSettings, ThemeId, TypewriterVoice} from '../../../app/nocturne/types';
+import type {
+  EffectQuality,
+  FontId,
+  LightingPresetId,
+  NocturneSettings,
+  ThemeId,
+  TypewriterVoice
+} from '../../../app/nocturne/types';
 import {getSettings, setSettings, updateSettings} from '../store';
 
 import {percent, Section, Segmented, Slider, Switch} from './controls';
@@ -18,6 +25,13 @@ const PRESETS = [
   {value: 'balanced', label: 'Balanced'},
   {value: 'cinematic', label: 'Cinematic'}
 ] as const;
+
+const QUALITIES: readonly {value: EffectQuality; label: string}[] = [
+  {value: 'auto', label: 'Auto'},
+  {value: 'high', label: 'High'},
+  {value: 'medium', label: 'Medium'},
+  {value: 'low', label: 'Low'}
+];
 
 const VOICES: readonly {value: TypewriterVoice; label: string}[] = [
   {value: 'standard', label: 'Standard'},
@@ -255,6 +269,16 @@ export function Studio({settings, onClose}: StudioProps) {
           onChange={(effects) => updateSettings({effects})}
           note="Light, glow, impressions and motion sit on top of the terminal and never touch its input or output."
         />
+        <Segmented
+          label="Quality"
+          value={lighting.quality}
+          options={QUALITIES}
+          onChange={(quality) => updateSettings({lighting: {quality}})}
+        />
+        <p className="tn-note">
+          Auto leaves out the typewriter and the light on computers without a usable GPU (virtual machines, remote
+          desktops), where they would slow the terminal down.
+        </p>
       </Section>
     </aside>
   );

@@ -197,74 +197,98 @@ all Nocturne code:
 **Plan (Phase 5+):** migrate to `contextIsolation: true` + preload bridge. This touches every `@electron/remote`
 call and the plugin API, so it is a dedicated project after the Electron upgrade.
 
-## 9. Nocturne layering (Plan, Phases 2–3)
+## 9. Nocturne layering
 
 ```mermaid
 flowchart TB
   subgraph Untouched["Terminal core — unchanged behaviour"]
-    X[xterm.js parser, buffer, canvas/WebGL renderer]
+    X[xterm.js parser, buffer, canvas renderer]
     PT[node-pty sessions, keymaps, IPC]
   end
   subgraph Nocturne["Nocturne layers"]
-    TK[Design tokens<br/>3 themes + classic]
-    CFG[Config bridge<br/>tokens → xterm colours & fonts]
-    SH[Shell frame<br/>room · paper · toolbar · status bar]
-    FX[Effects layer<br/>one overlay canvas, pointer-events: none]
-    TW[Typewriter engine<br/>passive key listener + Web Audio]
-    STU[Studios<br/>Lighting · Typography · Theme · Typewriter]
+    TK[Design tokens<br/>3 themes + classic · 6 papers]
+    CFG[Config bridge<br/>paper → xterm colours, typography → fonts]
+    SH[Stage shell<br/>room · sheet · tools · Studio]
+    PL[Paper light<br/>WebGL 2, multiply]
+    GL[Glow<br/>2D canvas, screen]
+    INK[Type impressions<br/>2D canvas]
+    M3[Typewriter model<br/>three.js, own canvas]
+    PH[Physics<br/>escapement · sway · springs]
+    TW[Sounds<br/>passive key listener + Web Audio]
     STORE[Settings store<br/>main process, nocturne.json]
   end
   TK --> CFG --> X
-  TK --> SH
-  STORE <--> STU
-  STORE --> CFG & FX & TW & SH
-  X -. cursor position (read-only) .-> FX
+  STORE --> CFG & SH & PL & GL & INK & M3 & TW
+  X -. cursor geometry, echoed glyphs (read-only) .-> PH & INK
+  PH --> M3 & PL & GL
 ```
+
+What the user sees, back to front: the room (CSS gradients), the sheet (a `div` in the paper colour that holds
+Hyper's terminals), the type impressions, the paper light with `mix-blend-mode: multiply`, the glow with
+`mix-blend-mode: screen`, and the typewriter canvas. The typewriter covers the whole stage, but an invisible
+occluder in the paper plane hides everything behind the sheet; only the bail, the type head and their shadows are
+drawn over the paper, and the text area ends above the bail (`app/nocturne/stage-layout.ts`, unit-tested), so
+the machine never covers a character.
+
+* **Paper light** (`lib/nocturne/lighting/paper-light.ts`): the paper surface (albedo, fibre normals, laid lines,
+  linen weave, foxing for aged paper) is rendered once per layout into two textures. Each frame only applies the
+  light model of `app/nocturne/light-model.ts`: inverse-square falloff, Lambert's cosine law, a soft spot cone, a
+  window gobo for moonlight and exposure tone mapping. The room may dim the page only down to a floor that keeps
+  ink/paper contrast at 4.5:1 or better (`ambientFloor`, unit-tested).
+* **Typewriter** (`lib/nocturne/machine/`): physically based materials, VSM soft shadows and a procedural study
+  environment. The rack has one tooth per terminal column; the head moves with escapement physics, sways as a
+  pendulum on its rail, strikes towards the platen and lifts the ribbon. The model is rebuilt only when the layout,
+  theme or paper changes (debounced while resizing) and re-rendered only while something moves.
+* **Impressions** (`lib/nocturne/typewriter/ink-layer.ts`): when a character the user typed has been echoed and
+  drawn by xterm.js, a heavier, slightly spread copy of that glyph settles into normal print over 420 ms. Hidden
+  input never appears in the buffer, so it can never appear here.
 
 Principles that hold regardless of settings:
 
-* **The PTY stream is never touched.** Effects read the cursor position after xterm has rendered; they do not
-  subscribe to, delay, buffer or transform PTY data or keystrokes. The typewriter engine listens to `keydown`
-  passively and never calls `preventDefault`, so shortcuts, paste, bracketed paste and IME composition behave
-  exactly as in Hyper.
+* **The PTY stream is never touched.** Effects read cursor geometry and buffer cells after xterm has rendered;
+  they do not subscribe to, delay, buffer or transform PTY data or keystrokes. Key observation is passive (capture
+  phase, never `preventDefault`), so shortcuts, paste, bracketed paste and IME composition behave as in Hyper.
 * **The cell grid is owned by xterm.js.** Typography settings map to xterm options (`fontFamily`, `fontSize`,
   `lineHeight`, `letterSpacing` in whole pixels, `fontWeight`, `cursorStyle`, `cursorWidth`,
   `minimumContrastRatio`). Nothing re-flows, re-spaces or re-styles shell output.
-* **One overlay, not per-glyph DOM.** All lighting is drawn into a single canvas composited above the terminal
-  with `mix-blend-mode: soft-light`. Its strength is clamped so that ink-on-paper contrast never drops below the
-  configured minimum (default WCAG AA 4.5:1); this clamp is a pure, unit-tested function.
-* **Off means off.** With effects disabled the overlay is unmounted, the animation loop does not exist, the audio
-  context is closed, and the terminal is the stock Hyper terminal with Nocturne colours.
-* **Focus Mode** hides the frame, toolbar ornaments, status bar and effects in one action.
+* **The DOM tree never changes between modes.** Classic theme, focus mode and effects-off only change styles, so
+  switching never remounts a terminal.
+* **Off means off.** With effects off or in focus mode the light, glow and impression canvases are hidden and not
+  drawn, and motion stops; the sound engine closes its audio context when muted.
 
 Integration points in upstream files (kept minimal, each marked `[nocturne]`):
 
 | File | Change |
 | --- | --- |
-| `lib/index.tsx` | apply Nocturne theme/typography to the config before `loadConfig` / `reloadConfig`; re-apply when settings change |
-| `lib/containers/hyper.tsx` | wrap `Header` + `Terms` in the Nocturne shell |
-| `lib/components/term.tsx` | pass `cursorWidth` and `minimumContrastRatio`; publish cursor frames to the effects bus |
+| `lib/index.tsx` | apply the paper and typography to the config before `loadConfig` / `reloadConfig`; reload when they change; open terminals once bundled fonts are loaded |
+| `lib/containers/hyper.tsx` | wrap `Header` + `Terms` in the Nocturne stage |
+| `lib/components/term.tsx` | attach the read-only terminal bridge (cursor geometry, echoed glyphs) |
 | `app/index.ts` | register the settings IPC handlers |
+| `app/config/windows.ts` | larger default window |
 | `webpack.config.ts` | emit bundled font files |
 
-## 10. Performance budget (Plan)
+## 10. Performance budget
 
-| Budget | Target |
+| Budget | Target / state |
 | --- | --- |
-| Keystroke → glyph latency added by Nocturne | 0 ms on the input path (listeners are passive and asynchronous) |
-| Overlay cost while idle | 0 frames — the loop stops when nothing animates |
-| Ambient animation (grain, particles) | ≤ 30 fps, paused when the window is hidden, throttled when unfocused |
-| GPU fallback | WebGL2 → Canvas 2D → static CSS gradients → off |
-| Auto quality | frame-time governor lowers resolution scale, then disables animated effects |
-| Reduce Motion | honours `prefers-reduced-motion`: no animated grain, particles, bloom or paper motion |
+| Keystroke → glyph latency added by Nocturne | 0 ms on the input path (listeners are passive; drawing happens in later animation frames) |
+| Cost while idle | 0 frames — the loop stops when nothing moves and no ambient effect is on |
+| Ambient animation (grain, dust) | ≤ 30 fps, never while the window is hidden |
+| Paper light per frame | two texture reads and the light model per pixel; the expensive surface is rendered once per layout |
+| Typewriter model | rendered only while the head, platen or ribbon moves, or when the lamp changes |
+| GPU fallback | `auto` quality draws no WebGL layers without a usable GPU (software rendering, virtual machines, remote desktops): plain sheet, impressions and sounds only; Studio → Quality forces the full stage |
+| Shader compilation | asynchronous (`KHR_parallel_shader_compile`): the model and the light appear once compiled and never block the window (Direct3D's compiler on Windows is slow) |
+| Quality | `low` drops shadows and renders at 1×; `medium` uses PCF shadows at ≤ 1.5×; if animation frames stay slower than 70 ms, the stage switches itself to simple drawing without motion |
+| Redraws | the model is redrawn only when it would look different (¼ px, 0.1°); subtle film grain is a still texture |
+| Reduce Motion | honours `prefers-reduced-motion`: no grain, dust, sway or head motion |
 
 ## 11. Phases
 
 | Phase | Scope | State |
 | --- | --- | --- |
-| 1 | Investigation, fork, rebrand, CI and packaging | in progress — see CI |
-| 2 | Design tokens, typography system, layout, icon, paper material, lighting architecture, preview | planned |
-| 3 | Themes, typewriter engine, Lighting Studio, Typography Studio | planned |
+| 1 | Investigation, fork, rebrand, CI and packaging | done — macOS, Windows and Linux packages build and pass e2e in CI |
+| 2 | Design tokens, typography system, layout, icon, paper material, lighting architecture, preview | done — preview approved |
+| 3 | Themes, typewriter engine, Lighting Studio, Typography Studio | in progress — stage, model, light, sounds and Studio ported into the app |
 | 4 | Cross-platform packaging hardening, arm64 targets | planned |
 | 5 | Verification, performance, Electron upgrade | planned |
 | 6 | Release, documentation, screenshots | planned |

@@ -192,32 +192,34 @@ export type LightFrame = {
 
 const SOURCE_INDEX = {carriage: 0, 'desk-lamp': 1, moonlight: 2} as const;
 
-function compile(gl: WebGL2RenderingContext, type: number, source: string) {
+function attach(gl: WebGL2RenderingContext, program: WebGLProgram, type: number, source: string) {
   const shader = gl.createShader(type);
   if (!shader) {
     throw new Error('Could not create a shader');
   }
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shader) || 'Shader compilation failed');
-  }
-  return shader;
+  gl.attachShader(program, shader);
 }
 
-function link(gl: WebGL2RenderingContext, fragment: string) {
+/** Starts compiling and linking; nothing here waits for the driver. */
+function startProgram(gl: WebGL2RenderingContext, fragment: string) {
   const program = gl.createProgram();
   if (!program) {
     throw new Error('Could not create a program');
   }
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment));
+  attach(gl, program, gl.VERTEX_SHADER, VERTEX);
+  attach(gl, program, gl.FRAGMENT_SHADER, fragment);
   gl.bindAttribLocation(program, 0, 'aPos');
   gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program) || 'Program link failed');
-  }
   return program;
+}
+
+function checkProgram(gl: WebGL2RenderingContext, program: WebGLProgram) {
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const logs = (gl.getAttachedShaders(program) ?? []).map((shader) => gl.getShaderInfoLog(shader) ?? '');
+    throw new Error(gl.getProgramInfoLog(program) || logs.join('\n') || 'Program link failed');
+  }
 }
 
 function locate<K extends string>(gl: WebGL2RenderingContext, program: WebGLProgram, names: readonly K[]) {
@@ -230,41 +232,75 @@ function locate<K extends string>(gl: WebGL2RenderingContext, program: WebGLProg
 
 export class PaperLight {
   private gl: WebGL2RenderingContext;
+  private parallel: {COMPLETION_STATUS_KHR: number} | null;
   private surfaceProgram: WebGLProgram;
   private lightProgram: WebGLProgram;
-  private surfaceUniforms: Uniforms<(typeof SURFACE_UNIFORMS)[number]>;
-  private lightUniforms: Uniforms<(typeof LIGHT_UNIFORMS)[number]>;
+  private surfaceUniforms: Uniforms<(typeof SURFACE_UNIFORMS)[number]> | null = null;
+  private lightUniforms: Uniforms<(typeof LIGHT_UNIFORMS)[number]> | null = null;
   private framebuffer: WebGLFramebuffer | null = null;
   private textures: WebGLTexture[] = [];
   private spec: SurfaceSpec | null = null;
+  private pending: SurfaceSpec | null = null;
+  private state: 'compiling' | 'ready' | 'failed' = 'compiling';
+  private pollTimer: ReturnType<typeof setTimeout> | undefined;
+  private onReady: () => void;
 
   /** Returns null when WebGL 2 is unavailable; the sheet then shows the plain paper colour. */
-  static create(canvas: HTMLCanvasElement): PaperLight | null {
+  static create(canvas: HTMLCanvasElement, onReady: () => void): PaperLight | null {
     // Alpha keeps the canvas transparent (no effect under multiply) until the first frame is drawn.
     const gl = canvas.getContext('webgl2', {premultipliedAlpha: false, antialias: false});
     if (!gl) {
       return null;
     }
     try {
-      return new PaperLight(gl);
+      return new PaperLight(gl, onReady);
     } catch (error) {
       console.warn('Paper lighting disabled:', (error as Error).message);
       return null;
     }
   }
 
-  private constructor(gl: WebGL2RenderingContext) {
+  private constructor(gl: WebGL2RenderingContext, onReady: () => void) {
     this.gl = gl;
-    this.surfaceProgram = link(gl, SURFACE);
-    this.lightProgram = link(gl, LIGHT);
-    this.surfaceUniforms = locate(gl, this.surfaceProgram, SURFACE_UNIFORMS);
-    this.lightUniforms = locate(gl, this.lightProgram, LIGHT_UNIFORMS);
+    this.onReady = onReady;
+    // With parallel compilation the driver compiles on its own threads and the window never waits
+    // for it (on Windows the shaders go through Direct3D's compiler, which is slow).
+    this.parallel = gl.getExtension('KHR_parallel_shader_compile') as {COMPLETION_STATUS_KHR: number} | null;
+    this.surfaceProgram = startProgram(gl, SURFACE);
+    this.lightProgram = startProgram(gl, LIGHT);
     // One triangle that covers the viewport.
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.pollTimer = setTimeout(() => this.poll(), 0);
+  }
+
+  private poll() {
+    const {gl, parallel} = this;
+    if (parallel) {
+      const programs = [this.surfaceProgram, this.lightProgram];
+      if (!programs.every((program) => gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR) === true)) {
+        this.pollTimer = setTimeout(() => this.poll(), 32);
+        return;
+      }
+    }
+    try {
+      checkProgram(gl, this.surfaceProgram);
+      checkProgram(gl, this.lightProgram);
+    } catch (error) {
+      this.state = 'failed';
+      console.warn('Paper lighting disabled:', (error as Error).message);
+      return;
+    }
+    this.surfaceUniforms = locate(gl, this.surfaceProgram, SURFACE_UNIFORMS);
+    this.lightUniforms = locate(gl, this.lightProgram, LIGHT_UNIFORMS);
+    this.state = 'ready';
+    if (this.pending) {
+      this.build(this.pending);
+    }
+    this.onReady();
   }
 
   get canvas() {
@@ -274,6 +310,12 @@ export class PaperLight {
   /** Sizes the canvas and renders the paper surface (albedo and fibre normals). */
   build(spec: SurfaceSpec) {
     const {gl} = this;
+    const u = this.surfaceUniforms;
+    if (this.state !== 'ready' || !u) {
+      this.pending = spec;
+      return;
+    }
+    this.pending = null;
     this.spec = spec;
     const width = Math.max(1, Math.round(spec.width * spec.pixelRatio));
     const height = Math.max(1, Math.round(spec.height * spec.pixelRatio));
@@ -295,7 +337,6 @@ export class PaperLight {
     this.framebuffer = framebuffer;
 
     const {surface} = spec.paper;
-    const u = this.surfaceUniforms;
     gl.useProgram(this.surfaceProgram);
     gl.viewport(0, 0, width, height);
     gl.uniform2f(u.uSize, spec.width, spec.height);
@@ -314,10 +355,10 @@ export class PaperLight {
   /** Lights the paper. Cheap: two texture reads and the light model per pixel. */
   render(frame: LightFrame) {
     const {gl, spec} = this;
-    if (!spec || this.textures.length < 2 || gl.isContextLost()) {
+    const u = this.lightUniforms;
+    if (!spec || !u || this.textures.length < 2 || gl.isContextLost()) {
       return;
     }
-    const u = this.lightUniforms;
     const {rig} = frame;
     gl.useProgram(this.lightProgram);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -359,6 +400,7 @@ export class PaperLight {
   }
 
   dispose() {
+    clearTimeout(this.pollTimer);
     this.releaseTargets();
     this.gl.deleteProgram(this.surfaceProgram);
     this.gl.deleteProgram(this.lightProgram);

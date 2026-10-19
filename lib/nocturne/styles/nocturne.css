@@ -131,7 +131,9 @@
 .tn-classic .tn-machine,
 .tn-classic .tn-vignette,
 .tn-quiet .tn-layer,
-.tn-quiet .tn-vignette {
+.tn-quiet .tn-vignette,
+.tn-basic .tn-paper-light,
+.tn-basic .tn-glow {
   display: none;
 }
 

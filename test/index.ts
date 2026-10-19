@@ -80,6 +80,19 @@ const nocturneCommand = (name: string) =>
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Waits until the typewriter model has been drawn (its shaders compiled) after the last change. */
+const waitForMachine = async (timeoutMs: number) => {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const state = await page.evaluate(() => document.querySelector<HTMLElement>('.tn-stage')?.dataset.machine);
+    if (state === 'drawn') {
+      return true;
+    }
+    await pause(500);
+  }
+  return false;
+};
+
 const terminalText = () =>
   page.evaluate(() => {
     const tree = document.querySelector('.term_active .xterm-accessibility-tree');
@@ -112,6 +125,7 @@ test.before(async () => {
     env: {...process.env, XDG_CONFIG_HOME: configHome}
   });
   page = await app.firstWindow();
+  await page.waitForSelector('.tn-nocturne .tn-stage', {timeout: 30000});
   await page.waitForSelector('.term_active .xterm', {timeout: 30000});
   await page.waitForSelector('.term_active .xterm-accessibility-tree', {timeout: 30000});
   // Give the shell a moment to print its prompt.
@@ -206,33 +220,44 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   // Leave a half-typed command so the type head stands in the middle of the line.
   await page.keyboard.type('echo "Sonnet XVIII');
 
-  const stage = await page.evaluate(() => {
-    const hasWebGL = (selector: string) => {
-      const canvas = document.querySelector<HTMLCanvasElement>(selector);
-      return Boolean(canvas && !canvas.hidden && canvas.getContext('webgl2'));
-    };
-    return {
-      nocturne: document.querySelector('.tn-nocturne') !== null,
-      machine: hasWebGL('.tn-machine'),
-      paperLight: hasWebGL('.tn-paper-light')
-    };
+  const gpu = await page.evaluate(() => {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    const name: unknown = gl && info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : 'no WebGL 2';
+    const renderer = typeof name === 'string' ? name : 'unknown';
+    const root = document.querySelector<HTMLElement>('.tn-root');
+    const stage = document.querySelector<HTMLElement>('.tn-stage');
+    return `${renderer} | class ${root?.dataset.gpu} | auto mode ${stage?.dataset.render}`;
   });
-  t.log(`WebGL 2 contexts: typewriter ${stage.machine}, paper light ${stage.paperLight}`);
-  t.true(stage.nocturne, 'the Nocturne stage wraps the terminal');
+  t.log(gpu);
+  await fs.mkdirp('dist/tmp');
+  await fs.writeFile(`dist/tmp/${process.platform}_gpu.txt`, `${gpu}\n`);
+  t.truthy(await page.$('.tn-nocturne'), 'the Nocturne stage wraps the terminal');
+
+  // CI runners have no GPU, so `auto` draws the plain sheet there. Force the full stage for the
+  // photographs; its shaders then compile on the CPU, which takes a while.
+  await setNocturne({lighting: {quality: 'high'}});
+  t.true(await waitForMachine(120000), 'the typewriter model is drawn');
 
   for (const [name, settings] of LOOKS) {
     await setNocturne(settings);
+    await pause(1000);
+    await waitForMachine(60000);
     await pause(2500);
     await screenshot(`nocturne-${name}`);
   }
 
   await setNocturne(LOOKS[0][1]);
   await nocturneCommand('studio');
-  await pause(2500);
+  await pause(1000);
+  await waitForMachine(60000);
+  await pause(2000);
   await screenshot('nocturne-studio');
   await nocturneCommand('studio');
 
   // The half-typed command is still in the shell's line editor: effects never touched the input.
+  await setNocturne({lighting: {quality: 'auto'}});
+  await pause(1000);
   await run('"');
   t.truthy(await waitForText(/Sonnet XVIII[\s\S]*Sonnet XVIII/));
 });

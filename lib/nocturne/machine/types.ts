@@ -45,6 +45,7 @@ export type MachineState = {
 
 export type Machine = {
   build(spec: MachineSpec): void;
-  render(state: MachineState): void;
+  /** Draws the model; false while its shaders are still compiling. */
+  render(state: MachineState): boolean;
   dispose(): void;
 };

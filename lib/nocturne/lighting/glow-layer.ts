@@ -105,11 +105,12 @@ export class GlowLayer {
     }
     if (rig.source === 'carriage') {
       const [x, y] = rig.position;
-      const glare = c.createRadialGradient(x, y, 0, x, y, 110 * frame.intensity);
+      const radius = Math.max(1, 110 * frame.intensity);
+      const glare = c.createRadialGradient(x, y, 0, x, y, radius);
       glare.addColorStop(0, `rgba(${frame.rgb}, 0.45)`);
       glare.addColorStop(1, `rgba(${frame.rgb}, 0)`);
       c.fillStyle = glare;
-      c.fillRect(0, 0, width, height);
+      c.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
     if (frame.cursor && frame.cursorGlow > 0) {
       const {x, y} = frame.cursor;

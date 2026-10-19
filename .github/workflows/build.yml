@@ -190,6 +190,7 @@ jobs:
           path: |
             ci-logs/
             dist/tmp/*.png
+            dist/tmp/*.txt
             dist/*.yml
             dist/builder-debug.yml
           if-no-files-found: ignore

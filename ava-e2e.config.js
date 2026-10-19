@@ -2,5 +2,6 @@ module.exports = {
   files: ['test/*'],
   extensions: ['ts'],
   require: ['ts-node/register/transpile-only'],
-  timeout: '30s'
+  // The last test waits for the typewriter's shaders, which CI runners compile on the CPU.
+  timeout: '180s'
 };

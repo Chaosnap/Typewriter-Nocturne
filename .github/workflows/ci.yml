@@ -51,8 +51,9 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           mkdir -p shots
-          find diagnostics -name '*.png' -exec cp {} shots/ \;
+          find diagnostics \( -name '*.png' -o -name '*_gpu.txt' \) -exec cp {} shots/ \;
           if [ -z "$(ls -A shots)" ]; then
             echo "::warning::No screenshots were produced by this run."
             exit 0
@@ -65,6 +66,8 @@ jobs:
             echo
             echo "Commit: $GITHUB_SHA"
             echo "Run: $RUN_URL"
+            echo
+            for f in *_gpu.txt; do echo "- ${f%_gpu.txt}: $(cat "$f")"; done
             echo
             for f in *.png; do echo "![$f]($f)"; done
           } > README.md

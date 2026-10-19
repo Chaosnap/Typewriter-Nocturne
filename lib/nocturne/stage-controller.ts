@@ -3,8 +3,9 @@
 //
 // Everything here reacts to what the terminal has already rendered (cursor geometry, echoed
 // characters, published by terminal-bridge.ts) or to passive key observation (keys.ts). Nothing
-// reaches the PTY and nothing delays input. Frames are drawn only while something moves or an
-// ambient effect (film grain, dust) is switched on, and never while the window is hidden.
+// reaches the PTY and nothing delays input. A layer is redrawn only when something visible about it
+// changed; frames run only while something moves or an ambient effect is on, never while the
+// window is hidden. In `basic` mode (no usable GPU, see lighting/gpu.ts) no WebGL is used at all.
 
 import {activePaper, activeTheme} from '../../app/nocturne/apply-config';
 import {CARRIAGE_RETURN, ESCAPEMENT, stepImpact, stepSpring, stepSway} from '../../app/nocturne/carriage-physics';
@@ -21,8 +22,9 @@ import type {NocturneSettings, NocturneTheme} from '../../app/nocturne/types';
 import {on} from './bus';
 import type {CursorFrame, KeyKind, StrikeEvent} from './bus';
 import {GlowLayer} from './lighting/glow-layer';
+import type {RenderMode} from './lighting/gpu';
 import {PaperLight} from './lighting/paper-light';
-import type {Machine, MachineSpec} from './machine/types';
+import type {Machine, MachineQuality, MachineSpec, MachineState} from './machine/types';
 import {createMachine} from './machine/typewriter-machine';
 import {lightColorOf} from './theme-css';
 import {InkLayer} from './typewriter/ink-layer';
@@ -50,14 +52,37 @@ const STRIKE_TRAVEL = 3.5;
 const VIBRATOR_LIFT = 7;
 /** Platen rotation per line feed, degrees. */
 const LINE_FEED_DEGREES = 10;
-/** Ambient effects (grain, dust) are animated at about 30 frames per second. */
+/** Ambient effects (dust, strong film grain) are animated at about 30 frames per second. */
 const AMBIENT_INTERVAL = 33;
+/** Film grain below this strength stays still; stronger grain flickers like film. */
+const MOVING_GRAIN = 0.2;
 const REBUILD_DELAY = 140;
+/** In constrained mode the model and the light are redrawn at most ten times a second. */
+const CONSTRAINED_INTERVAL = 100;
+/** Frames slower than this, many in a row while animating, switch to constrained mode. */
+const SLOW_FRAME_MS = 70;
+const SLOW_FRAMES_LIMIT = 20;
+
+/** A key that changes only when the model would look different (a quarter pixel, a tenth of a degree). */
+function machineLook(state: MachineState) {
+  return [
+    Math.round(state.headX * 4),
+    Math.round(state.sway * 2000),
+    Math.round(state.strike * 40),
+    Math.round(state.vibrator * 40),
+    Math.round(state.platenTurn * 3600),
+    Math.round(state.spool * 100),
+    state.lamp,
+    state.intensity
+  ].join();
+}
 
 export class StageController {
   private settings: NocturneSettings;
   private layout: StageLayout | null = null;
-  private paperLight: PaperLight | null;
+  private mode: RenderMode = 'basic';
+  private paperLight: PaperLight | null = null;
+  private paperLightFailed = false;
   private glow: GlowLayer;
   private ink: InkLayer;
   private machine: Machine | null = null;
@@ -66,11 +91,21 @@ export class StageController {
   private disposers: (() => void)[] = [];
   private reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+  /**
+   * Frames were too slow while animating: the stage is drawn simply (no shadows, 1× resolution)
+   * and without continuous motion, so it never competes with the terminal for frames.
+   */
+  private constrained = false;
+  private slowFrames = 0;
+
   private frameRequest = 0;
   private lastTime = 0;
   private lastAmbient = 0;
+  private lastHeavy = 0;
   private dirty = true;
   private cursorMoved = false;
+  private drawnMachine = '';
+  private drawnLight = '';
   private origin = {left: 0, top: 0};
   private cursor: CursorFrame | null = null;
   private grid: Grid | null = null;
@@ -94,7 +129,6 @@ export class StageController {
     settings: NocturneSettings
   ) {
     this.settings = settings;
-    this.paperLight = PaperLight.create(elements.paper);
     this.glow = new GlowLayer(elements.glow);
     this.ink = new InkLayer(elements.ink);
     this.sounds.configure(settings.typewriter);
@@ -114,18 +148,15 @@ export class StageController {
     });
   }
 
-  /** Whether the paper light could start (WebGL 2); without it the sheet keeps its plain colour. */
-  get hasPaperLight() {
-    return this.paperLight !== null;
-  }
-
-  update(settings: NocturneSettings, layout: StageLayout) {
+  update(settings: NocturneSettings, layout: StageLayout, mode: RenderMode) {
     const previous = this.settings;
     this.settings = settings;
     this.layout = layout;
+    this.mode = mode;
     if (previous.typewriter !== settings.typewriter) {
       this.sounds.configure(settings.typewriter);
     }
+    this.elements.stage.dataset.render = this.renderLabel();
     this.measureOrigin();
     this.refreshGrid();
     this.rebuild(false);
@@ -145,22 +176,19 @@ export class StageController {
       this.rebuild(false);
     }
     const target = frame.x - this.origin.left + frame.width / 2;
-    if (first || !this.animated()) {
-      if (target !== this.carriage.position) {
-        this.carriage = {position: target, velocity: 0};
-        this.dirty = true;
-      }
+    if (first || !this.moves()) {
+      this.carriage = {position: target, velocity: 0};
     } else if (target < this.carriage.position - 4 * Math.max(1, frame.width)) {
       this.returning = true;
     }
     this.targetX = target;
-    // Moving the cursor only moves its glow; the physics step notices a new target by itself.
     this.cursorMoved = true;
     this.schedule();
   }
 
   private onStrike(strike: StrikeEvent) {
-    if (!this.animated() || this.settings.typewriter.impression <= 0 || strike.uid !== this.cursor?.uid) {
+    const off = !this.effects() || this.reduceMotion.matches || this.settings.typewriter.impression <= 0;
+    if (off || strike.uid !== this.cursor?.uid) {
       return;
     }
     this.ink.add(strike, performance.now());
@@ -186,12 +214,12 @@ export class StageController {
       this.vibrator = {position: this.vibrator.position, velocity: 16 * VIBRATOR_LIFT};
       this.spool += 0.07;
     }
-    if (!this.animated()) {
+    if (!this.moves()) {
       this.platen = {position: this.platenTarget, velocity: 0};
       this.strike = rest();
       this.vibrator = rest();
     }
-    this.invalidate();
+    this.schedule();
   }
 
   private onMarginBell() {
@@ -203,14 +231,29 @@ export class StageController {
   // ------------------------------------------------------------------------------------------
   // State
 
-  private animated() {
-    const {settings} = this;
-    return settings.effects && !settings.focusMode && !this.reduceMotion.matches;
+  private effects() {
+    return this.settings.effects && !this.settings.focusMode;
+  }
+
+  /** WebGL layers (paper light, typewriter) are in use. */
+  private full() {
+    return this.mode !== 'basic';
+  }
+
+  /** Physics and ambient animation run. */
+  private moves() {
+    return this.effects() && this.full() && !this.reduceMotion.matches && !this.constrained;
   }
 
   private lampOn() {
-    const {settings} = this;
-    return settings.effects && !settings.focusMode && settings.lighting.enabled;
+    return this.effects() && this.settings.lighting.enabled;
+  }
+
+  private renderLabel() {
+    if (!this.full()) {
+      return 'basic';
+    }
+    return this.constrained ? 'constrained' : this.mode;
   }
 
   private measureOrigin() {
@@ -236,8 +279,32 @@ export class StageController {
     return activeTheme(this.settings);
   }
 
+  private quality(): MachineQuality {
+    if (this.constrained || this.mode === 'basic') {
+      return 'low';
+    }
+    return this.mode;
+  }
+
   private pixelRatio() {
-    return Math.min(2, window.devicePixelRatio || 1);
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    const quality = this.quality();
+    if (quality === 'low') {
+      return 1;
+    }
+    return quality === 'medium' ? Math.min(1.5, ratio) : ratio;
+  }
+
+  private constrain(reason: string) {
+    if (this.constrained) {
+      return;
+    }
+    console.info(`Typewriter Nocturne: ${reason}; drawing the stage simply.`);
+    this.constrained = true;
+    this.surfaceKey = '';
+    this.machineKey = '';
+    this.elements.stage.dataset.render = this.renderLabel();
+    this.rebuild(true);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -269,27 +336,38 @@ export class StageController {
       this.surfaceKey = surfaceKey;
       this.glow.resize(sheet.width, sheet.height, ratio);
       this.ink.resize(sheet.width, sheet.height, ratio);
-      this.paperLight?.build({
-        width: sheet.width,
-        height: sheet.height,
-        pixelRatio: ratio,
-        paper,
-        texture: this.settings.paper.texture
-      });
+      if (this.full()) {
+        this.ensurePaperLight()?.build({
+          width: sheet.width,
+          height: sheet.height,
+          pixelRatio: ratio,
+          paper,
+          texture: this.settings.paper.texture
+        });
+      }
     }
     if (machineKey !== this.machineKey) {
       this.machineKey = machineKey;
       if (spec) {
         this.ensureMachine()?.build(spec);
+        this.elements.stage.dataset.machine = 'built';
       }
     }
     this.dirty = true;
     this.schedule();
   }
 
+  private ensurePaperLight() {
+    if (!this.paperLight && !this.paperLightFailed) {
+      this.paperLight = PaperLight.create(this.elements.paper, () => this.invalidate());
+      this.paperLightFailed = this.paperLight === null;
+    }
+    return this.paperLight;
+  }
+
   private ensureMachine() {
     if (!this.machine && !this.machineFailed) {
-      this.machine = createMachine(this.elements.machine);
+      this.machine = createMachine(this.elements.machine, () => this.invalidate());
       this.machineFailed = this.machine === null;
     }
     return this.machine;
@@ -297,14 +375,13 @@ export class StageController {
 
   private machineSpec(theme: NocturneTheme, paper: Paper): MachineSpec | null {
     const {layout, grid, settings} = this;
-    if (!layout?.machine || !grid) {
+    if (!layout?.machine || !grid || !this.full()) {
       return null;
     }
-    const quality = settings.lighting.quality === 'auto' ? 'high' : settings.lighting.quality;
     return {
       layout,
       pixelRatio: this.pixelRatio(),
-      quality,
+      quality: this.quality(),
       grid: {left: Math.round(grid.left), cols: grid.cols, cellWidth: Math.round(grid.cellWidth * 100) / 100},
       theme: {
         room: theme.palette.room,
@@ -336,7 +413,7 @@ export class StageController {
 
   /** Advances the physics; returns whether anything is still moving. */
   private step(dt: number) {
-    if (!this.animated()) {
+    if (!this.moves()) {
       this.carriage = {position: this.targetX, velocity: 0};
       this.sway = rest();
       this.platen = {position: this.platenTarget, velocity: 0};
@@ -364,14 +441,31 @@ export class StageController {
     );
   }
 
+  private movingGrain() {
+    return this.moves() && this.lampOn() && this.settings.lighting.grain >= MOVING_GRAIN;
+  }
+
   private ambient() {
-    const {lighting} = this.settings;
-    return this.lampOn() && this.animated() && (lighting.grain > 0 || lighting.particles > 0);
+    return this.movingGrain() || (this.moves() && this.lampOn() && this.settings.lighting.particles > 0);
+  }
+
+  private machineState(): MachineState {
+    return {
+      headX: this.carriage.position,
+      sway: this.sway.position,
+      strike: this.strike.position / STRIKE_TRAVEL,
+      vibrator: this.vibrator.position / VIBRATOR_LIFT,
+      spool: this.spool,
+      platenTurn: this.platen.position / 360,
+      lamp: this.lampOn(),
+      intensity: this.settings.lighting.intensity
+    };
   }
 
   private frame(now: number) {
     this.frameRequest = 0;
-    const dt = this.lastTime ? Math.min(0.05, (now - this.lastTime) / 1000) : 1 / 60;
+    const interval = this.lastTime ? now - this.lastTime : 0;
+    const dt = interval ? Math.min(0.05, interval / 1000) : 1 / 60;
     this.lastTime = now;
     const {layout} = this;
     const theme = this.theme();
@@ -379,40 +473,75 @@ export class StageController {
       return;
     }
     const stillMoving = this.step(dt);
+    if (stillMoving) {
+      this.watchFrameRate(interval);
+    }
     const ambient = this.ambient();
     const ambientDue = ambient && now - this.lastAmbient >= AMBIENT_INTERVAL;
-    const effects = this.settings.effects && !this.settings.focusMode;
+    const effects = this.effects();
     const paper = activePaper(this.settings);
+    // The model and the paper light are the heavy layers; constrained, they are redrawn sparingly.
+    const heavyDue = !this.constrained || now - this.lastHeavy >= CONSTRAINED_INTERVAL;
+    let deferred = false;
 
-    if (effects && (this.dirty || stillMoving || ambientDue || this.cursorMoved)) {
+    const state = this.machineState();
+    const look = machineLook(state);
+    const lightLook = `${Math.round(state.headX * 4)},${state.lamp}`;
+    const lightChanged = this.dirty || lightLook !== this.drawnLight;
+
+    if (effects && this.full()) {
       const rig = this.rig(theme, layout);
-      if (this.dirty || stillMoving || ambientDue) {
-        this.lastAmbient = now;
-        this.paperLight?.render(this.lightFrame(rig, theme, paper, now));
+      const grainDue = ambientDue && this.movingGrain();
+      if (lightChanged || grainDue) {
+        if (heavyDue) {
+          this.paperLight?.render(this.lightFrame(rig, theme, paper, now));
+          this.drawnLight = lightLook;
+          this.lastHeavy = now;
+        } else {
+          deferred = true;
+        }
       }
-      this.glow.render(this.glowFrame(rig, theme, paper, layout, now));
-    } else if (!effects && this.dirty) {
+      if (lightChanged || ambientDue || this.cursorMoved) {
+        this.glow.render(this.glowFrame(rig, theme, paper, layout, now));
+      }
+      if (ambientDue) {
+        this.lastAmbient = now;
+      }
+    } else if (this.dirty) {
       this.glow.clear();
     }
-    if (layout.machine && (this.dirty || stillMoving)) {
-      this.machine?.render({
-        headX: this.carriage.position,
-        sway: this.sway.position,
-        strike: this.strike.position / STRIKE_TRAVEL,
-        vibrator: this.vibrator.position / VIBRATOR_LIFT,
-        spool: this.spool,
-        platenTurn: this.platen.position / 360,
-        lamp: this.lampOn(),
-        intensity: this.settings.lighting.intensity
-      });
+
+    if (layout.machine && this.full() && (this.dirty || look !== this.drawnMachine)) {
+      if (heavyDue || this.lastHeavy === now) {
+        // While its shaders compile the model is not drawn; it asks for a frame once they are ready.
+        if (this.machine?.render(state)) {
+          this.drawnMachine = look;
+          this.elements.stage.dataset.machine = 'drawn';
+        }
+        this.lastHeavy = now;
+      } else {
+        deferred = true;
+      }
     }
+
     const inking = this.ink.render(now, this.inkStyle(paper, effects), this.inkViewport(layout));
-    this.dirty = false;
+    this.dirty = this.dirty && deferred;
     this.cursorMoved = false;
-    if (stillMoving || ambient || inking) {
+    if (stillMoving || ambient || inking || deferred) {
       this.schedule();
     } else {
       this.lastTime = 0;
+    }
+  }
+
+  /** Switches to constrained mode when animation frames stay slow (a weak or busy GPU). */
+  private watchFrameRate(interval: number) {
+    if (this.constrained || interval <= 0 || interval > 1000) {
+      return;
+    }
+    this.slowFrames = interval > SLOW_FRAME_MS ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1);
+    if (this.slowFrames >= SLOW_FRAMES_LIMIT) {
+      this.constrain('animation frames are slow');
     }
   }
 
@@ -440,8 +569,9 @@ export class StageController {
       ambient,
       ambientTint: [tint(room[0]), tint(room[1]), tint(room[2])] as [number, number, number],
       relief: 2 * lighting.paperIllumination,
-      grain: this.animated() ? lighting.grain : 0,
-      time: now / 1000
+      grain: lighting.grain,
+      // Subtle grain is a still texture; strong grain flickers like film.
+      time: this.movingGrain() ? now / 1000 : 0
     };
   }
 
@@ -462,7 +592,7 @@ export class StageController {
       rgb: `${r}, ${g}, ${b}`,
       appearance: paper.appearance,
       intensity: lighting.intensity,
-      particles: this.animated() ? lighting.particles : 0,
+      particles: this.moves() ? lighting.particles : 0,
       cursorGlow: lighting.cursorGlow,
       cursor,
       time: now / 1000
