@@ -811,6 +811,28 @@ const machine = (() => {
     return t;
   }
 
+  // Circular brushing: concentric scratches around the centre, used as a roughness map.
+  function brushedTexture() {
+    const size = 512;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const x = c.getContext('2d');
+    x.fillStyle = 'rgb(120,120,120)';
+    x.fillRect(0, 0, size, size);
+    for (let i = 0; i < 900; i++) {
+      const r = hash(i * 1.37) * size * 0.72;
+      const v = 80 + hash(i * 2.91) * 110;
+      x.strokeStyle = `rgba(${v}, ${v}, ${v}, ${0.15 + hash(i * 4.1) * 0.35})`;
+      x.lineWidth = 0.6 + hash(i * 6.3) * 1.2;
+      x.beginPath();
+      x.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+      x.stroke();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    return t;
+  }
+
   // Gold-leaf lettering: an alpha mask for the letters, a soft bump for their raised edges.
   function gildedLettering(text, width, height) {
     const k = 4;
@@ -873,6 +895,7 @@ const machine = (() => {
       fabric: new THREE.MeshStandardMaterial({color: 0x0d0b0a, roughness: 0.95, bumpMap: textures.grain, bumpScale: 0.6}),
       paper: new THREE.MeshStandardMaterial({map: parchmentTexture(currentPaper().paper), roughness: 0.92, envMapIntensity: env * 0.4}),
       bulb: new THREE.MeshStandardMaterial({color: 0xfff3dc, emissive: new THREE.Color(t.light), emissiveIntensity: 3.2, roughness: 0.2}),
+      nickel: new THREE.MeshPhysicalMaterial({color: 0xece8e0, metalness: 1, roughness: 0.14, clearcoat: 0.3, clearcoatRoughness: 0.05, envMapIntensity: 2.6}),
       gold: new THREE.MeshPhysicalMaterial({color: 0xe2b45a, metalness: 1, roughness: 0.2, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity: 1.7})
     };
   }
@@ -1038,41 +1061,58 @@ const machine = (() => {
     const basket = new THREE.Group();
     body.add(basket);
     parts.basket = basket;
-    // The segment: a semicircular steel ring facing the viewer, slotted, with the type bars fanned around it.
-    const segR = clamp(deckDepth * 0.95, 40, 130);
+    // The segment: a broad brushed-steel ring facing the viewer, grooved and slotted, with the type
+    // bars crossing it and their slugs resting outside.
+    const segR = clamp(machineH * 0.44, 60, 160);
     const seg = new THREE.Group();
-    seg.position.set(0, -segR * 0.7, -deckDepth * 0.22);
-    seg.rotation.x = -bodyTilt;
-    basket.add(seg);
-    const arcStart = Math.PI * 0.14;
-    const arcLength = Math.PI * 0.72;
-    const ring = mesh(new THREE.RingGeometry(segR * 0.8, segR, 120, 1, arcStart, arcLength), mat.steel, {cast: false});
-    seg.add(ring);
-    const rimOuter = mesh(new THREE.TorusGeometry(segR, 1.1, 8, 120, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
-    const rimInner = mesh(new THREE.TorusGeometry(segR * 0.8, 0.9, 8, 120, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
-    rimOuter.position.z = 0.6;
-    rimInner.position.z = 0.6;
-    seg.add(rimOuter, rimInner);
-    const slots = 46;
+    // In front of the paper, behind the deck's front edge: its lower half sinks into the body.
+    seg.position.set(0, -(platenY + platenR * 1.05 + deckVisible + segR * 0.4), 6);
+    head.add(seg);
+    const arcStart = Math.PI * 0.2;
+    const arcLength = Math.PI * 0.6;
+    textures.brushed = textures.brushed || brushedTexture();
+    const bandMaterial = new THREE.MeshStandardMaterial({color: 0xc9ccd1, metalness: 0.92, roughness: 0.36, roughnessMap: textures.brushed, envMapIntensity: 1.9});
+    const band = mesh(new THREE.RingGeometry(segR * 0.78, segR, 180, 1, arcStart, arcLength), bandMaterial, {cast: false});
+    seg.add(band);
+    const groove = mesh(new THREE.RingGeometry(segR * 0.84, segR * 0.865, 180, 1, arcStart, arcLength), mat.enamelDeep, {cast: false});
+    groove.position.z = 0.25;
+    seg.add(groove);
+    for (const radius of [segR, segR * 0.78]) {
+      const rim = mesh(new THREE.TorusGeometry(radius, 1.3, 10, 160, arcLength).rotateZ(arcStart), mat.chrome, {cast: false});
+      rim.position.z = 0.4;
+      seg.add(rim);
+    }
+    for (const a of [arcStart, arcStart + arcLength]) {
+      const cap = mesh(new RoundedBoxGeometry(segR * 0.26, 7, 3, 2, 1.2), mat.chrome, {cast: false});
+      cap.position.set(Math.cos(a) * segR * 0.89, Math.sin(a) * segR * 0.89, 0.8);
+      cap.rotation.z = a;
+      seg.add(cap);
+      const screwHead = mesh(new THREE.SphereGeometry(2.4, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.5), mat.nickel, {cast: false});
+      screwHead.position.set(Math.cos(a) * segR * 0.89, Math.sin(a) * segR * 0.89, 2.4);
+      seg.add(screwHead);
+    }
+    const slots = 52;
     for (let i = 0; i < slots; i++) {
       const a = arcStart + (arcLength * (i + 0.5)) / slots;
-      const slotMark = mesh(new THREE.PlaneGeometry(0.9, segR * 0.15), mat.enamelDeep, {cast: false});
-      slotMark.position.set(Math.cos(a) * segR * 0.9, Math.sin(a) * segR * 0.9, 0.3);
+      const slotMark = mesh(new THREE.PlaneGeometry(1, segR * 0.11), mat.enamelDeep, {cast: false});
+      slotMark.position.set(Math.cos(a) * segR * 0.93, Math.sin(a) * segR * 0.93, 0.3);
       slotMark.rotation.z = a - Math.PI / 2;
       seg.add(slotMark);
     }
-    // Type bars: resting outside the ring, each pointing at the printing point.
-    const bars = 40;
-    const barLength = segR * 0.42;
+    // Type bars: polished steel, crossing the band and pointing at the printing point.
+    const bars = 52;
+    const barLength = segR * 0.6;
     parts.bars = [];
     for (let i = 0; i < bars; i++) {
       const a = arcStart + (arcLength * (i + 0.5)) / bars;
       const pivot = new THREE.Group();
-      pivot.position.set(Math.cos(a) * segR * 1.38, Math.sin(a) * segR * 1.38, -1);
+      pivot.position.set(Math.cos(a) * segR * 1.38, Math.sin(a) * segR * 1.38, 0.9);
       pivot.rotation.z = a + Math.PI / 2;
-      const bar = mesh(new THREE.BoxGeometry(1.1, barLength, 0.9), mat.steel, {cast: false});
+      const bar = mesh(new THREE.BoxGeometry(0.9, barLength, 0.8), mat.chrome, {cast: false});
       bar.position.y = barLength / 2;
-      pivot.add(bar);
+      const slug = mesh(new RoundedBoxGeometry(2.6, 4.2, 1.6, 1, 0.5), mat.steel, {cast: false});
+      slug.position.y = -1.5;
+      pivot.add(bar, slug);
       seg.add(pivot);
       parts.bars.push(pivot);
     }
@@ -1113,35 +1153,60 @@ const machine = (() => {
     const top = bailY + 10;
     const holderBottom = platenY + platenR * 1.0;
     const holderH = holderBottom - top;
+    // Card holder: a polished nickel plate with machined bevels: chamfered base, two tapered pointer
+    // fingers, a ribbon window, a crossbar engraved with alignment ticks and a centre notch.
+    const fx = cw * 0.34;
+    const fw = 4.2;
     const plateShape = new THREE.Shape();
-    plateShape.moveTo(-cw / 2, 0);
-    plateShape.lineTo(cw / 2, 0);
-    plateShape.lineTo(cw / 2, holderH * 0.45);
-    plateShape.lineTo(cw * 0.34 + 4.5, holderH * 0.45);
-    plateShape.lineTo(cw * 0.34 + 4.5, holderH - 10);
-    plateShape.lineTo(cw * 0.34, holderH);
-    plateShape.lineTo(cw * 0.34 - 4.5, holderH - 10);
-    plateShape.lineTo(cw * 0.34 - 4.5, holderH * 0.55);
-    plateShape.lineTo(-cw * 0.34 + 4.5, holderH * 0.55);
-    plateShape.lineTo(-cw * 0.34 + 4.5, holderH - 10);
-    plateShape.lineTo(-cw * 0.34, holderH);
-    plateShape.lineTo(-cw * 0.34 - 4.5, holderH - 10);
-    plateShape.lineTo(-cw * 0.34 - 4.5, holderH * 0.45);
-    plateShape.lineTo(-cw / 2, holderH * 0.45);
+    plateShape.moveTo(-cw / 2 + 3, 0);
+    plateShape.lineTo(cw / 2 - 3, 0);
+    plateShape.lineTo(cw / 2, 3);
+    plateShape.lineTo(cw / 2, holderH * 0.42);
+    plateShape.lineTo(fx + fw + 2, holderH * 0.46);
+    plateShape.lineTo(fx + fw, holderH - 11);
+    plateShape.lineTo(fx + 0.6, holderH);
+    plateShape.lineTo(fx - 0.6, holderH);
+    plateShape.lineTo(fx - fw, holderH - 11);
+    plateShape.lineTo(fx - fw, holderH * 0.55);
+    plateShape.lineTo(-fx + fw, holderH * 0.55);
+    plateShape.lineTo(-fx + fw, holderH - 11);
+    plateShape.lineTo(-fx + 0.6, holderH);
+    plateShape.lineTo(-fx - 0.6, holderH);
+    plateShape.lineTo(-fx - fw, holderH - 11);
+    plateShape.lineTo(-fx - fw - 2, holderH * 0.46);
+    plateShape.lineTo(-cw / 2, holderH * 0.42);
+    plateShape.lineTo(-cw / 2, 3);
     plateShape.closePath();
-    const slot = new THREE.Path();
-    slot.absellipse(0, holderH * 0.22, 2.8, holderH * 0.15, 0, Math.PI * 2, false);
-    plateShape.holes.push(slot);
-    const plate = mesh(new THREE.ExtrudeGeometry(plateShape, {depth: 2.2, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8, bevelSegments: 3}), mat.chrome);
-    plate.position.set(0, -holderBottom, 14);
+    const ribbonWindow = new THREE.Path();
+    const ww = 3.2;
+    const wy0 = holderH * 0.1;
+    const wy1 = holderH * 0.36;
+    ribbonWindow.moveTo(-ww, wy0 + ww);
+    ribbonWindow.absarc(0, wy0 + ww, ww, Math.PI, 0, false);
+    ribbonWindow.lineTo(ww, wy1 - ww);
+    ribbonWindow.absarc(0, wy1 - ww, ww, 0, Math.PI, false);
+    ribbonWindow.closePath();
+    plateShape.holes.push(ribbonWindow);
+    const plate = mesh(new THREE.ExtrudeGeometry(plateShape, {depth: 2.6, bevelEnabled: true, bevelThickness: 1.3, bevelSize: 1.1, bevelSegments: 5, curveSegments: 16}), mat.nickel);
+    plate.position.set(0, -holderBottom, 13.5);
     head.add(plate);
+    // Crossbar between the fingers, engraved with alignment ticks and a centre notch.
+    const barY = -(holderBottom - holderH * 0.72);
+    const crossbar = mesh(new RoundedBoxGeometry(fx * 2 + fw * 2, 4.4, 2.4, 2, 1), mat.nickel);
+    crossbar.position.set(0, barY, 17.2);
+    head.add(crossbar);
+    for (let i = -6; i <= 6; i++) {
+      const tick = mesh(new THREE.PlaneGeometry(0.45, i === 0 ? 3.4 : i % 3 === 0 ? 2.4 : 1.4), mat.enamelDeep, {cast: false});
+      tick.position.set(i * 2.2, barY + 2.2 - (i === 0 ? 1.7 : i % 3 === 0 ? 1.2 : 0.7), 18.45);
+      head.add(tick);
+    }
     for (const side of [-1, 1]) {
-      const screw = mesh(new THREE.CylinderGeometry(3.4, 3.4, 2, 24).rotateX(Math.PI / 2), mat.steel);
-      screw.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.16), 17.5);
-      const slotMark = mesh(new THREE.BoxGeometry(5, 0.9, 0.6), mat.enamelDeep, {cast: false});
-      slotMark.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.16), 18.6);
-      slotMark.rotation.z = 0.5;
-      head.add(screw, slotMark);
+      const dome = mesh(new THREE.SphereGeometry(3.3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.42), mat.nickel);
+      dome.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.17), 17.6);
+      const slotMark = mesh(new THREE.BoxGeometry(5.2, 0.8, 0.5), mat.enamelDeep, {cast: false});
+      slotMark.position.set(side * cw * 0.3, -(holderBottom - holderH * 0.17), 19.05);
+      slotMark.rotation.z = side * 0.6;
+      head.add(dome, slotMark);
     }
     // Ribbon vibrator: a U-shaped fork carrying the two-colour ribbon.
     const vibrator = new THREE.Group();
