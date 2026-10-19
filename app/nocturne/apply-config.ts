@@ -6,6 +6,8 @@
 
 import type {configOptions} from '../../typings/config';
 
+import {PAPERS} from './papers';
+import type {Paper} from './papers';
 import {fontStack} from './settings';
 import {THEMES} from './themes';
 import type {NocturneSettings, NocturneTheme} from './types';
@@ -16,12 +18,16 @@ export function activeTheme(settings: NocturneSettings): NocturneTheme | null {
   return settings.theme === 'classic' ? null : THEMES[settings.theme];
 }
 
+export function activePaper(settings: NocturneSettings): Paper {
+  return PAPERS[settings.paper.style];
+}
+
 /** Paper margins around the text grid, inside the sheet. */
 export function paperPadding(settings: NocturneSettings): string {
   if (settings.theme === 'classic') {
     return '';
   }
-  return settings.focusMode ? '10px 14px' : '22px 30px 18px';
+  return settings.focusMode ? '10px 14px' : '26px 34px 10px';
 }
 
 /** xterm.js options that Hyper does not expose through its config. */
@@ -52,21 +58,22 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     return next;
   }
 
-  const {palette} = theme;
+  // The paper supplies the terminal's colours; the theme supplies room, light and metal.
+  const paper = activePaper(settings);
   return {
     ...next,
-    foregroundColor: palette.ink,
-    backgroundColor: palette.paper,
-    cursorColor: palette.cursor,
-    cursorAccentColor: palette.cursorAccent,
-    selectionColor: typography.selection || palette.selection,
-    borderColor: palette.border,
+    foregroundColor: paper.ink,
+    backgroundColor: paper.paper,
+    cursorColor: paper.cursor,
+    cursorAccentColor: paper.paper,
+    selectionColor: typography.selection || paper.selection,
+    borderColor: theme.palette.border,
     padding: paperPadding(settings),
-    colors: {...config.colors, ...palette.ansi}
+    colors: {...config.colors, ...paper.ansi}
   };
 }
 
 /** A key that changes only when the produced config would change (avoids needless reloads). */
 export function configAffectingKey(settings: NocturneSettings): string {
-  return JSON.stringify([settings.theme, settings.focusMode, settings.typography]);
+  return JSON.stringify([settings.theme, settings.focusMode, settings.typography, settings.paper.style]);
 }

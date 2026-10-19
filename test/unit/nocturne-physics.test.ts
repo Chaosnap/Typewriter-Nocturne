@@ -8,7 +8,8 @@ import {
   isSettled,
   stepCarriage,
   stepImpact,
-  stepSpring
+  stepSpring,
+  stepSway
 } from '../../app/nocturne/carriage-physics';
 import type {Body} from '../../app/nocturne/carriage-physics';
 import {buildRig, irradiance, lightAmount} from '../../app/nocturne/light-model';
@@ -122,4 +123,22 @@ test('moonlight is shaped by the window frame', (t) => {
   const onMullion = lightAmount(rig, rig.window.x + rig.window.pane / 2, rig.window.y);
   t.true(inPane > onMullion);
   t.is(lightAmount(rig, -2000, -2000), 0);
+});
+
+test('the head sways against a sudden stop and comes to rest', (t) => {
+  // A carriage return hitting the margin stop: a large deceleration for one frame.
+  let body = stepSway({position: 0, velocity: 0}, 150000, FRAME);
+  let peak = 0;
+  for (let i = 0; i < 600 && (body.position !== 0 || body.velocity !== 0); i++) {
+    body = stepSway(body, 0, FRAME);
+    peak = Math.max(peak, Math.abs(body.position));
+  }
+  t.true(peak > 0.005, `visible sway (${peak.toFixed(4)} rad)`);
+  t.true(peak <= 0.09, 'tilt is bounded');
+  t.deepEqual(body, {position: 0, velocity: 0});
+});
+
+test('the head tips away from the direction of acceleration', (t) => {
+  t.true(stepSway({position: 0, velocity: 0}, 60000, FRAME).position < 0);
+  t.true(stepSway({position: 0, velocity: 0}, -60000, FRAME).position > 0);
 });

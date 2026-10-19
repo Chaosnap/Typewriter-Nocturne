@@ -2,6 +2,7 @@ import test from 'ava';
 
 import {applyNocturneToConfig, configAffectingKey} from '../../app/nocturne/apply-config';
 import {contrast, isColor} from '../../app/nocturne/color';
+import {PAPERS} from '../../app/nocturne/papers';
 import {defaultSettings, patchSettings} from '../../app/nocturne/settings';
 import {THEME_IDS, THEMES} from '../../app/nocturne/themes';
 import type {configOptions} from '../../typings/config';
@@ -52,12 +53,12 @@ const baseConfig = {
   colors: {limeGreen: '#32CD32'}
 } as unknown as configOptions;
 
-test('a Nocturne theme drives xterm colours and fonts through the config', (t) => {
+test('the paper drives xterm colours, the settings drive fonts', (t) => {
   const settings = defaultSettings();
   const result = applyNocturneToConfig(baseConfig, settings);
-  t.is(result.backgroundColor, THEMES['paper-and-ink'].palette.paper);
-  t.is(result.foregroundColor, THEMES['paper-and-ink'].palette.ink);
-  t.is(result.colors.red, THEMES['paper-and-ink'].palette.ansi.red);
+  t.is(result.backgroundColor, PAPERS.cotton.paper);
+  t.is(result.foregroundColor, PAPERS.cotton.ink);
+  t.is(result.colors.red, PAPERS.cotton.ansi.red);
   t.is((result.colors as unknown as Record<string, string>).limeGreen, '#32CD32');
   t.true(result.fontFamily.startsWith('"Courier Prime"'));
   t.is(result.fontSize, settings.typography.fontSize);
@@ -77,4 +78,10 @@ test('lighting changes do not force a config reload', (t) => {
   t.is(configAffectingKey(settings), configAffectingKey(brighter));
   const larger = patchSettings(settings, {typography: {fontSize: 18}});
   t.not(configAffectingKey(settings), configAffectingKey(larger));
+});
+
+test('changing the paper changes the terminal colours', (t) => {
+  const night = applyNocturneToConfig(baseConfig, patchSettings(defaultSettings(), {paper: {style: 'night'}}));
+  t.is(night.backgroundColor, PAPERS.night.paper);
+  t.is(night.foregroundColor, PAPERS.night.ink);
 });

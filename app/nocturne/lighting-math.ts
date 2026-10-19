@@ -88,6 +88,32 @@ export function lightingLimits(ink: string, paper: string, tintColor: string, mi
   };
 }
 
+/**
+ * Lowest ambient light (a multiply factor applied to ink and paper alike, in sRGB) that keeps the
+ * contrast of ink on paper at or above `minRatio` (or the unlit contrast, if that is lower).
+ */
+export function ambientFloor(ink: string, paper: string, minRatio: number): number {
+  const inkUnit = toUnit(ink);
+  const paperUnit = toUnit(paper);
+  const target = Math.min(minRatio, contrastOfUnit(inkUnit, paperUnit));
+  const scaled = (c: Unit3, k: number): Unit3 => [c[0] * k, c[1] * k, c[2] * k];
+  const keeps = (k: number) => contrastOfUnit(scaled(inkUnit, k), scaled(paperUnit, k)) >= target - 1e-9;
+  if (keeps(0)) {
+    return 0;
+  }
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (low + high) / 2;
+    if (keeps(mid)) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  return high;
+}
+
 /** Contrast of ink on paper under a soft-light source and a screen glow (for tests and diagnostics). */
 export function litContrast(ink: string, paper: string, softLightSource: Unit3, screenSource: Unit3): number {
   const blend = (c: Unit3) => applyScreen(applySoftLight(c, softLightSource), screenSource);

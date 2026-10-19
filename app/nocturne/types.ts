@@ -21,6 +21,8 @@ export type AnsiColors = {
 
 export type ThemeId = 'paper-and-ink' | 'midnight-study' | 'moonlit-poetry';
 
+export type PaperId = 'cotton' | 'laid' | 'linen' | 'onionskin' | 'parchment' | 'night';
+
 /** `classic` keeps the colours from hyper.json and draws no Nocturne chrome. */
 export type ThemeChoice = ThemeId | 'classic';
 
@@ -171,6 +173,14 @@ export type TypewriterSettings = {
   paperFeed: number;
   /** Tiny shake of the sheet on each strike, 0–1. */
   paperShake: number;
+  /** Strength of the fresh-ink impression where a typed character lands, 0–1. */
+  impression: number;
+};
+
+export type PaperSettings = {
+  style: PaperId;
+  /** Depth of the paper's surface relief, 0–1.6. */
+  texture: number;
 };
 
 export type ChromeSettings = {
@@ -188,6 +198,7 @@ export type NocturneSettings = {
   /** Master switch for every visual effect (lighting, carriage motion, paper motion, afterimage). */
   effects: boolean;
   chrome: ChromeSettings;
+  paper: PaperSettings;
   lighting: LightingSettings;
   typography: TypographySettings;
   typewriter: TypewriterSettings;

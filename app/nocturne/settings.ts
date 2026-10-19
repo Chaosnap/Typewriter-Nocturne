@@ -5,6 +5,7 @@
 // checks enums and only accepts colours / font names from a strict grammar.
 
 import {isColor} from './color';
+import {isPaperId} from './papers';
 import {isThemeId} from './themes';
 import type {
   ChromeSettings,
@@ -14,6 +15,7 @@ import type {
   LightingPresetId,
   LightingSettings,
   NocturneSettings,
+  PaperSettings,
   SettingsPatch,
   ThemeChoice,
   TypewriterSettings,
@@ -156,6 +158,7 @@ export function defaultSettings(): NocturneSettings {
     focusMode: false,
     effects: true,
     chrome: {toolbar: true, statusBar: true, frame: true, epigraph: true},
+    paper: {style: 'cotton', texture: 1},
     lighting: {
       enabled: true,
       preset: 'balanced',
@@ -204,7 +207,8 @@ export function defaultSettings(): NocturneSettings {
       carriagePlacement: 'line',
       scale: true,
       paperFeed: 1.5,
-      paperShake: 0
+      paperShake: 0,
+      impression: 0.8
     }
   };
 }
@@ -245,6 +249,15 @@ function sanitizeChrome(raw: unknown, base: ChromeSettings): ChromeSettings {
     statusBar: bool(value.statusBar, base.statusBar),
     frame: bool(value.frame, base.frame),
     epigraph: bool(value.epigraph, base.epigraph)
+  };
+}
+
+function sanitizePaper(raw: unknown, base: PaperSettings): PaperSettings {
+  const value = isDict(raw) ? raw : {};
+  const style = value.style;
+  return {
+    style: isPaperId(style) ? style : base.style,
+    texture: round(num(value.texture, base.texture, 0, 1.6))
   };
 }
 
@@ -312,7 +325,8 @@ function sanitizeTypewriter(raw: unknown, base: TypewriterSettings): TypewriterS
     carriagePlacement: oneOf(value.carriagePlacement, ['line', 'bottom'], base.carriagePlacement),
     scale: bool(value.scale, base.scale),
     paperFeed: round(num(value.paperFeed, base.paperFeed, 0, 6), 1),
-    paperShake: round(num(value.paperShake, base.paperShake, 0, 1))
+    paperShake: round(num(value.paperShake, base.paperShake, 0, 1)),
+    impression: round(num(value.impression, base.impression, 0, 1))
   };
 }
 
@@ -327,6 +341,7 @@ export function sanitizeSettings(raw: unknown, base: NocturneSettings = defaultS
     focusMode: bool(value.focusMode, base.focusMode),
     effects: bool(value.effects, base.effects),
     chrome: sanitizeChrome(value.chrome, base.chrome),
+    paper: sanitizePaper(value.paper, base.paper),
     lighting: sanitizeLighting(value.lighting, base.lighting),
     typography: sanitizeTypography(value.typography, base.typography),
     typewriter: sanitizeTypewriter(value.typewriter, base.typewriter)

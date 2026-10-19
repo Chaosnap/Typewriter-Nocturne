@@ -122,6 +122,29 @@ export function stepCarriage(carriage: Carriage, dt: number): Carriage {
   return {...carriage, x, y, mode: settledX ? 'escapement' : carriage.mode};
 }
 
+/**
+ * The type head hangs from its guide rail like a pendulum. Horizontal acceleration of the
+ * carriage tips it (the inertial pseudo-force -a/L), gravity restores it and friction in the
+ * bushings damps it. Returns the new tilt in radians and its angular velocity.
+ */
+export const SWAY = {frequency: 4.2, damping: 0.16, length: 3600, maxTilt: 0.09};
+
+export function stepSway(body: Body, acceleration: number, dt: number): Body {
+  const omega = 2 * Math.PI * SWAY.frequency;
+  let {position, velocity} = body;
+  let remaining = Math.max(0, Math.min(dt, 0.1));
+  while (remaining > 0) {
+    const h = Math.min(SUBSTEP, remaining);
+    remaining -= h;
+    velocity += (-omega * omega * position - 2 * SWAY.damping * omega * velocity - acceleration / SWAY.length) * h;
+    position = Math.max(-SWAY.maxTilt, Math.min(SWAY.maxTilt, position + velocity * h));
+  }
+  if (Math.abs(position) < 1e-4 && Math.abs(velocity) < 1e-3) {
+    return {position: 0, velocity: 0};
+  }
+  return {position, velocity};
+}
+
 export function isSettled(carriage: Carriage): boolean {
   return (
     carriage.x.position === carriage.targetX &&
