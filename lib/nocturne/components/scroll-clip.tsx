@@ -99,15 +99,21 @@ export function ScrollClip({settings, sheet, text}: ScrollClipProps) {
 
   const step = (now: number) => {
     const m = motion.current;
-    const dt = m.last ? Math.min(0.05, (now - m.last) / 1000) : 1 / 60;
+    // The time since the last frame, run in short slices: the clip keeps pace with the scroll
+    // even when frames are slow (a stage drawn on the CPU), and the springs stay stable.
+    let elapsed = m.last ? Math.min(0.5, (now - m.last) / 1000) : 1 / 60;
     m.last = now;
-    const before = m.y.velocity;
-    if (!m.dragging) {
-      m.y = stepSpring(m.y, m.target, GLIDE, dt);
+    while (elapsed > 0) {
+      const dt = Math.min(1 / 60, elapsed);
+      elapsed -= dt;
+      const before = m.y.velocity;
+      if (!m.dragging) {
+        m.y = stepSpring(m.y, m.target, GLIDE, dt);
+      }
+      // The clip leans against its motion and swings back, like a light thing pushed along an edge.
+      const lean = -m.y.velocity * 0.0009 - ((m.y.velocity - before) / Math.max(dt, 1 / 240)) * 0.00002;
+      m.tilt = stepSpring(m.tilt, Math.max(-0.22, Math.min(0.22, lean)), TILT, dt, TILT_REST);
     }
-    // The clip leans against its motion and swings back, like a light thing pushed along an edge.
-    const lean = -m.y.velocity * 0.0009 - ((m.y.velocity - before) / Math.max(dt, 1 / 240)) * 0.00002;
-    m.tilt = stepSpring(m.tilt, Math.max(-0.22, Math.min(0.22, lean)), TILT, dt, TILT_REST);
     place();
     const moving = m.y.position !== m.target || m.y.velocity !== 0 || m.tilt.position !== 0 || m.tilt.velocity !== 0;
     if (m.dragging || moving) {

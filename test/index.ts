@@ -396,7 +396,17 @@ test.serial('the paper clip and the bail rollers scroll the terminal', async (t)
   await pause(1000);
   t.is(await position(), 0, 'the left roller rolls the paper to the top');
 
-  const box = await clip.boundingBox();
+  // The clip glides to its place: take hold of it once it has come to rest there.
+  let box = await clip.boundingBox();
+  for (let i = 0; i < 40; i++) {
+    await pause(250);
+    const next = await clip.boundingBox();
+    const settled = box && next && Math.abs(next.y - box.y) < 0.5;
+    box = next;
+    if (settled) {
+      break;
+    }
+  }
   t.truthy(box, 'the clip is on screen');
   if (box) {
     const x = box.x + box.width * 0.7;
