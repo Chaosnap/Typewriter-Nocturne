@@ -1,13 +1,14 @@
 # Changelog
 
 Every version is built, tested and packaged by GitHub Actions; installers and SHA-256 checksums are on the
-[Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) page. All versions so far are alphas:
-unsigned builds, see [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md).
+[Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) page. The installers are not code-signed
+yet: see [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md).
 
-## 0.1.0-alpha.4
+## 1.0.0
 
-`0.1.0-alpha.3` was tagged but never published (one end-to-end test failed while its installers were built);
-everything in it is part of this version.
+The first stable version. It brings together everything since `0.1.0-alpha.2`: `0.1.0-alpha.3` was tagged but
+never published (one end-to-end test failed while its installers were built), and what was being prepared as
+`0.1.0-alpha.4` is released as this version.
 
 ### The desk
 

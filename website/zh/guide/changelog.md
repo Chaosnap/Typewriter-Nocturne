@@ -1,10 +1,10 @@
 # 更新日志
 
-每个版本都由 GitHub Actions 构建、测试和打包；安装包和 SHA-256 校验值在 [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) 页面。目前所有版本都是 alpha 版：安装包没有代码签名，请参阅 [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md)。英文原文见 [CHANGELOG.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/CHANGELOG.md)。
+每个版本都由 GitHub Actions 构建、测试和打包；安装包和 SHA-256 校验值在 [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) 页面。安装包目前还没有代码签名，请参阅 [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md)。英文原文见 [CHANGELOG.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/CHANGELOG.md)。
 
-## 0.1.0-alpha.4
+## 1.0.0
 
-`0.1.0-alpha.3` 打了标签但没有发布（构建安装包时有一个端到端测试失败），它的全部内容都包含在这个版本里。
+第一个正式版本，汇集了 `0.1.0-alpha.2` 之后的全部内容：`0.1.0-alpha.3` 打了标签但没有发布（构建安装包时有一个端到端测试失败），原本准备作为 `0.1.0-alpha.4` 的内容就以这个版本发布。
 
 ### 书桌
 

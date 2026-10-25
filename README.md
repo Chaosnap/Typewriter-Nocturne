@@ -46,9 +46,10 @@ Vim, tmux and every other TUI program work as they do in any good terminal.
 so the typewriter is drawn on the CPU there with Quality set to High). More in the
 [gallery](https://chaosnap.github.io/Typewriter-Nocturne/guide/gallery).*
 
-> **Status: alpha.** The latest version is on the [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases)
-> page and what changed in each one is in the [changelog](CHANGELOG.md). See
-> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built and what comes next.
+> **Version 1.0.** The latest version is on the [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases)
+> page and what changed in each one is in the [changelog](CHANGELOG.md). The installers are not code-signed yet
+> (see [docs/INSTALL.md](docs/INSTALL.md)). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built
+> and what comes next.
 
 ## Features
 
