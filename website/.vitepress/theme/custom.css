@@ -70,10 +70,20 @@
   font-size: 20px;
 }
 
+/* The hero picture is a wide screenshot: it stays inside its column on narrow screens and grows
+ * to 560px beside the title on wide ones, never over the text. */
 .VPHero .image-src {
-  max-width: 560px;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 10px;
   box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.9);
+}
+
+@media (min-width: 960px) {
+  .VPHero .image-src {
+    max-width: min(560px, 100%);
+    max-height: 380px;
+  }
 }
 
 .dark .VPContent {
