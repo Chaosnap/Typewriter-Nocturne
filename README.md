@@ -50,13 +50,16 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
 
 * **A 3D typewriter** with physically based materials and soft shadows. The type head rides a rail with one
   rack tooth per terminal column, moves with escapement physics, sways on its pivot and strikes the platen.
-* **Light that behaves like light**: inverse-square falloff, Lambert's cosine law, a soft spot cone, moonlight
-  through a window; brightness, beam angle, beam shape and aim are adjustable, and a slender theatre-curtain
+* **Light that behaves like light**: inverse-square falloff, Lambert's cosine law, a soft spot cone that draws a
+  clean triangle up the page from the type head, moonlight through an upright window whose panes, slant and
+  place you choose; the lit paper shows only its soft, broad relief. Brightness, beam angle, beam shape, aim and
+  the light itself (carriage lamp, desk lamp or window) are adjustable, and a slender theatre-curtain
   **pull cord** ending in a silk tassel switches the lamp (hide it in the Studio if you like). On a dark sheet
   the lamp adds its own pool of light with a soft bloom; the room never dims the page below 4.5:1 contrast.
 * **A quill for a cursor**: a quill pen stands at the insertion point with its nib on the line, breathing
   softly while the terminal waits; a raven quill on light paper, a swan quill on dark, with a gilt nib.
-* **Paper and ink**: six papers from cotton to parchment, each with its own fibres; freshly typed characters
+* **Paper and ink**: six papers from cotton to parchment, each with its own fibres, as narrow as a letter or
+  as wide as the whole platen; freshly typed characters
   land heavy and settle into print, and selected text dissolves like ink and re-forms instead of sitting in a
   flat box.
 * **A paper clip for a scrollbar**: a Gem clip slid onto the edge of the sheet, it glides and leans as you scroll and

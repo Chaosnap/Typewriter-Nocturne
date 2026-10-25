@@ -312,6 +312,11 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
     await waitForMachine(60000);
     // Let the terminal redraw at its new size and the paper surface finish on the CPU.
     await pause(4000);
+    if (name === 'full-platen') {
+      // A wider sheet resizes the terminal and rebuilds the paper and the model as well.
+      await waitForMachine(60000);
+      await pause(8000);
+    }
     await screenshot(`nocturne-${name}`);
     if (settings.focusMode) {
       t.is(await page.locator('.tn-cord').count(), 0, 'no pull cord in focus mode');

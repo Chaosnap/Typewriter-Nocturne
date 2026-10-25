@@ -49,12 +49,14 @@ float relief(vec2 p) {
   float slub = noise(p * vec2(0.07, 1.3));
   return mix(r, r * 0.3 + weave * 0.5 + slub * 0.35, uLinen);
 }
-// The broad relief alone: the veins and cockles of the sheet and its long fibres, without the
-// fine tooth or the laid and woven lines. This is what a raking lamp shows of a page.
-float broad(vec2 p) {
-  vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
+// The broad relief alone: the soft cockling of the sheet, its veins rounded off and a hint of its
+// long fibres, without the fine tooth or the laid and woven lines. This is what a raking lamp
+// shows of a page. The warp of the veins changes so slowly that one value of it serves the few
+// pixels round a point.
+float broad(vec2 p, vec2 w) {
   float veins = 1.0 - abs(fbm(p * 0.02 + w * 3.0) * 2.0 - 1.0);
-  return 0.35 * pow(veins, 6.0) + 0.12 * noise(p * vec2(0.25, 0.08)) + 0.2 * fbm(p * 0.035 + uSeed * 3.0);
+  float cockle = 0.6 * noise(p * 0.035 + uSeed * 3.0) + 0.4 * noise(p * 0.09 + uSeed);
+  return 0.3 * cockle + 0.12 * pow(veins, 3.0) + 0.08 * noise(p * vec2(0.25, 0.08));
 }
 // Albedo relative to the paper colour: mottling, and for aged paper darker ragged edges, foxing,
 // tide lines and a fold.
@@ -95,8 +97,9 @@ void main() {
   vec3 n = normalize(vec3(-(relief(p + vec2(e, 0.0)) - h0) * slope, -(relief(p + vec2(0.0, e)) - h0) * slope, 1.0));
   // The broad relief's slope over a few pixels.
   float s = 2.5;
-  float b0 = broad(p);
-  vec3 soft = normalize(vec3(-(broad(p + vec2(s, 0.0)) - b0) / s * slope, -(broad(p + vec2(0.0, s)) - b0) / s * slope, 1.0));
+  vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
+  float b0 = broad(p, w);
+  vec3 soft = normalize(vec3(-(broad(p + vec2(s, 0.0), w) - b0) / s * slope, -(broad(p + vec2(0.0, s), w) - b0) / s * slope, 1.0));
   outAlbedo = vec4(albedo(p), 1.0);
   outNormal = vec4(n.xy * 0.5 + 0.5, soft.xy * 0.5 + 0.5);
 }`;
@@ -151,18 +154,16 @@ void main() {
   vec2 toward = uSource == 2 ? -uLightDir.xy : uLightPos.xy - p;
   toward /= max(1e-3, length(toward));
   float rake = clamp(dot(soft, toward) * (2.0 + 4.0 * uCrinkle), -1.0, 1.0);
-  lit *= 1.0 + rake * (0.03 + 0.04 * uCrinkle) * min(uRelief, 1.5);
+  lit *= 1.0 + rake * (0.02 + 0.03 * uCrinkle) * min(uRelief, 1.5);
   vec2 uv = p / uSize;
   float vignette = smoothstep(0.15, 1.1, length((uv - vec2(0.5, 0.55)) * vec2(1.0, 1.15)));
   float ambient = mix(1.0, uAmbient * (1.0 - 0.3 * vignette), uLamp);
   vec3 irr = uAmbientTint * ambient + (1.0 - ambient) * lit * uTint;
   // Fibres catch the room light from the upper left: a few percent, bounded so ink stays crisp,
-  // and quieter where the lamp is bright. In its light only the broad relief shows, so the page
-  // under the bulb is calm and reads cleanly.
+  // and quieter where the lamp is bright, so the page under the bulb is calm and reads cleanly.
   float relief = uRelief * (1.0 - 0.65 * lit);
-  vec2 n = mix(nxy, soft, smoothstep(0.0, 0.45, lit));
   float bound = (0.16 * uCrinkle + 0.04) * relief;
-  irr *= clamp(1.0 + (-n.x * 0.35 - n.y * 0.55) * (0.6 + 2.2 * uCrinkle) * relief, 1.0 - bound, 1.0 + bound);
+  irr *= clamp(1.0 + (-nxy.x * 0.35 - nxy.y * 0.55) * (0.6 + 2.2 * uCrinkle) * relief, 1.0 - bound, 1.0 + bound);
   // A sheet is never perfectly flat: its side edges fall off gently.
   irr *= mix(0.9, 1.0, smoothstep(0.0, 28.0, min(uv.x, 1.0 - uv.x) * uSize.x));
   float g = hash12(gl_FragCoord.xy + fract(uTime * 7.31) * 113.0) - 0.5;
