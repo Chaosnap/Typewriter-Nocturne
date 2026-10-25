@@ -6,13 +6,17 @@ on:
     # Design previews and docs do not change the app; skipping them keeps a running build alive.
     paths-ignore:
       - 'docs/**'
+      - 'website/**'
       - '**/*.md'
       - 'assets/nocturne/thumbnails/**'
+      - '.github/workflows/pages.yml'
   pull_request:
     paths-ignore:
       - 'docs/**'
+      - 'website/**'
       - '**/*.md'
       - 'assets/nocturne/thumbnails/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 concurrency:

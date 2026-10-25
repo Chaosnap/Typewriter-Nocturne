@@ -51,7 +51,7 @@ test('verse lines: every fourth line numbered, one break between stanzas, tabs e
       ['e', null, false]
     ]
   );
-  const long = Array(FOLIO_LIMITS.lines + 20).fill('x').join('\n');
+  const long = 'x\n'.repeat(FOLIO_LIMITS.lines + 20);
   t.is(verseLines(long).length, FOLIO_LIMITS.lines);
 });
 

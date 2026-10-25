@@ -490,9 +490,9 @@
   position: absolute;
   z-index: 4;
   top: 0;
-  left: 10px;
-  width: 40px;
-  height: 200px;
+  left: 8px;
+  width: 44px;
+  height: 300px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -506,10 +506,10 @@
 
 .tn-cord svg {
   display: block;
-  width: 40px;
-  height: 200px;
+  width: 44px;
+  height: 300px;
   overflow: visible;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(1px 4px 3px rgba(0, 0, 0, 0.5));
 }
 
 .tn-cord:focus-visible {
@@ -517,43 +517,18 @@
   outline-offset: 2px;
 }
 
-.tn-cord-silk,
-.tn-cord-twist {
-  stroke-width: 3.2;
-  stroke-linecap: round;
-}
-
-.tn-cord-silk {
-  stroke: #4a1a12;
-}
-
-.tn-cord-twist {
-  stroke: #b0573a;
-  stroke-dasharray: 2.2 3;
-  opacity: 0.75;
-}
-
-.tn-cord-sheen {
-  stroke: rgba(255, 220, 180, 0.28);
-  stroke-width: 0.8;
-}
-
-.tn-cord-ferrule {
-  fill: var(--tn-metal-lo);
-}
-
 .tn-cord-ring {
   fill: none;
   stroke: var(--tn-metal-lo);
-  stroke-width: 0.9;
+  stroke-width: 0.8;
 }
 
 .tn-cord-glint {
-  fill: rgba(255, 255, 255, 0.45);
+  fill: rgba(255, 255, 255, 0.5);
 }
 
 .tn-cord[aria-pressed='false'] .tn-cord-glint {
-  fill: rgba(255, 255, 255, 0.18);
+  fill: rgba(255, 255, 255, 0.2);
 }
 
 .tn-focus .tn-cord {
