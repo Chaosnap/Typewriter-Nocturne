@@ -41,8 +41,8 @@ features:
   - title: A paper clip for a scrollbar
     details: A wire clip hooked over the edge of the sheet glides and leans as you scroll; double-click a bail roller to roll to the top or the bottom.
     link: /guide/stage
-  - title: A typewriter's cursor
-    details: A block carrying the red half of a two-colour ribbon that lifts with every key you strike, over a gilt type-guide pointer; or a quill pen, nib on the line.
+  - title: An ink cursor
+    details: A blot of ink that sinks into the page and wells up again while the terminal waits, inked afresh with every key; or a quill pen the size of the block.
     link: /guide/type
   - title: The sound of the machine
     details: Type bars, carriage return, margin bell, the platen ratchet on history recall, the tabulator, in stereo where the head stands.

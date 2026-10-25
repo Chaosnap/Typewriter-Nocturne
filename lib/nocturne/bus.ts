@@ -25,6 +25,8 @@ export type CursorFrame = {
   cursorHidden: boolean;
   /** The terminal has keyboard focus. */
   focused: boolean;
+  /** The character under the cursor, for a cursor Nocturne draws itself (a space on an empty cell). */
+  glyph: {char: string; width: number; bold: boolean; italic: boolean};
   /** The text grid (`.xterm-screen`) in client coordinates. */
   grid: {left: number; top: number; width: number; height: number};
 };

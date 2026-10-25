@@ -11,12 +11,14 @@ everything in it is part of this version.
 
 ### The desk
 
-- **A typewriter's cursor**: the block carries the red half of a two-colour ribbon, faintly woven, which lifts
-  with every key you strike as the ribbon vibrator does, over a gilt pointer like the type guide's mark.
-- **Quill cursor**, a choice in the Studio: a quill pen stands at the insertion point with its nib on the line,
-  a raven quill on light paper, a swan quill on dark, with a gilt nib in the theme's metal. It breathes, a light
-  runs up its vane, it hides when a program hides the cursor and rests, dimmed, without focus. xterm.js keeps
-  its own cursor underneath, so input methods and screen readers are unchanged. Bar and Line remain.
+- **An ink cursor**: the block is a blot of ink with a soft edge and a darker rim, the character under it in
+  the paper's colour, lying under the lamp's light like the type. While the terminal waits it sinks into the
+  page and wells up again, a faint halo spreading as it fades; every keystroke inks it afresh.
+- **Quill cursor**, a choice in the Studio: a quill pen the size of the block stands at the insertion point with
+  its nib on the line, a raven quill on light paper, a swan quill on dark, with a gilt nib in the theme's metal.
+  It breathes, a light runs up its vane, it hides when a program hides the cursor and rests, dimmed, without
+  focus. Under both, xterm.js keeps its own cursor, so input methods and screen readers are unchanged. Bar and
+  Line remain.
 - **Papers**: Onionskin is the default sheet. Cotton is now cotton rag, felted rather than crumpled: a soft
   tooth of little rounded hills, as on cold-pressed watercolour paper, with faint threads in the pulp. Every
   paper keeps its own texture in the lamp's light and the window's.

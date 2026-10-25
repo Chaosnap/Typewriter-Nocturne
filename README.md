@@ -61,9 +61,9 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
   theatre-curtain **pull cord** ending in a silk tassel switches the lamp (hide it in the Studio if you like).
   On a dark sheet the lamp shows as the paper itself lit, warm and dim, with a soft bloom; the room never dims
   the page below 4.5:1 contrast.
-* **A typewriter's cursor**: the block carries the red half of a two-colour ribbon, which lifts with every key
-  you strike as the ribbon vibrator does, over a gilt type-guide pointer. Or choose a quill pen standing at the
-  insertion point with its nib on the line, breathing softly while the terminal waits.
+* **An ink cursor**: the block is a blot of ink with a soft edge where it soaked into the paper. While the
+  terminal waits it sinks into the page and wells up again, a faint halo spreading as it fades; every key you
+  strike inks it afresh. Or choose a quill pen, the size of the block, with its nib on the line.
 * **Paper and ink**: six papers, from smooth onionskin (the default) and felted cotton rag to parchment, as
   narrow as a letter or as wide as the whole platen. Freshly typed characters land heavy and settle into print,
   and selected text dissolves like ink and re-forms instead of sitting in a flat box.

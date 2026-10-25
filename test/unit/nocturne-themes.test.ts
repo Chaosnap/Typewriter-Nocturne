@@ -71,8 +71,8 @@ test('the paper drives xterm colours, the settings drive fonts', (t) => {
   t.is((result.colors as unknown as Record<string, string>).limeGreen, '#32CD32');
   t.true(result.fontFamily.startsWith('"Courier Prime"'));
   t.is(result.fontSize, settings.typography.fontSize);
-  // xterm draws the block; Nocturne dresses it with the ribbon and the type guide.
-  t.is(result.cursorShape, 'BLOCK');
+  // Nocturne draws the ink block over xterm's transparent bar.
+  t.is(result.cursorShape, 'BEAM');
 });
 
 test('the classic theme keeps colours from hyper.json', (t) => {
@@ -128,12 +128,13 @@ test('the ink selection hides the selection box, the classic one keeps it', (t) 
   t.not(applyNocturneToConfig(baseConfig, classic).selectionColor, 'rgba(0, 0, 0, 0)');
 });
 
-test("the block is dressed in Nocturne; under the quill xterm keeps a transparent bar; Hyper's look is plain", (t) => {
+test("under the ink block and the quill xterm keeps a transparent bar; Hyper's own look keeps its cursor", (t) => {
   const block = applyNocturneToConfig(baseConfig, defaultSettings());
   t.true(blockCursorOn(defaultSettings()));
   t.false(quillCursorOn(defaultSettings()));
-  t.is(block.cursorShape, 'BLOCK');
-  t.is(block.cursorColor, PAPERS.onionskin.cursor);
+  t.is(block.cursorShape, 'BEAM');
+  t.is(block.cursorColor, 'rgba(0, 0, 0, 0)');
+  t.false(block.cursorBlink);
   const quillSettings = patchSettings(defaultSettings(), {typography: {cursorStyle: 'quill'}});
   const quill = applyNocturneToConfig(baseConfig, quillSettings);
   t.true(quillCursorOn(quillSettings));
@@ -143,6 +144,7 @@ test("the block is dressed in Nocturne; under the quill xterm keeps a transparen
   const classic = patchSettings(defaultSettings(), {theme: 'classic'});
   t.false(blockCursorOn(classic));
   t.is(applyNocturneToConfig(baseConfig, classic).cursorShape, 'BLOCK');
+  t.not(applyNocturneToConfig(baseConfig, classic).cursorColor, 'rgba(0, 0, 0, 0)');
   const classicQuill = patchSettings(classic, {typography: {cursorStyle: 'quill'}});
   t.false(quillCursorOn(classicQuill));
   t.is(applyNocturneToConfig(baseConfig, classicQuill).cursorShape, 'BEAM');

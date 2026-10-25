@@ -200,13 +200,11 @@
   outline: 1px dotted var(--tn-accent);
 }
 
-/* The block cursor, dressed as a typewriter's: xterm draws the block (the character under it in
- * the paper's colour), this layer adds the red half of a two-colour ribbon in its lower part and a
- * gilt pointer under the cell, like the type guide's. On light paper the red lightens the dark
- * block and leaves the pale character as it is; on dark paper it darkens the pale block. */
+/* The block cursor, a blot of ink on the sheet under the paper light: a soft, slightly irregular
+ * edge where the ink soaked into the paper, a darker rim where it pooled, and the character under
+ * it in the paper's colour. Dark paper takes a pale ink. */
 .tn-block-cursor {
   position: absolute;
-  z-index: 3;
   top: 0;
   left: 0;
   display: none;
@@ -214,45 +212,71 @@
   will-change: transform;
 }
 
-.tn-block-ribbon {
+.tn-ink-blot,
+.tn-ink-halo {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 34%;
-  transform-origin: 50% 100%;
-  background:
-    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #b9372b, #8f2118);
-  mix-blend-mode: lighten;
+  inset: 7% 0.5px;
+  background: var(--tn-cursor);
 }
 
-.tn-block-cursor[data-appearance='dark'] .tn-block-ribbon {
-  background:
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #d97a6c, #b9473a);
-  mix-blend-mode: darken;
+.tn-ink-blot {
+  border-radius: 22% 14% 18% 12% / 12% 20% 10% 18%;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.22),
+    inset 0 0 3px rgba(0, 0, 0, 0.28),
+    0 0 1.2px var(--tn-cursor);
+  filter: blur(0.3px);
 }
 
-.tn-block-guide {
+.tn-block-cursor[data-appearance='dark'] .tn-ink-blot {
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.25),
+    inset 0 0 3px rgba(255, 255, 255, 0.3),
+    0 0 1.2px var(--tn-cursor);
+}
+
+.tn-ink-halo {
+  border-radius: 40%;
+  opacity: 0;
+  filter: blur(2.5px);
+}
+
+.tn-ink-glyph {
   position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 7px;
-  height: 4px;
-  margin-left: -3.5px;
-  background: linear-gradient(90deg, var(--tn-metal-lo), var(--tn-metal-hi) 45%, var(--tn-metal) 70%, var(--tn-metal-lo));
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tn-sheet);
+  font-family: var(--tn-font-mono);
+  font-size: var(--tn-ink-size);
+  font-weight: var(--tn-ink-weight);
+  font-variant-ligatures: none;
+  line-height: 1;
+  white-space: pre;
 }
 
-/* Without focus xterm draws only the block's outline: the ribbon steps aside and the pointer dims.
- * A blinking block leaves the ribbon out too, so it never shows alone. */
-.tn-block-cursor[data-focused='false'] .tn-block-ribbon,
-.tn-block-cursor[data-blink='true'] .tn-block-ribbon {
+.tn-ink-glyph[data-bold='true'] {
+  font-weight: var(--tn-ink-weight-bold);
+}
+
+.tn-ink-glyph[data-italic='true'] {
+  font-style: italic;
+}
+
+/* Without focus the ink lifts away and leaves a faint outline of the cell. */
+.tn-block-cursor[data-focused='false'] .tn-ink-blot,
+.tn-block-cursor[data-focused='false'] .tn-ink-halo,
+.tn-block-cursor[data-focused='false'] .tn-ink-glyph {
   display: none;
 }
 
-.tn-block-cursor[data-focused='false'] .tn-block-guide {
+.tn-block-cursor[data-focused='false']::after {
+  content: '';
+  position: absolute;
+  inset: 7% 0.5px;
+  border: 1px solid var(--tn-cursor);
+  border-radius: 2px;
   opacity: 0.45;
 }
 

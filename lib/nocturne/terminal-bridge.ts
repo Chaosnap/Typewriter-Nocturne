@@ -55,6 +55,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
   let lastTypedAt = 0;
   let bellArmed = true;
   let cursorShown = true;
+  /** The last frame published, so an unchanged cursor is not announced again on every render. */
+  let published = '';
 
   const measure = () => {
     frameRequest = 0;
@@ -71,6 +73,7 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
     const cellHeight = rect.height / term.rows;
     const col = Math.min(buffer.cursorX, term.cols - 1);
     const row = buffer.cursorY;
+    const under = buffer.getLine(buffer.baseY + row)?.getCell(col);
     const frame = {
       uid,
       x: rect.left + col * cellWidth,
@@ -87,6 +90,12 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       baseY: buffer.baseY,
       cursorHidden: !cursorShown,
       focused: document.activeElement === term.textarea,
+      glyph: {
+        char: under?.getChars() || ' ',
+        width: Math.max(1, under?.getWidth() ?? 1),
+        bold: !!under && under.isBold() !== 0,
+        italic: !!under && under.isItalic() !== 0
+      },
       grid: {left: rect.left, top: rect.top, width: rect.width, height: rect.height}
     };
 
@@ -127,7 +136,9 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       emit('marginBell', {uid});
     }
 
-    if (uid === activeUid) {
+    const key = JSON.stringify(frame);
+    if (uid === activeUid && key !== published) {
+      published = key;
       emit('cursor', frame);
     }
   };
@@ -144,6 +155,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
   disposables.push(subscribe(() => applyExtraOptions(term)));
 
   listen(term.onCursorMove(schedule));
+  // The character under a resting cursor can change (a forward delete, a redraw): read it after each render.
+  listen(term.onRender(schedule));
   // Programs show and hide the cursor with DECTCEM (`ESC[?25h` / `ESC[?25l`). Watched here, and
   // left for xterm.js to apply as always (the handlers return false).
   const cursorMode = (shown: boolean) => (params: (number | number[])[]) => {
@@ -208,6 +221,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
 
     const onFocus = () => {
       activeUid = uid;
+      // Another terminal may have published since: announce this one's cursor again.
+      published = '';
       schedule();
     };
     textarea.addEventListener('focus', onFocus);

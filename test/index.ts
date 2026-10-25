@@ -305,6 +305,8 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   // photographs; its shaders then compile on the CPU, which takes a while. Dust in the beam is an
   // animation the CPU renderer would redraw all the time, so it is left out of the pictures.
   await setNocturne({lighting: {quality: 'high', particles: 0, enabled: true}});
+  // The ink cursor breathes; for the photographs it holds still, fully inked.
+  await page.emulateMedia({reducedMotion: 'reduce'});
   t.true(await waitForMachine(120000), 'the typewriter model is drawn');
   t.true(await page.locator('.tn-block-cursor').isVisible(), 'the ribbon block stands at the cursor');
   t.is(await page.locator('.tn-quill').count(), 0, 'the block is the default cursor');
@@ -390,6 +392,8 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   t.is(await page.locator('.tn-folio').count(), 0, 'the chosen folios are deleted');
   await nocturneCommand('print');
   await page.click('.term_active .xterm');
+
+  await page.emulateMedia({reducedMotion: 'no-preference'});
 
   // The half-typed command is still in the shell's line editor: effects never touched the input.
   await run('"');

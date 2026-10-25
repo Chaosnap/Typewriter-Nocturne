@@ -189,6 +189,14 @@ export function NocturneShell({header, children}: ShellProps) {
           <div className="tn-text" style={textStyle}>
             {children}
           </div>
+          {nocturne && blockCursorOn(settings) ? (
+            <BlockCursor
+              appearance={activePaper(settings).appearance}
+              fontSize={settings.typography.fontSize}
+              fontWeight={settings.typography.fontWeight}
+              fontWeightBold={settings.typography.fontWeightBold}
+            />
+          ) : null}
           <canvas className="tn-layer tn-ink" ref={inkRef} />
           <canvas className="tn-layer tn-selection" ref={selectionRef} hidden={!inkSelectionOn(settings)} />
           <canvas className="tn-layer tn-paper-light" ref={paperRef} />
@@ -211,9 +219,6 @@ export function NocturneShell({header, children}: ShellProps) {
             ))
           : null}
         {nocturne && quillCursorOn(settings) ? <QuillCursor appearance={activePaper(settings).appearance} /> : null}
-        {nocturne && blockCursorOn(settings) ? (
-          <BlockCursor appearance={activePaper(settings).appearance} blink={settings.typography.cursorBlink} />
-        ) : null}
         {nocturne ? <ScrollClip settings={settings.scrollbar} sheet={layout.sheet} text={layout.text} /> : null}
         {showCord ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
         {theme ? (

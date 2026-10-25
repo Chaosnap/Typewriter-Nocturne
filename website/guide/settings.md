@@ -93,7 +93,7 @@ anything unknown or out of range falls back to its default.
 | `focus.background` | `paper`, `dark`, `custom` (uses `focus.color`) |
 | `scrollbar.style` / `finish` | `clip`, `bar`, `native` / `silver`, `brass`, `gold`, `black` |
 | `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 px |
-| `typography.cursorStyle` | `block` (default: the ribbon block), `quill`, `bar`, `underline` |
+| `typography.cursorStyle` | `block` (default: the ink block), `quill`, `bar`, `underline` |
 | `lighting.beam` | `pointed` (default), `soft` |
 | `print.style.seal` | `true` to seal folios in wax, `false` to print without a seal |
 | `print.style.ribbonStyle` | `tails` (default), `loop`, `band`, `cross`, `banner`, `pendant` |

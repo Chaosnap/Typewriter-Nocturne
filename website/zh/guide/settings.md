@@ -92,7 +92,7 @@
 | `focus.background` | `paper`、`dark`、`custom`（使用 `focus.color`） |
 | `scrollbar.style` / `finish` | `clip`、`bar`、`native` / `silver`、`brass`、`gold`、`black` |
 | `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 像素 |
-| `typography.cursorStyle` | `block`（默认，色带方块）、`quill`、`bar`、`underline` |
+| `typography.cursorStyle` | `block`（默认，墨水方块）、`quill`、`bar`、`underline` |
 | `lighting.beam` | `pointed`（默认）、`soft` |
 | `print.style.seal` | `true` 盖火漆，`false` 不盖火漆 |
 | `print.style.ribbonStyle` | `tails`（默认）、`loop`、`band`、`cross`、`banner`、`pendant` |

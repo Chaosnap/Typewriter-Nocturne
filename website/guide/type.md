@@ -24,15 +24,16 @@ installing a patched font.
 
 ## The cursor
 
-The cursor is a block, dressed as a typewriter's. Its lower part is the red half of a two-colour ribbon,
-faintly woven, and with every key you strike the ribbon lifts, as the ribbon vibrator raises it for the type
-bar, and drops back. A small gilt pointer stands under it, like the mark on the type guide. The character
-under the block still shows in the paper's colour; without focus the block shows only its outline and the
-pointer dims.
+The cursor is a blot of ink: a block with a soft, slightly irregular edge where the ink soaked into the
+paper and a darker rim where it pooled, the character under it in the paper's colour (on night paper the ink
+is pale). It lies on the sheet, so the lamp lights it as it lights the type. While the terminal waits, the ink
+sinks into the page and wells up again, a faint halo spreading round it as it fades, as a drop of ink does on
+damp paper; every key you strike presses fresh ink into the cell, and it rests a moment before it fades again.
+Without focus only a faint outline of the cell remains.
 
-*Cursor* in the Type section of the Studio also offers the **Quill**: a quill pen standing at the insertion
-point, its nib on the line (a raven quill on light paper, a swan quill on dark, with a gilt nib), breathing
-softly while the terminal waits. Bar and Line are there too. Whichever you choose, xterm.js keeps its own
+*Cursor* in the Type section of the Studio also offers the **Quill**: a quill pen the size of the block,
+standing at the insertion point with its nib on the line (a raven quill on light paper, a swan quill on dark,
+with a gilt nib), breathing softly while the terminal waits. Bar and Line are there too. Whichever you choose, xterm.js keeps its own
 cursor underneath, so input methods, selection and screen readers work as before.
 
 ## Size and spacing

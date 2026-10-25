@@ -13,7 +13,8 @@ import {fontStack} from './settings';
 import {THEMES} from './themes';
 import type {NocturneSettings, NocturneTheme} from './types';
 
-// The quill is drawn by Nocturne over a thin bar; with Hyper's own look (classic) the bar shows.
+// The ink block and the quill are drawn by Nocturne over a thin, transparent bar; with Hyper's own
+// look (classic) xterm draws them as a block and a bar.
 const CURSOR_SHAPES = {quill: 'BEAM', block: 'BLOCK', bar: 'BEAM', underline: 'UNDERLINE'} as const;
 
 export function activeTheme(settings: NocturneSettings): NocturneTheme | null {
@@ -61,7 +62,7 @@ export function paperPadding(settings: NocturneSettings): string {
   return settings.focusMode ? '10px 14px' : '26px 34px 10px';
 }
 
-/** The block is dressed as a typewriter's (ribbon, type guide): the Nocturne look with the block. */
+/** The block is drawn as a blot of ink: the Nocturne look with the block. */
 export function blockCursorOn(settings: NocturneSettings): boolean {
   return settings.theme !== 'classic' && settings.typography.cursorStyle === 'block';
 }
@@ -71,10 +72,15 @@ export function quillCursorOn(settings: NocturneSettings): boolean {
   return settings.theme !== 'classic' && settings.typography.cursorStyle === 'quill';
 }
 
+/** Nocturne draws the cursor itself (the ink block or the quill); xterm's own stays unseen under it. */
+export function drawnCursorOn(settings: NocturneSettings): boolean {
+  return blockCursorOn(settings) || quillCursorOn(settings);
+}
+
 /** xterm.js options that Hyper does not expose through its config. */
 export function extraTerminalOptions(settings: NocturneSettings) {
   return {
-    cursorWidth: quillCursorOn(settings) ? 1 : settings.typography.cursorWidth,
+    cursorWidth: drawnCursorOn(settings) ? 1 : settings.typography.cursorWidth,
     minimumContrastRatio: settings.typography.minimumContrast
   };
 }
@@ -90,9 +96,9 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
     disableLigatures: !typography.ligatures,
-    cursorShape: CURSOR_SHAPES[typography.cursorStyle],
-    // The quill breathes on its own; xterm's hidden bar under it need not blink.
-    cursorBlink: typography.cursorBlink && !quillCursorOn(settings)
+    cursorShape: CURSOR_SHAPES[drawnCursorOn(settings) ? 'quill' : typography.cursorStyle],
+    // The ink and the quill breathe on their own; xterm's hidden bar under them need not blink.
+    cursorBlink: typography.cursorBlink && !drawnCursorOn(settings)
   };
 
   const theme = activeTheme(settings);
@@ -106,8 +112,9 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     ...next,
     foregroundColor: paper.ink,
     backgroundColor: paper.paper,
-    // Under the quill, xterm's cursor is a bar in a transparent colour: present, never seen.
-    cursorColor: quillCursorOn(settings) ? 'rgba(0, 0, 0, 0)' : paper.cursor,
+    // Under the ink block and the quill, xterm's cursor is a bar in a transparent colour: present,
+    // never seen.
+    cursorColor: drawnCursorOn(settings) ? 'rgba(0, 0, 0, 0)' : paper.cursor,
     cursorAccentColor: paper.paper,
     // With the ink selection the effect layer draws the selection; xterm's box stays invisible.
     selectionColor: inkSelectionOn(settings) ? 'rgba(0, 0, 0, 0)' : typography.selection || paper.selection,

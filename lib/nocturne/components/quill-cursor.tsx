@@ -17,8 +17,8 @@ import type {CursorFrame} from '../bus';
 
 /** The drawing's box with the nib at (0, 0): it reaches 4 units left of the nib and 74 above it. */
 const VIEW = {left: 4, top: 74, width: 64, height: 78};
-/** The quill stands this many lines tall. */
-const LINES = 2.1;
+/** The quill stands about as tall as a line, the size of the block. */
+const LINES = 1.15;
 /** Where the nib touches the cell: its left edge, a little above the bottom (the baseline). */
 const NIB_AT = {x: 0.15, y: 0.84};
 /** The pen leans to the right, as a hand holds it. */
