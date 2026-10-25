@@ -8,7 +8,7 @@ import type {FolioDraft} from '../../../app/nocturne/folio';
 import {drawSeal} from './seal';
 
 export const FOLIO_WIDTH = 720;
-const MIN_HEIGHT = 900;
+const MIN_HEIGHT = 640;
 const MARGIN = 74;
 const GUTTER = 40;
 const LINE = 21;

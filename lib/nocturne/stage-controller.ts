@@ -537,6 +537,10 @@ export class StageController {
     if (stillMoving) {
       this.watchFrameRate(interval);
     }
+    const motion = stillMoving ? 'moving' : 'still';
+    if (this.elements.stage.dataset.motion !== motion) {
+      this.elements.stage.dataset.motion = motion;
+    }
     const ambient = this.ambient();
     const ambientDue = ambient && now - this.lastAmbient >= AMBIENT_INTERVAL;
     const effects = this.effects();

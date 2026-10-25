@@ -80,12 +80,18 @@ const nocturneCommand = (name: string) =>
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Waits until the typewriter model has been drawn (its shaders compiled) after the last change. */
+/**
+ * Waits until the typewriter model has been drawn (its shaders compiled) and the type head has come
+ * to rest after the last change. CI runners draw on the CPU, so this can take several seconds.
+ */
 const waitForMachine = async (timeoutMs: number) => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const state = await page.evaluate(() => document.querySelector<HTMLElement>('.tn-stage')?.dataset.machine);
-    if (state === 'drawn') {
+    const state = await page.evaluate(() => {
+      const stage = document.querySelector<HTMLElement>('.tn-stage');
+      return `${stage?.dataset.machine}/${stage?.dataset.motion}`;
+    });
+    if (state === 'drawn/still') {
       return true;
     }
     await pause(500);
@@ -220,6 +226,10 @@ test.serial('pulling the lamp cord switches the lamp', async (t) => {
   await page.mouse.up();
   await pause(300);
   t.not(await pressed(), before);
+  // A click on the pull switches it back.
+  await page.click('.tn-cord', {position: {x: box.width / 2, y: 110}});
+  await pause(300);
+  t.is(await pressed(), before);
   await page.click('.term_active .xterm');
 });
 
@@ -288,23 +298,25 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   t.truthy(await page.$('.tn-nocturne'), 'the Nocturne stage wraps the terminal');
 
   // CI runners have no GPU, so `auto` draws the plain sheet there. Force the full stage for the
-  // photographs; its shaders then compile on the CPU, which takes a while.
-  await setNocturne({lighting: {quality: 'high'}});
+  // photographs; its shaders then compile on the CPU, which takes a while. Dust in the beam is an
+  // animation the CPU renderer would redraw all the time, so it is left out of the pictures.
+  await setNocturne({lighting: {quality: 'high', particles: 0, enabled: true}});
   t.true(await waitForMachine(120000), 'the typewriter model is drawn');
 
   for (const [name, settings] of LOOKS) {
     await setNocturne(settings);
-    await pause(1000);
+    await pause(1500);
     await waitForMachine(60000);
-    await pause(2500);
+    // Let the terminal redraw at its new size and the paper surface finish on the CPU.
+    await pause(4000);
     await screenshot(`nocturne-${name}`);
   }
 
   await setNocturne(LOOKS[0][1]);
   await nocturneCommand('studio');
-  await pause(1000);
+  await pause(1500);
   await waitForMachine(60000);
-  await pause(2000);
+  await pause(4000);
   await screenshot('nocturne-studio');
   await nocturneCommand('studio');
 
