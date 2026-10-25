@@ -102,7 +102,11 @@ export function FontPicker({typography, onChange}: FontPickerProps) {
             onBlur={applyCustom}
             onKeyDown={(event) => event.key === 'Enter' && applyCustom()}
           />
-          <datalist id="tn-font-families">{options.map((name) => <option key={name} value={name} />)}</datalist>
+          <datalist id="tn-font-families">
+            {options.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
           <button type="button" className="tn-button" onClick={() => void findInstalled()}>
             Find installed fonts
           </button>

@@ -192,16 +192,16 @@ function carriageReturn(context: BaseAudioContext, out: AudioNode, voice: Voice,
   // The carriage sliding back.
   const slide = context.createBufferSource();
   slide.buffer = noise(context, 0.4, rand);
-  const band = context.createBiquadFilter();
-  band.type = 'bandpass';
-  band.Q.value = 1.4;
-  band.frequency.setValueAtTime(1900, 0.12);
-  band.frequency.exponentialRampToValueAtTime(520, 0.44);
+  const slideFilter = context.createBiquadFilter();
+  slideFilter.type = 'bandpass';
+  slideFilter.Q.value = 1.4;
+  slideFilter.frequency.setValueAtTime(1900, 0.12);
+  slideFilter.frequency.exponentialRampToValueAtTime(520, 0.44);
   const slideGain = context.createGain();
   slideGain.gain.setValueAtTime(0, 0.12);
   slideGain.gain.linearRampToValueAtTime(0.32, 0.18);
   slideGain.gain.exponentialRampToValueAtTime(0.0001, 0.46);
-  slide.connect(band).connect(slideGain).connect(out);
+  slide.connect(slideFilter).connect(slideGain).connect(out);
   slide.start(0.12);
   // Margin stop.
   thump(context, out, voice.body * 0.7, {at: 0.46, peak: voice.bodyGain * 1.1, decay: 0.08});

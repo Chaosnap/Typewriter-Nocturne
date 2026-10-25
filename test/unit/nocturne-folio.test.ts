@@ -51,7 +51,8 @@ test('verse lines: every fourth line numbered, one break between stanzas, tabs e
       ['e', null, false]
     ]
   );
-  t.is(verseLines(Array(FOLIO_LIMITS.lines + 20).fill('x').join('\n')).length, FOLIO_LIMITS.lines);
+  const long = Array(FOLIO_LIMITS.lines + 20).fill('x').join('\n');
+  t.is(verseLines(long).length, FOLIO_LIMITS.lines);
 });
 
 test('dates read like a letter', (t) => {
