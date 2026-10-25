@@ -267,11 +267,13 @@ const SNIPPET = [
 ].join('\n');
 
 const LOOKS: [string, Record<string, unknown>][] = [
-  ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'cotton', width: 0}, focusMode: false}],
+  ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'onionskin', width: 0}, focusMode: false}],
+  ['cotton', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: false}],
+  ['night-carriage', {theme: 'paper-and-ink', paper: {style: 'night'}, focusMode: false}],
   ['midnight-study', {theme: 'midnight-study', paper: {style: 'night'}, focusMode: false}],
   ['moonlit-poetry', {theme: 'moonlit-poetry', paper: {style: 'laid'}, focusMode: false}],
   ['parchment', {theme: 'paper-and-ink', paper: {style: 'parchment'}, focusMode: false}],
-  ['full-platen', {theme: 'paper-and-ink', paper: {style: 'cotton', width: 1}, focusMode: false}],
+  ['full-platen', {theme: 'paper-and-ink', paper: {style: 'onionskin', width: 1}, focusMode: false}],
   ['focus-mode', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true}],
   ['focus-dark', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true, focus: {background: 'dark'}}]
 ];
@@ -304,7 +306,12 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   // animation the CPU renderer would redraw all the time, so it is left out of the pictures.
   await setNocturne({lighting: {quality: 'high', particles: 0, enabled: true}});
   t.true(await waitForMachine(120000), 'the typewriter model is drawn');
+  t.true(await page.locator('.tn-block-cursor').isVisible(), 'the ribbon block stands at the cursor');
+  t.is(await page.locator('.tn-quill').count(), 0, 'the block is the default cursor');
+  await setNocturne({typography: {cursorStyle: 'quill'}});
+  await pause(500);
   t.true(await page.locator('.tn-quill').isVisible(), 'the quill stands at the cursor');
+  await setNocturne({typography: {cursorStyle: 'block'}});
 
   for (const [name, settings] of LOOKS) {
     await setNocturne(settings);
@@ -355,8 +362,8 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   t.is(await page.locator('.tn-press textarea').count(), 0, 'no snippet box for terminal sources');
   t.true((await page.textContent('.tn-press-excerpt'))?.includes('Every line of code'), 'the last command');
   await page.fill('.tn-press input[aria-label="Title"]', 'Every Line of Code');
-  await page.click('.tn-swatch[aria-label="Night"]');
-  await page.click('.tn-swatch[aria-label="Gold"]');
+  await page.click('.tn-swatches[aria-label="Paper"] .tn-swatch[aria-label="Night"]');
+  await page.click('.tn-swatches[aria-label="Wax"] .tn-swatch[aria-label="Gold"]');
   await page.click('.tn-press .tn-segmented button:text-is("Rose")');
   await page.click('.tn-ribbon[aria-label="Loop"]');
   await page.selectOption('#tn-folio-font', 'sonnet');

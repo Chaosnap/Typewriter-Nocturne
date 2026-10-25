@@ -1,6 +1,5 @@
 import React, {useRef, useState} from 'react';
 
-import {VscChevronDown} from '@react-icons/all-files/vsc/VscChevronDown';
 import useClickAway from 'react-use/lib/useClickAway';
 
 import type {configOptions} from '../../typings/config';
@@ -15,11 +14,25 @@ interface Props {
 }
 const isMac = /Mac/.test(navigator.userAgent);
 
+// [nocturne] A fresh sheet with a plus, drawn like the Nocturne toolbar icons, in place of a chevron.
+const NewSheetIcon = () => (
+  <svg className="new_tab_icon" viewBox="0 0 20 20" aria-hidden="true">
+    <path d="M5 2.8h6.4L15 6.4v10.8H5z" />
+    <path d="M11.4 2.8v3.6H15" opacity="0.55" />
+    <path d="M10 9.2v5.6M7.2 12h5.6" />
+  </svg>
+);
+
 const DropdownButton = ({defaultProfile, profiles, openNewTab, backgroundColor, borderColor, tabsVisible}: Props) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const ref = useRef(null);
 
   const toggleDropdown = () => {
+    // [nocturne] With a single profile there is nothing to choose: open the tab at once.
+    if (profiles.length <= 1) {
+      openNewTab(profiles[0]?.name ?? defaultProfile);
+      return;
+    }
     setDropdownOpen(!dropdownOpen);
   };
 
@@ -30,13 +43,13 @@ const DropdownButton = ({defaultProfile, profiles, openNewTab, backgroundColor, 
   return (
     <div
       ref={ref}
-      title="New Tab"
+      title="New tab"
       className={`new_tab ${tabsVisible ? 'tabs_visible' : 'tabs_hidden'}`}
       onClick={toggleDropdown}
       onDoubleClick={(e) => e.stopPropagation()}
       onBlur={() => setDropdownOpen(false)}
     >
-      <VscChevronDown style={{verticalAlign: 'middle'}} />
+      <NewSheetIcon />
 
       {dropdownOpen && (
         <ul
@@ -105,6 +118,17 @@ const DropdownButton = ({defaultProfile, profiles, openNewTab, backgroundColor, 
 
         .profile_dropdown_item_default {
           font-weight: bold;
+        }
+
+        .new_tab_icon {
+          width: 16px;
+          height: 16px;
+          vertical-align: middle;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.4;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         .new_tab {

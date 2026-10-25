@@ -27,17 +27,18 @@ The light follows physics: irradiance falls with the square of the distance, fol
 and has a soft-edged cone; moonlight arrives in parallel rays and casts the shadow of the window bars. The
 paper is lit as albedo × irradiance, so ink and paper darken and brighten together. The room may dim the page
 away from the lamp, but never so far that ink drops below a contrast of 4.5:1. The lamp lights the sheet as if
-it were flat, so its pool is smooth, and then rakes softly across the broad relief of the paper (its veins and
-cockles, never the fine tooth, which would glitter in a low light), so text right under the lamp reads as
-clearly as anywhere else.
+it were flat, so its pool is smooth (shaded by a low lamp, every fibre would cast a speck of shadow), and the
+paper you chose keeps its own texture in the light, a little quieter under the bulb, so text right under the
+lamp reads as clearly as anywhere else.
 
 On Paper & Ink the beam is a clean triangle: it comes to a point at the type head and opens up the page,
 fading as it goes. The *Balanced* preset brings it back after any changes.
 
-On a dark sheet the lamp also adds its own light: a pool of it, with a soft bloom round it, computed from the
-same model and kept faint enough that ink still reads at 4.5:1 in the brightest spot. A desk lamp spills a
-little warmth into the corner nearest to it. Moonlight falls through an upright window, its panes and bars
-softly edged, set in blue night shadow.
+On a dark sheet the lamp also adds its own light: the sheet itself lit, warm and dim, with a soft bloom round
+it, computed from the same model at a resolution fine enough that the beam never steps where it narrows to the
+bulb, and kept faint enough that ink still reads at 4.5:1 in the brightest spot. A desk lamp spills a little
+warmth into the corner nearest to it. Moonlight falls through an upright window of square panes, three across
+and two down unless you choose otherwise, its bars softly edged, set in blue night shadow.
 
 ## Settings in the Studio
 
@@ -54,7 +55,7 @@ softly edged, set in blue night shadow.
 | Panes across, Panes down | The window's panes, 1 to 6 each way (moonlight only) |
 | Slant | 0° casts the window upright; up to 35° either way leans it as low, side light does (moonlight only) |
 | Across the page, Down the page | Where the window's light falls on the sheet (moonlight only) |
-| Reach | How far up the page the lamp throws its light; for moonlight, how large the window is |
+| Reach | How far up the page the lamp throws its light; for moonlight, how large the window's panes are |
 | Softness | How gradually the edge of the beam, or of the window and its bars, falls off |
 | Dust in the beam | Motes drifting through the light |
 | Film grain | Fine grain over the page; above 20% it flickers like film |

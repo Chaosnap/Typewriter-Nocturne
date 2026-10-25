@@ -4,7 +4,11 @@
 
 ## Paper & Ink
 
-![Paper & Ink 主题，棉纸：终端、被照亮的纸张和打字机](/images/paper-and-ink.jpg)
+![Paper & Ink 主题，葱皮纸：终端、被照亮的纸张和打字机](/images/paper-and-ink.jpg)
+
+## 棉纸
+
+![Paper & Ink 主题，棉浆纸在台灯下细腻的毡化颗粒](/images/cotton.jpg)
 
 ## Midnight Study
 
@@ -12,7 +16,11 @@
 
 ## Moonlit Poetry
 
-![Moonlit Poetry 主题，条纹纸，窗外月光](/images/moonlit-poetry.jpg)
+![Moonlit Poetry 主题，条纹纸，穿过端正窗户的月光](/images/moonlit-poetry.jpg)
+
+## 铺满滚筒的纸
+
+![Paper & Ink 主题，纸张铺满整根滚筒](/images/full-platen.jpg)
 
 ## 羊皮纸
 
@@ -30,7 +38,7 @@
 
 ![印成诗笺并盖上火漆印的代码片段](/images/press.jpg)
 
-![上一条命令印在夜间纸上，盖着金色火漆](/images/press-night.jpg)
+![上一条命令印在夜间纸上，盖着金色火漆，丝带系成环形](/images/press-night.jpg)
 
 ![保存的诗笺档案](/images/archive.jpg)
 

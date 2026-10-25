@@ -13,6 +13,7 @@ import type {
   FolioPaperId,
   FolioStyle,
   NocturneSettings,
+  RibbonColor,
   RibbonStyle,
   SealColor,
   SealEmblem
@@ -24,7 +25,7 @@ import {activeTerminalText} from '../terminal-bridge';
 
 import {exportFolioImage, keepFolio, listFolios, removeFolio, renameFolio, revealArchive} from './archive';
 import {drawFolio, FOLIO_PAPERS} from './folio-canvas';
-import {drawSeal, SEAL_PALETTES} from './seal';
+import {drawSeal, SEAL_PALETTES, silkOf} from './seal';
 
 export type PressTab = 'print' | 'archive';
 
@@ -81,6 +82,17 @@ const RIBBONS: readonly {value: RibbonStyle; label: string}[] = [
   {value: 'cross', label: 'Cross'},
   {value: 'banner', label: 'Banner'},
   {value: 'pendant', label: 'Pendant'}
+];
+
+const SILKS: readonly {value: RibbonColor; label: string}[] = [
+  {value: 'wax', label: 'Matching'},
+  {value: 'crimson', label: 'Crimson'},
+  {value: 'burgundy', label: 'Burgundy'},
+  {value: 'navy', label: 'Navy'},
+  {value: 'emerald', label: 'Emerald'},
+  {value: 'gold', label: 'Gold'},
+  {value: 'ivory', label: 'Ivory'},
+  {value: 'black', label: 'Black'}
 ];
 
 const FACES: readonly {value: FolioFont; label: string}[] = [
@@ -142,6 +154,12 @@ const waxChip = (color: SealColor) => {
   return `radial-gradient(circle at 35% 30%, ${lit}, ${body} 55%, ${dark})`;
 };
 
+/** A chip of silk: its sheen across its body. */
+const silkChip = (wax: SealColor) => (color: RibbonColor) => {
+  const [shadow, sheen, body] = silkOf(color, wax);
+  return `linear-gradient(135deg, ${shadow}, ${sheen} 45%, ${body})`;
+};
+
 /** The seal as it will be pressed, redrawn as its options change. */
 function SealPreview({style}: {style: FolioStyle}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -169,8 +187,10 @@ function SealPreview({style}: {style: FolioStyle}) {
   return <canvas ref={canvasRef} className="tn-seal-preview" aria-hidden="true" />;
 }
 
-/** A little seal on one way of laying the ribbon, in the chosen wax and its silk. */
-function RibbonChip({ribbon, color}: {ribbon: RibbonStyle; color: SealColor}) {
+type RibbonChipProps = {ribbon: RibbonStyle; color: SealColor; silk: RibbonColor};
+
+/** A little seal on one way of laying the ribbon, in the chosen wax and silk. */
+function RibbonChip({ribbon, color, silk}: RibbonChipProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -183,20 +203,21 @@ function RibbonChip({ribbon, color}: {ribbon: RibbonStyle; color: SealColor}) {
     canvas.height = CHIP.height * ratio;
     c.setTransform(ratio, 0, 0, ratio, 0, 0);
     c.clearRect(0, 0, CHIP.width, CHIP.height);
-    const sealStyle = {seed: 9.59, monogram: '', color, emblem: 'none' as const, ribbon, display: DISPLAY_SERIF};
+    const sealStyle = {seed: 9.59, monogram: '', color, emblem: 'none' as const, ribbon, silk, display: DISPLAY_SERIF};
     drawSeal(c, CHIP.width / 2, CHIP.height * 0.44, CHIP.radius, sealStyle);
-  }, [ribbon, color]);
+  }, [ribbon, color, silk]);
   return <canvas ref={canvasRef} className="tn-ribbon-chip" aria-hidden="true" />;
 }
 
 type RibbonChoicesProps = {
   value: RibbonStyle;
   color: SealColor;
+  silk: RibbonColor;
   onChange: (value: RibbonStyle) => void;
 };
 
 /** The ways of laying the silk, each shown under a little seal; the chosen one named beside the label. */
-function RibbonChoices({value, color, onChange}: RibbonChoicesProps) {
+function RibbonChoices({value, color, silk, onChange}: RibbonChoicesProps) {
   const current = RIBBONS.find((option) => option.value === value);
   return (
     <div className="tn-slider">
@@ -215,7 +236,7 @@ function RibbonChoices({value, color, onChange}: RibbonChoicesProps) {
             title={option.label}
             onClick={() => onChange(option.value)}
           >
-            <RibbonChip ribbon={option.value} color={color} />
+            <RibbonChip ribbon={option.value} color={color} silk={silk} />
           </button>
         ))}
       </div>
@@ -626,11 +647,21 @@ export function Press({settings, initialTab, onClose}: PressProps) {
                     />
                     <Switch label="Silk ribbon" checked={style.ribbon} onChange={(ribbon) => changeStyle({ribbon})} />
                     {style.ribbon ? (
-                      <RibbonChoices
-                        value={style.ribbonStyle}
-                        color={style.sealColor}
-                        onChange={(ribbonStyle) => changeStyle({ribbonStyle})}
-                      />
+                      <>
+                        <RibbonChoices
+                          value={style.ribbonStyle}
+                          color={style.sealColor}
+                          silk={style.ribbonColor}
+                          onChange={(ribbonStyle) => changeStyle({ribbonStyle})}
+                        />
+                        <Swatches
+                          label="Silk"
+                          value={style.ribbonColor}
+                          options={SILKS}
+                          color={silkChip(style.sealColor)}
+                          onChange={(ribbonColor) => changeStyle({ribbonColor})}
+                        />
+                      </>
                     ) : null}
                   </>
                 ) : null}

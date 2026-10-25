@@ -5,7 +5,11 @@ no GPU, so the typewriter there is drawn on the CPU with *Quality* set to *High*
 
 ## Paper & Ink
 
-![Paper & Ink on cotton paper: the shell, the lit sheet and the typewriter](/images/paper-and-ink.jpg)
+![Paper & Ink on onionskin: the shell, the lit sheet and the typewriter](/images/paper-and-ink.jpg)
+
+## Cotton
+
+![Paper & Ink on cotton rag, its felted tooth in the lamp's light](/images/cotton.jpg)
 
 ## Midnight Study
 
@@ -13,7 +17,11 @@ no GPU, so the typewriter there is drawn on the CPU with *Quality* set to *High*
 
 ## Moonlit Poetry
 
-![Moonlit Poetry on laid paper, moonlight through a window](/images/moonlit-poetry.jpg)
+![Moonlit Poetry on laid paper, moonlight through an upright window](/images/moonlit-poetry.jpg)
+
+## The full platen
+
+![Paper & Ink with the sheet as wide as the platen](/images/full-platen.jpg)
 
 ## Parchment
 
@@ -31,7 +39,7 @@ no GPU, so the typewriter there is drawn on the CPU with *Quality* set to *High*
 
 ![A code snippet printed as a folio and sealed in wax](/images/press.jpg)
 
-![The last command printed on night paper under a gold seal](/images/press-night.jpg)
+![The last command printed on night paper under a gold seal, its ribbon laid in a loop](/images/press-night.jpg)
 
 ![The Archive of kept folios](/images/archive.jpg)
 

@@ -75,8 +75,8 @@ const FINISHES: readonly {value: ClipFinish; label: string}[] = [
 ];
 
 const CURSORS: readonly {value: CursorStyle; label: string}[] = [
-  {value: 'quill', label: 'Quill'},
   {value: 'block', label: 'Block'},
+  {value: 'quill', label: 'Quill'},
   {value: 'bar', label: 'Bar'},
   {value: 'underline', label: 'Line'}
 ];

@@ -21,15 +21,15 @@ Vim, tmux and every other TUI program work as they do in any good terminal.
 **[Interactive demo](https://chaosnap.github.io/Typewriter-Nocturne/demo/)** ·
 **[Download](https://github.com/Chaosnap/Typewriter-Nocturne/releases)**
 
-<img src="website/public/images/paper-and-ink.jpg" alt="Typewriter Nocturne in the Paper &amp; Ink theme: a shell on lit cotton paper above a 3D typewriter" width="100%">
+<img src="website/public/images/paper-and-ink.jpg" alt="Typewriter Nocturne in the Paper &amp; Ink theme: a shell on lit onionskin paper above a 3D typewriter" width="100%">
 
 <table>
   <tr>
     <td width="50%"><img src="website/public/images/midnight-study.jpg" alt="Midnight Study theme on night paper, under a desk lamp" width="100%"><br><em>Midnight Study, night paper</em></td>
-    <td width="50%"><img src="website/public/images/moonlit-poetry.jpg" alt="Moonlit Poetry theme on laid paper, moonlight through a window" width="100%"><br><em>Moonlit Poetry, laid paper</em></td>
+    <td width="50%"><img src="website/public/images/moonlit-poetry.jpg" alt="Moonlit Poetry theme on laid paper, moonlight through an upright window" width="100%"><br><em>Moonlit Poetry, laid paper</em></td>
   </tr>
   <tr>
-    <td width="50%"><img src="website/public/images/press-night.jpg" alt="The Press: the last command printed on night paper under a gold wax seal" width="100%"><br><em>The Press: the last command on night paper, gold seal</em></td>
+    <td width="50%"><img src="website/public/images/press-night.jpg" alt="The Press: the last command printed on night paper under a gold wax seal" width="100%"><br><em>The Press: the last command on night paper, gold seal, looped ribbon</em></td>
     <td width="50%"><img src="website/public/images/clip.jpg" alt="A paper clip hooked over the edge of the sheet serves as the scrollbar" width="100%"><br><em>The paper clip scrollbar</em></td>
   </tr>
   <tr>
@@ -56,10 +56,11 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
   the light itself (carriage lamp, desk lamp or window) are adjustable, and a slender theatre-curtain
   **pull cord** ending in a silk tassel switches the lamp (hide it in the Studio if you like). On a dark sheet
   the lamp adds its own pool of light with a soft bloom; the room never dims the page below 4.5:1 contrast.
-* **A quill for a cursor**: a quill pen stands at the insertion point with its nib on the line, breathing
-  softly while the terminal waits; a raven quill on light paper, a swan quill on dark, with a gilt nib.
-* **Paper and ink**: six papers from cotton to parchment, each with its own fibres, as narrow as a letter or
-  as wide as the whole platen; freshly typed characters
+* **A typewriter's cursor**: the block carries the red half of a two-colour ribbon, which lifts with every key
+  you strike as the ribbon vibrator does, over a gilt type-guide pointer. Or choose a quill pen standing at the
+  insertion point with its nib on the line, breathing softly while the terminal waits.
+* **Paper and ink**: six papers, from smooth onionskin (the default) and felted cotton rag to parchment, each
+  with its own texture in the light as out of it, as narrow as a letter or as wide as the whole platen; freshly typed characters
   land heavy and settle into print, and selected text dissolves like ink and re-forms instead of sitting in a
   flat box.
 * **A paper clip for a scrollbar**: a Gem clip slid onto the edge of the sheet, it glides and leans as you scroll and

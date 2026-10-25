@@ -7,7 +7,7 @@ hero:
   tagline: 一款适用于 macOS、Windows 和 Linux 的真正终端，带着书桌的灵魂。
   image:
     src: /images/paper-and-ink.jpg
-    alt: Paper & Ink 主题：被照亮的棉纸上的终端，下方是 3D 打字机
+    alt: Paper & Ink 主题：被照亮的葱皮纸上的终端，下方是 3D 打字机
   actions:
     - theme: brand
       text: 快速开始
@@ -41,8 +41,8 @@ features:
   - title: 回形针滚动条
     details: 夹在纸边的钢丝回形针随滚动滑行、倾斜；双击压纸杆上的滚轮直达顶部或底部。
     link: /zh/guide/stage
-  - title: 羽毛笔光标
-    details: 一支羽毛笔立在输入位置，笔尖落在行上，等待输入时轻轻呼吸；浅色纸上是乌鸦羽毛笔，深色纸上是天鹅羽毛笔。
+  - title: 打字机的光标
+    details: 方块下半部是双色色带的红色那一半，每次击键都会抬起再落下，下方有鎏金的导字指针；也可以换成笔尖落在行上的羽毛笔。
     link: /zh/guide/type
   - title: 机器的声音
     details: 打字杆、字车回位、边距铃、翻历史命令时的滚筒棘轮、制表器，按字头位置立体声定位。
@@ -66,7 +66,7 @@ features:
 
 ![印刷机：上一条命令印在夜间纸上，盖着金色火漆](/images/press-night.jpg)
 
-![Moonlit Poetry 主题，条纹纸，窗外月光](/images/moonlit-poetry.jpg)
+![Moonlit Poetry 主题，条纹纸，穿过端正窗户的月光](/images/moonlit-poetry.jpg)
 
 </div>
 

@@ -29,9 +29,9 @@ export type LightRig = {
   /** Multiplies irradiance before tone mapping. */
   exposure: number;
   /**
-   * Moonlight window: centre and size of the lit patch, its panes across and down, edge softness
-   * (px), and the shear of the patch (slanting light casts the window as a parallelogram; 0 is
-   * upright).
+   * Moonlight window: centre and size of the lit patch, its square panes across and down, edge
+   * softness (px), and the shear of the patch (slanting light casts the window as a parallelogram;
+   * 0 is upright).
    */
   window: {
     x: number;
@@ -93,7 +93,7 @@ export function windowGobo(rig: LightRig, x: number, y: number): number {
   const paneHeight = w.height / w.rows;
   const bar = barHalfWidth(paneWidth, paneHeight);
   const open = between(dx + w.width / 2, paneWidth, bar, soft) * between(dy + w.height / 2, paneHeight, bar, soft);
-  return across * down * (0.1 + 0.9 * open);
+  return across * down * (0.3 + 0.7 * open);
 }
 
 /** Irradiance (before exposure) at sheet point (x, y) for a paper normal. */
@@ -176,14 +176,17 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
       -Math.sin(elevation)
     ]);
     const frame = settings.window;
+    // Square panes, each half the shorter side of a window that would cover most of the sheet;
+    // Reach makes them larger or smaller.
+    const pane = Math.max(60, (Math.min(width * 0.62, height * 0.7) * settings.reach) / 2);
     rig = {
       ...base,
       direction,
       window: {
         x: width * frame.x,
         y: height * frame.y,
-        width: width * 0.62 * settings.reach,
-        height: height * 0.7 * settings.reach,
+        width: pane * frame.columns,
+        height: pane * frame.rows,
         columns: frame.columns,
         rows: frame.rows,
         // Light scattered on the way blurs the window's edges and bars.

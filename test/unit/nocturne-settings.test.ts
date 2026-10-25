@@ -155,12 +155,13 @@ test('folio faces: book serifs for verse, safe custom families only', (t) => {
   t.is(folioFontStack({font: 'terminal', customFont: ''}, typography).family, fontStack(typography));
 });
 
-test('the quill is the cursor; settings from before it had the block, which becomes the quill', (t) => {
-  t.is(defaultSettings().typography.cursorStyle, 'quill');
-  t.is(sanitizeSettings({version: 1, typography: {cursorStyle: 'block'}}).typography.cursorStyle, 'quill');
-  t.is(sanitizeSettings({version: 2, typography: {cursorStyle: 'block'}}).typography.cursorStyle, 'block');
-  t.is(sanitizeSettings({version: 1, typography: {cursorStyle: 'bar'}}).typography.cursorStyle, 'bar');
-  t.is(sanitizeSettings({typography: {cursorStyle: 'feather'}}).typography.cursorStyle, 'quill');
+test('the block is the cursor; settings from when the quill was the default return to the block', (t) => {
+  t.is(defaultSettings().typography.cursorStyle, 'block');
+  t.is(sanitizeSettings({version: 2, typography: {cursorStyle: 'quill'}}).typography.cursorStyle, 'block');
+  t.is(sanitizeSettings({version: 3, typography: {cursorStyle: 'quill'}}).typography.cursorStyle, 'quill');
+  t.is(sanitizeSettings({version: 1, typography: {cursorStyle: 'block'}}).typography.cursorStyle, 'block');
+  t.is(sanitizeSettings({version: 2, typography: {cursorStyle: 'bar'}}).typography.cursorStyle, 'bar');
+  t.is(sanitizeSettings({typography: {cursorStyle: 'feather'}}).typography.cursorStyle, 'block');
 });
 
 test('the beam is pointed unless chosen soft; a folio is sealed unless chosen otherwise', (t) => {
@@ -172,9 +173,9 @@ test('the beam is pointed unless chosen soft; a folio is sealed unless chosen ot
 });
 
 test('the moonlit window is upright by default; its panes, slant and place are kept in range', (t) => {
-  t.deepEqual(defaultSettings().lighting.window, {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.25});
+  t.deepEqual(defaultSettings().lighting.window, {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.23});
   const result = sanitizeSettings({lighting: {window: {columns: 40, rows: 0, slant: -90, x: 2, y: 'top'}}});
-  t.deepEqual(result.lighting.window, {columns: 6, rows: 1, slant: -35, x: 1, y: 0.25});
+  t.deepEqual(result.lighting.window, {columns: 6, rows: 1, slant: -35, x: 1, y: 0.23});
 });
 
 test('the sheet is narrowest by default and at most as wide as the platen; the ribbon is laid six ways', (t) => {
@@ -184,6 +185,10 @@ test('the sheet is narrowest by default and at most as wide as the platen; the r
   t.is(defaultSettings().print.style.ribbonStyle, 'tails');
   t.is(sanitizeSettings({print: {style: {ribbonStyle: 'cross'}}}).print.style.ribbonStyle, 'cross');
   t.is(sanitizeSettings({print: {style: {ribbonStyle: 'bow'}}}).print.style.ribbonStyle, 'tails');
+  t.is(defaultSettings().print.style.ribbonColor, 'wax');
+  t.is(sanitizeSettings({print: {style: {ribbonColor: 'navy'}}}).print.style.ribbonColor, 'navy');
+  t.is(sanitizeSettings({print: {style: {ribbonColor: 'plaid'}}}).print.style.ribbonColor, 'wax');
+  t.is(defaultSettings().print.style.monogram, 'TN');
 });
 
 test('the balanced preset brings back the pointed beam, straight up the page', (t) => {

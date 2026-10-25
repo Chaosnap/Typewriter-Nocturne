@@ -22,7 +22,7 @@
   "theme": "paper-and-ink",
   "focusMode": false,
   "effects": true,
-  "paper": { "style": "cotton", "texture": 1, "width": 0 },
+  "paper": { "style": "onionskin", "texture": 1, "width": 0 },
   "lighting": {
     "enabled": true,
     "preset": "balanced",
@@ -31,7 +31,7 @@
     "beam": "pointed",
     "aim": 0,
     "reach": 1,
-    "window": { "columns": 3, "rows": 2, "slant": 0, "x": 0.34, "y": 0.25 },
+    "window": { "columns": 3, "rows": 2, "slant": 0, "x": 0.34, "y": 0.23 },
     "softness": 0.65,
     "particles": 0.45,
     "grain": 0.1,
@@ -42,7 +42,7 @@
     "customFamily": "",
     "fontSize": 15,
     "lineHeight": 1.4,
-    "cursorStyle": "quill",
+    "cursorStyle": "block",
     "selectionStyle": "ink"
   },
   "typewriter": {
@@ -58,11 +58,12 @@
     "style": {
       "paper": "laid",
       "sealColor": "crimson",
-      "monogram": "N",
+      "monogram": "TN",
       "emblem": "moon",
       "seal": true,
       "ribbon": true,
       "ribbonStyle": "tails",
+      "ribbonColor": "wax",
       "font": "typewriter",
       "customFont": "",
       "signature": ""
@@ -77,7 +78,7 @@
 | 键 | 取值 |
 | --- | --- |
 | `theme` | `paper-and-ink`、`midnight-study`、`moonlit-poetry`，或 `classic`（Hyper 原本的外观） |
-| `paper.style` | `cotton`、`laid`、`linen`、`onionskin`、`parchment`、`night` |
+| `paper.style` | `onionskin`（默认）、`cotton`、`laid`、`linen`、`parchment`、`night` |
 | `lighting.quality` | `auto`、`high`、`medium`、`low` |
 | `lighting.spread` / `aim` | 光束角度 20–160°，朝向 −45° 到 45° |
 | `typography.font` | `courier-prime`、`ibm-plex-mono`、`jetbrains-mono-nf`、`fira-code-nf`、`hack-nf`、`meslo-nf`、`caskaydia-nf`、`custom` 等 |
@@ -91,10 +92,11 @@
 | `focus.background` | `paper`、`dark`、`custom`（使用 `focus.color`） |
 | `scrollbar.style` / `finish` | `clip`、`bar`、`native` / `silver`、`brass`、`gold`、`black` |
 | `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 像素 |
-| `typography.cursorStyle` | `quill`（默认）、`block`、`bar`、`underline` |
+| `typography.cursorStyle` | `block`（默认，色带方块）、`quill`、`bar`、`underline` |
 | `lighting.beam` | `pointed`（默认）、`soft` |
 | `print.style.seal` | `true` 盖火漆，`false` 不盖火漆 |
 | `print.style.ribbonStyle` | `tails`（默认）、`loop`、`band`、`cross`、`banner`、`pendant` |
+| `print.style.ribbonColor` | `wax`（默认，与火漆相配的丝带）、`crimson`、`burgundy`、`navy`、`emerald`、`gold`、`ivory`、`black` |
 | `paper.width` | 0（最窄，默认）到 1（铺满整根滚筒） |
 | `lighting.source` | `theme`（默认）、`carriage`、`desk-lamp`、`moonlight` |
 | `lighting.window` | 月光的窗户：`columns` 和 `rows` 1–6，`slant` −35° 到 35°（0 为端正），`x` 和 `y` 0–1 |

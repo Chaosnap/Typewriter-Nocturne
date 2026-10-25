@@ -3,7 +3,7 @@
 // emblem, and soft highlights where the light catches the wax. Deterministic for a given seed, so
 // a folio's seal looks the same every time it is drawn.
 
-import type {RibbonStyle, SealColor, SealEmblem} from '../../../app/nocturne/types';
+import type {RibbonColor, RibbonStyle, SealColor, SealEmblem} from '../../../app/nocturne/types';
 
 export type SealStyle = {
   seed: number;
@@ -12,6 +12,8 @@ export type SealStyle = {
   emblem: SealEmblem;
   /** How the silk ribbon is laid under the seal, or null for none. */
   ribbon: RibbonStyle | null;
+  /** The silk's colour; `wax` (or none given) is the silk that goes with the wax. */
+  silk?: RibbonColor;
   /** Font stack for the monogram. */
   display: string;
 };
@@ -72,6 +74,21 @@ export const SEAL_PALETTES: Record<SealColor, Palette> = {
     silk: ['#2c2e36', '#a7aab4', '#5c5f6a']
   }
 };
+
+/** Silk of a colour of its own: shadow, sheen, body. */
+export const SILKS: Record<Exclude<RibbonColor, 'wax'>, [string, string, string]> = {
+  crimson: ['#4e100c', '#c23a2c', '#7a1a12'],
+  burgundy: ['#24080c', '#7a2a36', '#46121a'],
+  navy: ['#121c3c', '#3a5596', '#1f2f62'],
+  emerald: ['#0c2a1c', '#3f9468', '#1b553a'],
+  gold: ['#3a2a0a', '#d6ae58', '#8a6522'],
+  ivory: ['#6d6250', '#fbf4e2', '#d9cdb2'],
+  black: ['#0a0a0c', '#4a4a52', '#1d1d22']
+};
+
+/** The silk of a seal: its own colour, or the one that goes with the wax. */
+export const silkOf = (color: RibbonColor | undefined, wax: SealColor) =>
+  !color || color === 'wax' ? SEAL_PALETTES[wax].silk : SILKS[color];
 
 /** A small deterministic random generator (mulberry32). */
 function random(seed: number) {
@@ -264,8 +281,8 @@ const RIBBONS: Record<RibbonStyle, Band[]> = {
  * its length, its woven edges show as fine hems, a band with a twist turns over once on the way,
  * showing the matte back of the satin, and a swallowtail end is cut in a V with a few loose threads.
  */
-function satinBand(c: CanvasRenderingContext2D, x: number, y: number, r: number, band: Band, palette: Palette) {
-  const [shadow, sheen, body] = palette.silk.map(rgbOf);
+function satinBand(c: CanvasRenderingContext2D, x: number, y: number, r: number, band: Band, silk: string[]) {
+  const [shadow, sheen, body] = silk.map(rgbOf);
   const curve = band.curve.map(([px, py]): Point => [x + px * r, y + py * r]);
   const width = r * band.width;
   const steps = 44;
@@ -392,9 +409,9 @@ function satinBand(c: CanvasRenderingContext2D, x: number, y: number, r: number,
 }
 
 /** The silk under the seal, laid in the chosen way. */
-function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, style: RibbonStyle, palette: Palette) {
+function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, style: RibbonStyle, silk: string[]) {
   for (const band of RIBBONS[style]) {
-    satinBand(c, x, y, r, band, palette);
+    satinBand(c, x, y, r, band, silk);
   }
 }
 
@@ -567,7 +584,7 @@ export function drawSeal(c: CanvasRenderingContext2D, x: number, y: number, r: n
   const next = random(style.seed);
   c.save();
   if (style.ribbon) {
-    ribbon(c, x, y, r, style.ribbon, palette);
+    ribbon(c, x, y, r, style.ribbon, silkOf(style.silk, style.color));
   }
 
   // The wax, with its shadow on the paper and a few drops that ran off.

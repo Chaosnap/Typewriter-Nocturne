@@ -11,10 +11,15 @@ everything in it is part of this version.
 
 ### The desk
 
-- **Quill cursor**: in place of the block, a quill pen stands at the insertion point with its nib on the line:
+- **A typewriter's cursor**: the block carries the red half of a two-colour ribbon, faintly woven, which lifts
+  with every key you strike as the ribbon vibrator does, over a gilt pointer like the type guide's mark.
+- **Quill cursor**, a choice in the Studio: a quill pen stands at the insertion point with its nib on the line,
   a raven quill on light paper, a swan quill on dark, with a gilt nib in the theme's metal. It breathes, a light
   runs up its vane, it hides when a program hides the cursor and rests, dimmed, without focus. xterm.js keeps
-  an invisible bar underneath, so input methods and screen readers are unchanged. Block, Bar and Line remain.
+  its own cursor underneath, so input methods and screen readers are unchanged. Bar and Line remain.
+- **Papers**: Onionskin is the default sheet. Cotton is now cotton rag, felted rather than crumpled: a soft
+  tooth of little rounded hills, as on cold-pressed watercolour paper, with faint threads in the pulp. Every
+  paper keeps its own texture in the lamp's light and the window's.
 - **Tassel**: a gilt bead, a pear-shaped mould wound in crimson silk and laced with gold cords, a twisted gold
   band at its foot, and a slightly narrower skirt of fine threads that draws in at the middle and flares at the
   ends like a hyperbola.
@@ -22,13 +27,16 @@ everything in it is part of this version.
   tilt; it keeps pace with the scroll even when frames are slow.
 - **Light**: the pointed beam is the default again, with Soft as a choice; on Paper & Ink it is a clean
   triangle from the type head up the page, and the *Balanced* preset brings it back. The lamp lights the sheet
-  as if it were flat and rakes softly across its broad relief, so the lit page is smooth and calm instead of
-  glittering with dark specks. On a dark sheet the lamp now adds a pool of light with a bloom (Midnight
-  Study's desk lamp glows amber on night paper); a desk lamp spills warmth into its corner.
-- **Window light**: moonlight falls through an upright window with softly edged panes, in bluer shadow. Its
-  panes across and down (1–6), its slant (0° upright, up to 35° either way) and where it falls on the page are
-  set in the Studio, which can now also choose the light itself: the theme's, the carriage lamp, a desk lamp or
-  the window.
+  as if it were flat, so the lit page is smooth instead of glittering with dark specks. On a dark sheet the lamp
+  now shows as the sheet itself lit, warm and dim, with a bloom, drawn finely enough that the beam never steps
+  where it narrows to the bulb (Midnight Study's desk lamp glows amber on night paper); a desk lamp spills
+  warmth into its corner.
+- **Window light**: moonlight falls through an upright window of square panes with softly edged bars, in bluer
+  shadow. Its panes across and down (1–6), its slant (0° upright, up to 35° either way) and where it falls on
+  the page are set in the Studio, which can now also choose the light itself: the theme's, the carriage lamp, a
+  desk lamp or the window.
+- **New tab**: a gilt sheet icon in place of the chevron; with one profile it opens a tab at once, with more it
+  lists them in a small panel.
 - **Sheet width**: from the narrowest sheet to the full length of the platen; the machine keeps its size and
   the terminal gains the columns.
 - **Selection** follows the mouse while you drag.
@@ -39,7 +47,9 @@ everything in it is part of this version.
   is anything to print.
 - **Ribbons**: the silk can be laid six ways under the seal, each shown on a little seal in the chosen wax:
   swallowtails, a loop above two tails, one band down through the seal, two bands crossed, a banner from above
-  with two tails, or a pendant falling in two long tails.
+  with two tails, or a pendant falling in two long tails. Its colour is the one that goes with the wax or one
+  of seven silks: crimson, burgundy, navy, emerald, gold, ivory, black.
+- The seal is pressed with TN until you choose your own monogram.
 - A *Wax seal* switch prints with or without the seal.
 - A finer seal: a bevelled, glossy pool with mottling, a twisted-cord border, softly moulded monogram and
   emblems, five-pointed stars round the moon; the ribbon is draped satin with a sheen, hems, swallowtail ends

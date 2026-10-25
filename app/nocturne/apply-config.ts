@@ -61,6 +61,11 @@ export function paperPadding(settings: NocturneSettings): string {
   return settings.focusMode ? '10px 14px' : '26px 34px 10px';
 }
 
+/** The block is dressed as a typewriter's (ribbon, type guide): the Nocturne look with the block. */
+export function blockCursorOn(settings: NocturneSettings): boolean {
+  return settings.theme !== 'classic' && settings.typography.cursorStyle === 'block';
+}
+
 /** The quill cursor is drawn: the Nocturne look with the quill chosen. */
 export function quillCursorOn(settings: NocturneSettings): boolean {
   return settings.theme !== 'classic' && settings.typography.cursorStyle === 'quill';

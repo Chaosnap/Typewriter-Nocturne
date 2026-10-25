@@ -6,10 +6,10 @@ project's tests.
 
 | Paper | Character |
 | --- | --- |
-| Cotton (default) | Soft, slightly crinkled rag paper |
+| Cotton | Cotton rag, felted rather than crumpled: a soft tooth of little rounded hills, as on cold-pressed watercolour paper, with faint threads in the pulp |
 | Laid | Fine laid lines across the sheet, chain lines down it |
 | Linen | A woven cross-hatch with slubs |
-| Onionskin | Thin and smooth, almost without texture |
+| Onionskin (default) | Thin and smooth, with only a gentle crinkle |
 | Parchment | Mottled and aged, with foxing, tide lines and a fold |
 | Night | A dark sheet for night work, with pale ink |
 
@@ -21,7 +21,8 @@ size; the terminal gains the columns.
 
 ## Texture and impressions
 
-*Texture depth* sets how deep the paper's relief is and how strongly its fibres catch the light.
+*Texture depth* sets how deep the paper's relief is and how strongly its fibres catch the light. Each paper
+keeps its own texture under the lamp and in the window's light; the light only makes it brighter.
 *Type impression* sets how a character you type lands: for a moment it is heavier and its ink spreads a
 little, then it settles into ordinary print. An impression is only ever drawn over a character the terminal
 has already displayed, so hidden input such as a password never appears in it.

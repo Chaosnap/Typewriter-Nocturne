@@ -5,13 +5,13 @@ import {ambientFloor} from '../../app/nocturne/lighting-math';
 import {PAPER_IDS, PAPERS} from '../../app/nocturne/papers';
 import {defaultSettings, sanitizeSettings} from '../../app/nocturne/settings';
 
-test('six papers, cotton by default', (t) => {
+test('six papers, onionskin by default', (t) => {
   t.deepEqual(PAPER_IDS, ['cotton', 'laid', 'linen', 'onionskin', 'parchment', 'night']);
-  t.is(defaultSettings().paper.style, 'cotton');
+  t.is(defaultSettings().paper.style, 'onionskin');
 });
 
 test('unknown paper styles fall back to the default', (t) => {
-  t.is(sanitizeSettings({paper: {style: 'vellum', texture: 9}}).paper.style, 'cotton');
+  t.is(sanitizeSettings({paper: {style: 'vellum', texture: 9}}).paper.style, 'onionskin');
   t.is(sanitizeSettings({paper: {style: 'laid', texture: 9}}).paper.texture, 1.6);
 });
 

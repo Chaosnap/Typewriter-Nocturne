@@ -136,6 +136,11 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         run: bin/ci/run-step.sh "Compile" pnpm run build
 
+      - name: Keep Spotlight away from the disk images (macOS)
+        if: runner.os == 'macOS'
+        # Spotlight indexing a freshly built DMG keeps it busy, and hdiutil then cannot eject it.
+        run: sudo mdutil -a -i off || true
+
       - name: Package with electron-builder
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -151,8 +156,21 @@ jobs:
             if [ -z "${!var}" ]; then unset "$var"; fi
           done
           if [ -z "${CSC_LINK:-}" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
-          bin/ci/run-step.sh "Package" pnpm exec electron-builder ${{ matrix.builder }} \
-            --publish never -c.extraMetadata.version="${{ steps.version.outputs.version }}"
+          # macOS runners sometimes cannot eject the DMG they just built ("hdiutil: couldn't eject
+          # ... Resource busy"); building again a little later succeeds.
+          attempts=1
+          if [ "$RUNNER_OS" = "macOS" ]; then attempts=3; fi
+          for attempt in $(seq 1 "$attempts"); do
+            if bin/ci/run-step.sh "Package" pnpm exec electron-builder ${{ matrix.builder }} \
+              --publish never -c.extraMetadata.version="${{ steps.version.outputs.version }}"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt "$attempts" ]; then
+              echo "Packaging failed (attempt ${attempt} of ${attempts}); trying again in 30 s."
+              sleep 30
+            fi
+          done
+          exit 1
 
       - name: Collect installers, checksums and build info
         run: bin/ci/run-step.sh "Collect artifacts" bin/ci/collect-artifacts.sh "${{ matrix.slug }}" "${{ steps.version.outputs.version }}"

@@ -22,6 +22,7 @@ import type {
   NocturneSettings,
   PaperSettings,
   PrintSettings,
+  RibbonColor,
   RibbonStyle,
   ScrollbarSettings,
   SealColor,
@@ -217,12 +218,12 @@ export const TYPOGRAPHY_PRESETS: Record<TypographyPresetId, Partial<TypographySe
 
 export function defaultSettings(): NocturneSettings {
   return {
-    version: 2,
+    version: 3,
     theme: 'paper-and-ink',
     focusMode: false,
     effects: true,
     chrome: {toolbar: true, statusBar: true, frame: true, epigraph: true, pullCord: true},
-    paper: {style: 'cotton', texture: 1, width: 0},
+    paper: {style: 'onionskin', texture: 1, width: 0},
     lighting: {
       enabled: true,
       preset: 'balanced',
@@ -233,7 +234,7 @@ export function defaultSettings(): NocturneSettings {
       aim: 0,
       reach: 1,
       position: {x: 0.5, y: 0.1},
-      window: {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.25},
+      window: {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.23},
       color: '',
       softness: 0.65,
       bloom: 0.25,
@@ -255,7 +256,7 @@ export function defaultSettings(): NocturneSettings {
       lineHeight: 1.4,
       letterSpacing: 0,
       ligatures: false,
-      cursorStyle: 'quill',
+      cursorStyle: 'block',
       cursorWidth: 2,
       cursorBlink: false,
       smoothing: 'auto',
@@ -288,11 +289,12 @@ export function defaultFolioStyle(): FolioStyle {
   return {
     paper: 'laid',
     sealColor: 'crimson',
-    monogram: 'N',
+    monogram: 'TN',
     emblem: 'moon',
     seal: true,
     ribbon: true,
     ribbonStyle: 'tails',
+    ribbonColor: 'wax',
     font: 'typewriter',
     customFont: '',
     signature: ''
@@ -332,6 +334,7 @@ const FOLIO_PAPERS: FolioPaperId[] = ['laid', 'cotton', 'vellum', 'parchment', '
 const SEAL_COLORS: SealColor[] = ['crimson', 'oxblood', 'black', 'gold', 'emerald', 'sapphire'];
 const SEAL_EMBLEMS: SealEmblem[] = ['moon', 'rose', 'quill', 'none'];
 const RIBBON_STYLES: RibbonStyle[] = ['tails', 'loop', 'band', 'cross', 'banner', 'pendant'];
+const RIBBON_COLORS: RibbonColor[] = ['wax', 'crimson', 'burgundy', 'navy', 'emerald', 'gold', 'ivory', 'black'];
 const FOLIO_FONTS: FolioFont[] = ['typewriter', 'sonnet', 'display', 'plex', 'terminal', 'custom'];
 const CLIP_FINISHES: ClipFinish[] = ['silver', 'brass', 'gold', 'black'];
 
@@ -360,6 +363,7 @@ export function sanitizeFolioStyle(raw: unknown, base: FolioStyle = defaultFolio
     seal: bool(value.seal, base.seal),
     ribbon: bool(value.ribbon, base.ribbon),
     ribbonStyle: oneOf(value.ribbonStyle, RIBBON_STYLES, base.ribbonStyle),
+    ribbonColor: oneOf(value.ribbonColor, RIBBON_COLORS, base.ribbonColor),
     font: oneOf(value.font, FOLIO_FONTS, base.font),
     customFont: isSafeFontFamily(value.customFont) ? value.customFont : base.customFont,
     signature: signature(value.signature, base.signature)
@@ -500,21 +504,21 @@ function sanitizeTypewriter(raw: unknown, base: TypewriterSettings): TypewriterS
   };
 }
 
-/** Returns a complete, valid settings object for any input (including garbage). */
-/** Version 1 had the block cursor as its default; the quill replaces it in version 2. */
+/** Version 2 made the quill the default cursor; version 3 returns to the block. */
 function migrate(value: Dict): Dict {
-  if (value.version !== 1 || !isDict(value.typography) || value.typography.cursorStyle !== 'block') {
+  if (value.version !== 2 || !isDict(value.typography) || value.typography.cursorStyle !== 'quill') {
     return value;
   }
-  return {...value, typography: {...value.typography, cursorStyle: 'quill'}};
+  return {...value, typography: {...value.typography, cursorStyle: 'block'}};
 }
 
+/** Returns a complete, valid settings object for any input (including garbage). */
 export function sanitizeSettings(raw: unknown, base: NocturneSettings = defaultSettings()): NocturneSettings {
   const value = migrate(isDict(raw) ? raw : {});
   const rawTheme = value.theme;
   const theme: ThemeChoice = rawTheme === 'classic' || isThemeId(rawTheme) ? rawTheme : base.theme;
   return {
-    version: 2,
+    version: 3,
     theme,
     focusMode: bool(value.focusMode, base.focusMode),
     effects: bool(value.effects, base.effects),

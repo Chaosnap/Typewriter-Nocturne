@@ -44,9 +44,10 @@ function leaves(tree, depth = 0) {
 | Paper（纸张） | Laid（条纹纸，有帘纹和链纹）、Cotton（白色棉浆纸，带纤维）、Vellum（光滑温暖的犊皮纸）、Parchment（羊皮纸，有污渍，边缘更深）、Night（深色纸，浅色墨水配烫金标题） |
 | Wax seal（火漆印） | 盖火漆，或者不盖火漆直接打印 |
 | Wax（火漆颜色） | 深红、牛血红、黑、金、祖母绿、宝石蓝，各自配一条丝带 |
-| Monogram（字母） | 压进火漆的一到两个字母 |
+| Monogram（字母） | 压进火漆的一到两个字母，默认是 TN |
 | Emblem（纹章） | 新月与星、纹章玫瑰、羽毛笔，或不要 |
 | Silk ribbon（丝带） | 火漆下有没有丝带 |
+| Silk（丝带颜色） | Matching（与火漆相配）、Crimson（深红）、Burgundy（酒红）、Navy（藏青）、Emerald（祖母绿）、Gold（金）、Ivory（象牙白）或 Black（黑） |
 | Ribbon（丝带样式） | 丝带在火漆下的系法，每种都画在一枚所选颜色的小火漆上：Swallowtails（两条燕尾）、Loop（上方一个环、下方两条尾）、Band（一条丝带竖穿火漆）、Cross（两条丝带交叉）、Banner（上方一条、下方两条尾）、Pendant（上方一条，下方垂成两条长尾） |
 | Text face（正文字体） | Typewriter（Courier Prime）、Sonnet（EB Garamond，十四行诗那样的优雅正体）、Display（Cormorant Garamond）、IBM Plex Mono、终端当前字体，或任何已安装的字体 |
 | Signed（署名） | “— set at the typewriter, by …” 中的名字；留空时是 *by lamplight* |

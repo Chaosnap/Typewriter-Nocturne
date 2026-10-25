@@ -680,7 +680,15 @@ export class StageController {
 
   private glowFrame(rig: LightRig, theme: NocturneTheme, paper: Paper, layout: StageLayout, now: number) {
     const {lighting} = this.settings;
-    const [r, g, b] = toUnit(lightColorOf(theme, this.settings)).map((c) => Math.round(c * 255));
+    const light = toUnit(lightColorOf(theme, this.settings));
+    const [r, g, b] = light.map((c) => Math.round(c * 255));
+    // On a dark sheet the lamp shows as the paper itself lit, warm and dim (its colour times the
+    // light's), not as a haze of the lamp's colour laid over it.
+    let pool = [r, g, b];
+    if (paper.appearance === 'dark') {
+      const sheet = toUnit(paper.paper);
+      pool = light.map((c, i) => Math.min(255, Math.round(c * sheet[i] * 600)));
+    }
     const frame = this.cursor;
     let cursor: {x: number; y: number} | null = null;
     if (frame?.visible) {
@@ -693,6 +701,7 @@ export class StageController {
       rig,
       lamp: this.lampOn(),
       rgb: `${r}, ${g}, ${b}`,
+      poolRgb: pool.join(', '),
       appearance: paper.appearance,
       intensity: lighting.intensity,
       particles: this.moves() ? lighting.particles : 0,

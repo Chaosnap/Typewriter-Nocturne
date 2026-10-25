@@ -7,7 +7,7 @@ hero:
   tagline: A real terminal for macOS, Windows and Linux, with the soul of a writing desk.
   image:
     src: /images/paper-and-ink.jpg
-    alt: Typewriter Nocturne in the Paper & Ink theme, a shell on lit cotton paper above a 3D typewriter
+    alt: Typewriter Nocturne in the Paper & Ink theme, a shell on lit onionskin paper above a 3D typewriter
   actions:
     - theme: brand
       text: Get started
@@ -41,8 +41,8 @@ features:
   - title: A paper clip for a scrollbar
     details: A wire clip hooked over the edge of the sheet glides and leans as you scroll; double-click a bail roller to roll to the top or the bottom.
     link: /guide/stage
-  - title: A quill for a cursor
-    details: A quill pen stands at the insertion point, nib on the line, breathing softly while the terminal waits; raven on light paper, swan on dark.
+  - title: A typewriter's cursor
+    details: A block carrying the red half of a two-colour ribbon that lifts with every key you strike, over a gilt type-guide pointer; or a quill pen, nib on the line.
     link: /guide/type
   - title: The sound of the machine
     details: Type bars, carriage return, margin bell, the platen ratchet on history recall, the tabulator, in stereo where the head stands.
@@ -66,7 +66,7 @@ features:
 
 ![The Press: the last command printed on night paper under a gold seal](/images/press-night.jpg)
 
-![Moonlit Poetry on laid paper, moonlight through a window](/images/moonlit-poetry.jpg)
+![Moonlit Poetry on laid paper, moonlight through an upright window](/images/moonlit-poetry.jpg)
 
 </div>
 

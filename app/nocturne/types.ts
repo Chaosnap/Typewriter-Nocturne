@@ -226,6 +226,8 @@ export type SealEmblem = 'moon' | 'rose' | 'quill' | 'none';
  * two tails below; `pendant` a band from above falling in two long tails.
  */
 export type RibbonStyle = 'tails' | 'loop' | 'band' | 'cross' | 'banner' | 'pendant';
+/** The colour of the silk; `wax` is the silk that goes with the wax. */
+export type RibbonColor = 'wax' | 'crimson' | 'burgundy' | 'navy' | 'emerald' | 'gold' | 'ivory' | 'black';
 /** `sonnet`: an upright book face, as sonnets are printed; `custom`: `customFont`. */
 export type FolioFont = 'typewriter' | 'sonnet' | 'display' | 'plex' | 'terminal' | 'custom';
 
@@ -241,6 +243,7 @@ export type FolioStyle = {
   /** The silk ribbon under the seal. */
   ribbon: boolean;
   ribbonStyle: RibbonStyle;
+  ribbonColor: RibbonColor;
   font: FolioFont;
   customFont: string;
   /** "set at the typewriter, by …"; empty = "by lamplight". */
@@ -288,7 +291,7 @@ export type ScrollbarSettings = {
 };
 
 export type NocturneSettings = {
-  version: 2;
+  version: 3;
   theme: ThemeChoice;
   /** Hides frame, ornaments, status bar and all effects. */
   focusMode: boolean;

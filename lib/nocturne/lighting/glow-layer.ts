@@ -12,6 +12,8 @@ export type GlowFrame = {
   lamp: boolean;
   /** Light colour as `r, g, b` (0–255). */
   rgb: string;
+  /** Colour of the pool of light as `r, g, b`: on a dark sheet, the paper itself lit. */
+  poolRgb: string;
   appearance: 'light' | 'dark';
   intensity: number;
   /** Dust in the beam, 0–1 (0 = none). */
@@ -38,16 +40,17 @@ const MOTES = Array.from({length: 110}, (_, i) => ({
 const wrap = (value: number) => ((value % 1) + 1) % 1;
 
 /** Columns of the low-resolution light pool; rows follow the sheet's proportions. */
-const POOL_COLUMNS = 128;
+const POOL_COLUMNS = 192;
 
 /**
- * How strongly the pool of light is added. On a dark sheet it is the lamp's only light, kept low
- * enough that ink still reads at 4.5:1 in the brightest spot; on a light sheet the paper light
- * shows the lamp already, and the pool only lends moonlight its glow and a desk lamp its warmth.
+ * How strongly the pool of light is added. On a dark sheet it is the lamp's only light, and its
+ * colour is the paper's own, lit, dim enough that ink still reads at 4.5:1 in the brightest spot;
+ * on a light sheet the paper light shows the lamp already, and the pool only lends moonlight its
+ * glow and a desk lamp its warmth.
  */
 function poolStrength(frame: GlowFrame) {
   if (frame.appearance === 'dark') {
-    return 0.36;
+    return 1;
   }
   if (frame.rig.source === 'moonlight') {
     return 0.2;
@@ -62,6 +65,7 @@ export class GlowLayer {
   private height = 0;
   private pixelRatio = 1;
   private pool = document.createElement('canvas');
+  private soft = document.createElement('canvas');
   private bloom = document.createElement('canvas');
   private poolKey = '';
 
@@ -91,7 +95,8 @@ export class GlowLayer {
 
   /**
    * The light falling on the sheet as a picture: computed from the light model at low resolution
-   * once per change of the light, with a blurred copy for the glow that light has round it.
+   * once per change of the light, softened by a pixel so its edges never step where the beam
+   * narrows to the bulb, with a blurred copy for the glow that light has round it.
    */
   private ensurePool(rig: LightRig, rgb: string) {
     const key = JSON.stringify([rig, rgb, this.width, this.height]);
@@ -102,13 +107,14 @@ export class GlowLayer {
     const columns = POOL_COLUMNS;
     const rows = Math.max(8, Math.round((columns * this.height) / Math.max(1, this.width)));
     const [r, g, b] = rgb.split(',').map(Number);
-    this.pool.width = columns;
-    this.pool.height = rows;
-    this.bloom.width = columns;
-    this.bloom.height = rows;
+    for (const canvas of [this.pool, this.soft, this.bloom]) {
+      canvas.width = columns;
+      canvas.height = rows;
+    }
     const p = this.pool.getContext('2d');
+    const o = this.soft.getContext('2d');
     const q = this.bloom.getContext('2d');
-    if (!p || !q) {
+    if (!p || !o || !q) {
       return;
     }
     const image = p.createImageData(columns, rows);
@@ -123,7 +129,9 @@ export class GlowLayer {
       }
     }
     p.putImageData(image, 0, 0);
-    q.clearRect(0, 0, columns, rows);
+    o.filter = 'blur(1px)';
+    o.drawImage(this.pool, 0, 0);
+    o.filter = 'none';
     q.filter = 'blur(6px)';
     q.drawImage(this.pool, 0, 0);
     q.filter = 'none';
@@ -147,12 +155,12 @@ export class GlowLayer {
     const seconds = frame.time;
     const pool = poolStrength(frame);
     if (pool > 0) {
-      this.ensurePool(rig, frame.rgb);
+      this.ensurePool(rig, frame.poolRgb);
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = 'high';
       c.globalAlpha = pool;
-      c.drawImage(this.pool, 0, 0, width, height);
-      c.globalAlpha = pool * 0.8;
+      c.drawImage(this.soft, 0, 0, width, height);
+      c.globalAlpha = pool * (frame.appearance === 'dark' ? 0.4 : 0.8);
       c.drawImage(this.bloom, 0, 0, width, height);
       c.globalAlpha = 1;
     }

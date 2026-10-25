@@ -12,6 +12,7 @@ import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'reac
 import {
   activePaper,
   activeTheme,
+  blockCursorOn,
   inkSelectionOn,
   lightOn,
   paperEffectsOn,
@@ -28,6 +29,7 @@ import {scrollActiveTerminal} from '../terminal-bridge';
 import {themeVariables} from '../theme-css';
 import {observeKeys} from '../typewriter/keys';
 
+import {BlockCursor} from './block-cursor';
 import {PullCord} from './pull-cord';
 import {QuillCursor} from './quill-cursor';
 import {ScrollClip} from './scroll-clip';
@@ -209,6 +211,9 @@ export function NocturneShell({header, children}: ShellProps) {
             ))
           : null}
         {nocturne && quillCursorOn(settings) ? <QuillCursor appearance={activePaper(settings).appearance} /> : null}
+        {nocturne && blockCursorOn(settings) ? (
+          <BlockCursor appearance={activePaper(settings).appearance} blink={settings.typography.cursorBlink} />
+        ) : null}
         {nocturne ? <ScrollClip settings={settings.scrollbar} sheet={layout.sheet} text={layout.text} /> : null}
         {showCord ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
         {theme ? (

@@ -15,8 +15,11 @@ export type Paper = {
   cursor: string;
   selection: string;
   ansi: AnsiColors;
-  /** Surface parameters for the paper shader, 0–1. */
-  surface: {crinkle: number; laid: number; linen: number; mottle: number; age: number};
+  /**
+   * Surface parameters for the paper shader, 0–1. `felt` turns the crumpled relief into the soft,
+   * felted tooth of cotton rag.
+   */
+  surface: {crinkle: number; felt: number; laid: number; linen: number; mottle: number; age: number};
 };
 
 const LIGHT_ANSI: AnsiColors = {
@@ -72,11 +75,33 @@ const lightPaper = (id: PaperId, name: string, paper: string, surface: Paper['su
 });
 
 export const PAPERS: Record<PaperId, Paper> = {
-  cotton: lightPaper('cotton', 'Cotton', '#eee6d5', {crinkle: 0.55, laid: 0, linen: 0, mottle: 0.12, age: 0}),
-  laid: lightPaper('laid', 'Laid', '#f1e9d6', {crinkle: 0.22, laid: 1, linen: 0, mottle: 0.18, age: 0}),
-  linen: lightPaper('linen', 'Linen', '#ebe5d8', {crinkle: 0.2, laid: 0, linen: 1, mottle: 0.08, age: 0}),
-  onionskin: lightPaper('onionskin', 'Onionskin', '#f2f1ea', {crinkle: 0.08, laid: 0, linen: 0, mottle: 0.04, age: 0}),
-  parchment: lightPaper('parchment', 'Parchment', '#efdfbd', {crinkle: 0.25, laid: 0, linen: 0, mottle: 1, age: 0.75}),
+  // Cotton is a fine rag sheet, felted rather than crumpled, like cold-pressed watercolour paper.
+  cotton: lightPaper('cotton', 'Cotton', '#eee6d5', {
+    crinkle: 0.3,
+    felt: 1,
+    laid: 0,
+    linen: 0,
+    mottle: 0.08,
+    age: 0
+  }),
+  laid: lightPaper('laid', 'Laid', '#f1e9d6', {crinkle: 0.22, felt: 0, laid: 1, linen: 0, mottle: 0.18, age: 0}),
+  linen: lightPaper('linen', 'Linen', '#ebe5d8', {crinkle: 0.2, felt: 0, laid: 0, linen: 1, mottle: 0.08, age: 0}),
+  onionskin: lightPaper('onionskin', 'Onionskin', '#f2f1ea', {
+    crinkle: 0.08,
+    felt: 0,
+    laid: 0,
+    linen: 0,
+    mottle: 0.04,
+    age: 0
+  }),
+  parchment: lightPaper('parchment', 'Parchment', '#efdfbd', {
+    crinkle: 0.25,
+    felt: 0,
+    laid: 0,
+    linen: 0,
+    mottle: 1,
+    age: 0.75
+  }),
   night: {
     id: 'night',
     name: 'Night',
@@ -87,7 +112,7 @@ export const PAPERS: Record<PaperId, Paper> = {
     cursor: '#e9e7ff',
     selection: 'rgba(196, 188, 255, 0.2)',
     ansi: NIGHT_ANSI,
-    surface: {crinkle: 0.3, laid: 0, linen: 0, mottle: 0.1, age: 0}
+    surface: {crinkle: 0.3, felt: 0, laid: 0, linen: 0, mottle: 0.1, age: 0}
   }
 };
 

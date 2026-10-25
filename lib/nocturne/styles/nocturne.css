@@ -37,6 +37,46 @@
   color: var(--tn-panel-ink);
 }
 
+/* The new-tab button: a gilt sheet icon, and the profile list as a small Studio panel. */
+.tn-nocturne .tabs_nav .new_tab {
+  color: var(--tn-accent);
+  opacity: 0.75;
+  padding: 0 12px;
+}
+
+.tn-nocturne .tabs_nav .new_tab:hover {
+  opacity: 1;
+}
+
+.tn-nocturne .tabs_nav .profile_dropdown {
+  top: 36px;
+  right: 8px;
+  overflow: hidden;
+  border: 1px solid var(--tn-panel-line) !important;
+  border-radius: 8px;
+  background: var(--tn-panel-bg) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.tn-nocturne .tabs_nav .profile_dropdown_item {
+  color: var(--tn-panel-ink);
+  font-family: var(--tn-font-ui);
+  font-size: 14px;
+  font-style: italic;
+  text-transform: none;
+  border-bottom-color: var(--tn-panel-line);
+}
+
+.tn-nocturne .tabs_nav .profile_dropdown_item:last-child {
+  border-bottom-width: 0;
+}
+
+.tn-nocturne .tabs_nav .profile_dropdown_item:hover {
+  color: var(--tn-accent);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
 /* ------------------------------------------------------------------ stage and sheet */
 
 .tn-stage {
@@ -158,6 +198,62 @@
 
 .tn-roller:focus-visible {
   outline: 1px dotted var(--tn-accent);
+}
+
+/* The block cursor, dressed as a typewriter's: xterm draws the block (the character under it in
+ * the paper's colour), this layer adds the red half of a two-colour ribbon in its lower part and a
+ * gilt pointer under the cell, like the type guide's. On light paper the red lightens the dark
+ * block and leaves the pale character as it is; on dark paper it darkens the pale block. */
+.tn-block-cursor {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  display: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.tn-block-ribbon {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 34%;
+  transform-origin: 50% 100%;
+  background:
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #b9372b, #8f2118);
+  mix-blend-mode: lighten;
+}
+
+.tn-block-cursor[data-appearance='dark'] .tn-block-ribbon {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #d97a6c, #b9473a);
+  mix-blend-mode: darken;
+}
+
+.tn-block-guide {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 7px;
+  height: 4px;
+  margin-left: -3.5px;
+  background: linear-gradient(90deg, var(--tn-metal-lo), var(--tn-metal-hi) 45%, var(--tn-metal) 70%, var(--tn-metal-lo));
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+/* Without focus xterm draws only the block's outline: the ribbon steps aside and the pointer dims.
+ * A blinking block leaves the ribbon out too, so it never shows alone. */
+.tn-block-cursor[data-focused='false'] .tn-block-ribbon,
+.tn-block-cursor[data-blink='true'] .tn-block-ribbon {
+  display: none;
+}
+
+.tn-block-cursor[data-focused='false'] .tn-block-guide {
+  opacity: 0.45;
 }
 
 /* The quill cursor, drawn over xterm's invisible bar: a raven quill on light paper, a swan quill on

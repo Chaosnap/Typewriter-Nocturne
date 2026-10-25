@@ -4,14 +4,13 @@
 // the shader only reads its own uniforms and never sees terminal content.
 //
 // Two passes keep the per-frame cost tiny:
-//   1. surface (on layout or paper change): the paper's albedo, its fibre normals and the normals
-//      of its broad relief, into two textures. This is the expensive part (fractal noise, foxing,
-//      laid lines, linen weave).
+//   1. surface (on layout or paper change): the paper's albedo and its fibre normals, into two
+//      textures. This is the expensive part (fractal noise, foxing, laid lines, linen weave).
 //   2. light (when the lamp moves, or for animated film grain): reads both textures and applies
 //      the physical light model of app/nocturne/light-model.ts (inverse-square law, Lambert's
 //      cosine law, a soft spot cone, a window gobo for moonlight, exposure tone mapping). The lamp
-//      lights the sheet as if it were flat and then rakes softly across its broad relief: lit by a
-//      low lamp, the fine tooth of the paper would glitter like sand.
+//      lights the sheet as if it were flat, and the paper keeps the same texture in its light as
+//      out of it: shaded by a low lamp, every fibre would cast a speck of shadow.
 
 import type {LightRig} from '../../../app/nocturne/light-model';
 import type {Paper} from '../../../app/nocturne/papers';
@@ -31,32 +30,33 @@ float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int i = 0; i < 5; i++) { 
 
 const SURFACE = `#version 300 es
 precision highp float;
-uniform vec2 uSize; uniform float uScale; uniform float uSeed; uniform float uFold;
+uniform vec2 uSize; uniform float uScale; uniform float uSeed; uniform float uFold; uniform float uFelt;
 uniform float uAge; uniform float uMottle; uniform float uCrinkle; uniform float uLaid; uniform float uLinen;
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outNormal;
 ${NOISE}
+// Value noise turned off the pixel grid, so felted textures show no rows or columns.
+const mat2 TURN = mat2(0.8, -0.6, 0.6, 0.8);
 // Surface relief: vellum veins (domain-warped), long fibres and a fine tooth; laid lines and
-// chain lines for laid paper; a woven cross-hatch with slubs for linen.
+// chain lines for laid paper; a woven cross-hatch with slubs for linen. Cotton rag is felted, not
+// crumpled: a soft tooth of little rounded hills, as on cold-pressed paper, over faint clouds of
+// denser and thinner pulp, with a hint of long fibres.
 float relief(vec2 p) {
   vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
   float veins = 1.0 - abs(fbm(p * 0.02 + w * 3.0) * 2.0 - 1.0);
   float r = 0.35 * pow(veins, 6.0) + 0.35 * noise(p * vec2(0.6, 0.18)) + 0.3 * noise(p * 1.9);
+  if (uFelt > 0.0) {
+    vec2 q = TURN * p;
+    float tooth = 0.62 * noise(q * 0.45) + 0.38 * noise(TURN * q * 0.95 + 5.3);
+    float felt = 0.7 * tooth + 0.2 * noise(q * 0.11 + 2.1) + 0.1 * noise(q * vec2(0.5, 0.12));
+    r = mix(r, felt, uFelt);
+  }
   float laidLines = 0.5 + 0.5 * sin(p.y * 6.2831 / 4.2);
   float chain = exp(-pow((mod(p.x, 96.0) - 48.0) / 3.2, 2.0));
   r = mix(r, r * 0.6 + laidLines * 0.18 + chain * 0.35, uLaid);
   float weave = 0.5 + 0.5 * sin(p.x * 6.2831 / 3.4) * sin(p.y * 6.2831 / 3.4);
   float slub = noise(p * vec2(0.07, 1.3));
   return mix(r, r * 0.3 + weave * 0.5 + slub * 0.35, uLinen);
-}
-// The broad relief alone: the soft cockling of the sheet, its veins rounded off and a hint of its
-// long fibres, without the fine tooth or the laid and woven lines. This is what a raking lamp
-// shows of a page. The warp of the veins changes so slowly that one value of it serves the few
-// pixels round a point.
-float broad(vec2 p, vec2 w) {
-  float veins = 1.0 - abs(fbm(p * 0.02 + w * 3.0) * 2.0 - 1.0);
-  float cockle = 0.6 * noise(p * 0.035 + uSeed * 3.0) + 0.4 * noise(p * 0.09 + uSeed);
-  return 0.3 * cockle + 0.12 * pow(veins, 3.0) + 0.08 * noise(p * vec2(0.25, 0.08));
 }
 // Albedo relative to the paper colour: mottling, and for aged paper darker ragged edges, foxing,
 // tide lines and a fold.
@@ -87,6 +87,13 @@ vec3 albedo(vec2 p) {
   float chainTone = exp(-pow((mod(p.x, 96.0) - 48.0) / 3.2, 2.0));
   base *= 1.0 - uLaid * (0.03 * chainTone + 0.005 * (0.5 + 0.5 * sin(p.y * 6.2831 / 4.2)));
   base *= 1.0 - uLinen * 0.02 * (0.5 + 0.5 * sin(p.x * 6.2831 / 3.4) * sin(p.y * 6.2831 / 3.4));
+  // Cotton's rag: a few faint threads in the pulp, lying every which way.
+  if (uFelt > 0.0) {
+    vec2 q = TURN * p;
+    float threads = smoothstep(0.86, 0.97, noise(q * vec2(0.06, 1.1) + uSeed));
+    threads += smoothstep(0.86, 0.97, noise(TURN * q * vec2(1.1, 0.06) + 3.0));
+    base *= 1.0 - uFelt * 0.035 * min(1.0, threads);
+  }
   return base * mix(vec3(1.0), tone, uAge);
 }
 void main() {
@@ -95,13 +102,8 @@ void main() {
   float h0 = relief(p);
   float slope = 1.2 + 3.0 * uCrinkle;
   vec3 n = normalize(vec3(-(relief(p + vec2(e, 0.0)) - h0) * slope, -(relief(p + vec2(0.0, e)) - h0) * slope, 1.0));
-  // The broad relief's slope over a few pixels.
-  float s = 2.5;
-  vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
-  float b0 = broad(p, w);
-  vec3 soft = normalize(vec3(-(broad(p + vec2(s, 0.0), w) - b0) / s * slope, -(broad(p + vec2(0.0, s), w) - b0) / s * slope, 1.0));
   outAlbedo = vec4(albedo(p), 1.0);
-  outNormal = vec4(n.xy * 0.5 + 0.5, soft.xy * 0.5 + 0.5);
+  outNormal = vec4(n.xy * 0.5 + 0.5, 0.0, 1.0);
 }`;
 
 const LIGHT = `#version 300 es
@@ -127,7 +129,7 @@ float gobo(vec2 p) {
   vec2 pane = uWindow.zw / uPanes.xy;
   float bar = clamp(0.04 * min(pane.x, pane.y), 4.0, 16.0);
   float open = between(d.x + uWindow.z * 0.5, pane.x, bar, soft) * between(d.y + uWindow.w * 0.5, pane.y, bar, soft);
-  return inside.x * inside.y * (0.1 + 0.9 * open);
+  return inside.x * inside.y * (0.3 + 0.7 * open);
 }
 // A pointed beam comes from a point and narrows to it. A soft beam (uSoft = 1) comes from a small
 // sphere: near it the light has no hot spot and the edge of the cone widens, as a penumbra does.
@@ -142,26 +144,18 @@ float irradiance(vec3 P, vec3 n) {
 void main() {
   ivec2 texel = ivec2(gl_FragCoord.xy);
   vec3 albedo = texelFetch(uAlbedo, texel, 0).rgb;
-  vec4 normals = texelFetch(uNormal, texel, 0);
-  vec2 nxy = normals.xy * 2.0 - 1.0;
-  vec2 soft = normals.zw * 2.0 - 1.0;
+  vec2 nxy = texelFetch(uNormal, texel, 0).xy * 2.0 - 1.0;
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
   // The lamp lights the sheet as if it were flat, so its pool is smooth however low the lamp
-  // stands (shading every fibre in grazing light would sprinkle the page with dark specks)...
+  // stands: shading every fibre in grazing light would sprinkle the page with dark specks.
   float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), vec3(0.0, 0.0, 1.0)) * uExposure)) * uLamp;
-  // ...and then rakes softly across the broad relief: the side of each rise that faces the lamp a
-  // little brighter, the far side a little darker, by a few percent at most.
-  vec2 toward = uSource == 2 ? -uLightDir.xy : uLightPos.xy - p;
-  toward /= max(1e-3, length(toward));
-  float rake = clamp(dot(soft, toward) * (2.0 + 4.0 * uCrinkle), -1.0, 1.0);
-  lit *= 1.0 + rake * (0.02 + 0.03 * uCrinkle) * min(uRelief, 1.5);
   vec2 uv = p / uSize;
   float vignette = smoothstep(0.15, 1.1, length((uv - vec2(0.5, 0.55)) * vec2(1.0, 1.15)));
   float ambient = mix(1.0, uAmbient * (1.0 - 0.3 * vignette), uLamp);
   vec3 irr = uAmbientTint * ambient + (1.0 - ambient) * lit * uTint;
-  // Fibres catch the room light from the upper left: a few percent, bounded so ink stays crisp,
-  // and quieter where the lamp is bright, so the page under the bulb is calm and reads cleanly.
-  float relief = uRelief * (1.0 - 0.65 * lit);
+  // The paper's own texture, in the light as out of it: its fibres catch the room light from the
+  // upper left, a few percent, bounded so ink stays crisp, and a little quieter under the bulb.
+  float relief = uRelief * (1.0 - 0.4 * lit);
   float bound = (0.16 * uCrinkle + 0.04) * relief;
   irr *= clamp(1.0 + (-nxy.x * 0.35 - nxy.y * 0.55) * (0.6 + 2.2 * uCrinkle) * relief, 1.0 - bound, 1.0 + bound);
   // A sheet is never perfectly flat: its side edges fall off gently.
@@ -175,6 +169,7 @@ const SURFACE_UNIFORMS = [
   'uScale',
   'uSeed',
   'uFold',
+  'uFelt',
   'uAge',
   'uMottle',
   'uCrinkle',
@@ -384,6 +379,7 @@ export class PaperLight {
     gl.uniform1f(u.uScale, spec.pixelRatio);
     gl.uniform1f(u.uSeed, 3.7);
     gl.uniform1f(u.uFold, spec.height * 0.38);
+    gl.uniform1f(u.uFelt, surface.felt);
     gl.uniform1f(u.uAge, surface.age);
     gl.uniform1f(u.uMottle, surface.mottle);
     gl.uniform1f(u.uCrinkle, surface.crinkle * spec.texture);

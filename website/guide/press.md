@@ -52,8 +52,9 @@ Under **Paper, seal and type** in the Press:
 | Paper | Laid (laid and chain lines), Cotton (fibres in a white rag sheet), Vellum (smooth, warm), Parchment (stained, darker at the edges), Night (a dark sheet with pale ink and gilt rubrics) |
 | Wax seal | Seal the folio in wax, or print it without a seal |
 | Wax | Crimson, Oxblood, Black, Gold, Emerald, Sapphire; each with its own silk |
-| Monogram | One or two letters pressed into the seal |
+| Monogram | One or two letters pressed into the seal; TN until you choose your own |
 | Emblem | A crescent with stars, a heraldic rose, a quill, or none |
+| Silk | The ribbon's colour: Matching (the silk that goes with the wax), Crimson, Burgundy, Navy, Emerald, Gold, Ivory or Black |
 | Ribbon | How the silk is laid under the seal, each shown under a little seal in the chosen wax: Swallowtails (two tails), Loop (a loop above, two tails below), Band (one band down through the seal), Cross (two bands crossed), Banner (a band from above, two tails below), Pendant (a band from above falling in two long tails) |
 | Silk ribbon | The two silk tails under the seal, or the seal alone |
 | Text face | Typewriter (Courier Prime), Sonnet (EB Garamond, an upright book face), Display (Cormorant Garamond), IBM Plex Mono, the terminal's font, or any installed family |

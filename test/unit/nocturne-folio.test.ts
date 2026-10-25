@@ -34,6 +34,7 @@ test('a draft keeps its print style, validated', (t) => {
     seal: 'yes',
     ribbon: false,
     ribbonStyle: 'cross',
+    ribbonColor: 'emerald',
     font: 'sonnet',
     customFont: 'Bad"";',
     signature: ' Yuki \u0007 '
@@ -46,6 +47,7 @@ test('a draft keeps its print style, validated', (t) => {
     seal: true,
     ribbon: false,
     ribbonStyle: 'cross',
+    ribbonColor: 'emerald',
     font: 'sonnet',
     customFont: '',
     signature: 'Yuki'
