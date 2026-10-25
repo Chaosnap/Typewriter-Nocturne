@@ -20,7 +20,7 @@ import type {StageLayout} from '../../app/nocturne/stage-layout';
 import type {NocturneSettings, NocturneTheme} from '../../app/nocturne/types';
 
 import {on} from './bus';
-import type {CursorFrame, KeyKind, StrikeEvent} from './bus';
+import type {CueKind, CursorFrame, KeyKind, StrikeEvent} from './bus';
 import {GlowLayer} from './lighting/glow-layer';
 import type {RenderMode} from './lighting/gpu';
 import {PaperLight} from './lighting/paper-light';
@@ -30,6 +30,7 @@ import {lightColorOf} from './theme-css';
 import {InkLayer} from './typewriter/ink-layer';
 import type {InkStyle, InkViewport} from './typewriter/ink-layer';
 import {TypewriterSounds} from './typewriter/sound-engine';
+import type {SoundKind} from './typewriter/sound-engine';
 
 export type StageElements = {
   stage: HTMLElement;
@@ -137,7 +138,8 @@ export class StageController {
       on('cursor', (frame) => this.onCursor(frame)),
       on('strike', (strike) => this.onStrike(strike)),
       on('key', ({kind, repeat}) => this.onKey(kind, repeat)),
-      on('marginBell', () => this.onMarginBell())
+      on('marginBell', () => this.onMarginBell()),
+      on('cue', ({kind}) => this.onCue(kind))
     );
     const wake = () => this.invalidate();
     document.addEventListener('visibilitychange', wake);
@@ -195,24 +197,69 @@ export class StageController {
     this.schedule();
   }
 
+  /** Stereo position of the type head, −0.7 (left) to 0.7 (right). */
+  private pan() {
+    const width = this.layout?.width ?? 0;
+    return width > 0 ? Math.max(-0.7, Math.min(0.7, (this.carriage.position / width) * 1.4 - 0.7)) : 0;
+  }
+
+  private play(kind: SoundKind, repeat = false, gain = 1) {
+    this.sounds.play(kind, {repeat, pan: this.pan(), gain});
+  }
+
+  /** The type bar throws the head at the platen; the ribbon lifts; the spools advance. */
+  private throwTypeBar(force: number) {
+    this.strike = {position: this.strike.position, velocity: 30 * STRIKE_TRAVEL * force};
+    this.vibrator = {position: this.vibrator.position, velocity: 16 * VIBRATOR_LIFT * force};
+    this.spool += 0.07 * force;
+  }
+
   private onKey(kind: KeyKind, repeat: boolean) {
     if (!this.theme()) {
       return;
     }
+    const stage = this.elements.stage;
+    stage.dataset.keys = String(Number(stage.dataset.keys ?? 0) + 1);
     const {typewriter} = this.settings;
-    if (kind === 'return') {
-      if (typewriter.returnSound) {
-        this.sounds.play('return', repeat);
-      }
-      this.platenTarget += LINE_FEED_DEGREES;
-    } else if (kind === 'backspace') {
-      this.sounds.play('backspace', repeat);
-    } else {
-      this.sounds.play(kind === 'space' ? 'space' : 'key', repeat);
-      // The type bar throws the head at the platen; the ribbon lifts; the spools advance.
-      this.strike = {position: this.strike.position, velocity: 30 * STRIKE_TRAVEL};
-      this.vibrator = {position: this.vibrator.position, velocity: 16 * VIBRATOR_LIFT};
-      this.spool += 0.07;
+    switch (kind) {
+      case 'return':
+        if (typewriter.returnSound) {
+          this.play('return', repeat);
+        }
+        this.platenTarget += LINE_FEED_DEGREES;
+        break;
+      case 'backspace':
+        this.play('backspace', repeat);
+        break;
+      case 'up':
+      case 'down':
+        // Recalling shell history turns the platen back or forward by one notch.
+        this.play('history', repeat);
+        this.platenTarget += kind === 'up' ? -LINE_FEED_DEGREES / 2 : LINE_FEED_DEGREES / 2;
+        break;
+      case 'left':
+      case 'right':
+        this.play('nudge', repeat);
+        break;
+      case 'tab':
+        this.play('tab', repeat);
+        break;
+      case 'select':
+        this.play('select', repeat);
+        this.vibrator = {position: this.vibrator.position, velocity: 6 * VIBRATOR_LIFT};
+        break;
+      case 'commit':
+        this.play('commit');
+        this.throwTypeBar(1.35);
+        break;
+      case 'compose':
+        // A keystroke inside an input method: the key is struck while the text is still preedit.
+        this.play('key', repeat, 0.85);
+        this.throwTypeBar(0.8);
+        break;
+      default:
+        this.play(kind === 'space' ? 'space' : 'key', repeat);
+        this.throwTypeBar(1);
     }
     if (!this.moves()) {
       this.platen = {position: this.platenTarget, velocity: 0};
@@ -224,8 +271,22 @@ export class StageController {
 
   private onMarginBell() {
     if (this.theme() && this.settings.typewriter.marginBell) {
-      this.sounds.play('bell');
+      this.play('bell');
     }
+  }
+
+  private onCue(kind: CueKind) {
+    if (!this.theme()) {
+      return;
+    }
+    if (kind === 'line') {
+      this.play('line', false, 0.8);
+      this.throwTypeBar(0.6);
+      this.schedule();
+      return;
+    }
+    // The lamp cord hangs at the left of the room.
+    this.sounds.play(kind, {pan: kind === 'cord' ? -0.8 : 0});
   }
 
   // ------------------------------------------------------------------------------------------

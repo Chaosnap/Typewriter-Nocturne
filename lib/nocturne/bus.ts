@@ -37,7 +37,27 @@ export type StrikeEvent = {
   bold: boolean;
 };
 
-export type KeyKind = 'key' | 'space' | 'return' | 'backspace' | 'composition';
+/**
+ * What kind of key was struck. `up`/`down` recall shell history, `left`/`right` move the cursor.
+ * `compose` is a keystroke inside an IME composition (pinyin, kana, hangul…), `select` changes the
+ * composition without typing (choosing a candidate), `commit` hands the composed text to the shell.
+ */
+export type KeyKind =
+  | 'key'
+  | 'space'
+  | 'return'
+  | 'backspace'
+  | 'tab'
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'compose'
+  | 'select'
+  | 'commit';
+
+/** Sounds of the room rather than of the keys. */
+export type CueKind = 'cord' | 'seal' | 'print' | 'line';
 
 type EventMap = {
   /** Cursor geometry of the active terminal changed. */
@@ -48,6 +68,8 @@ type EventMap = {
   key: {kind: KeyKind; repeat: boolean};
   /** The cursor crossed the right-margin bell column while typing. */
   marginBell: {uid: string};
+  /** The lamp cord was pulled, a folio printed or sealed. */
+  cue: {kind: CueKind};
 };
 
 type Handler<K extends keyof EventMap> = (payload: EventMap[K]) => void;
@@ -56,7 +78,8 @@ const handlers: {[K in keyof EventMap]: Set<Handler<K>>} = {
   cursor: new Set(),
   strike: new Set(),
   key: new Set(),
-  marginBell: new Set()
+  marginBell: new Set(),
+  cue: new Set()
 };
 
 let lastCursor: CursorFrame | null = null;

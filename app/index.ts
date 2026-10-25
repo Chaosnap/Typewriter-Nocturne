@@ -32,6 +32,7 @@ import {gitDescribe} from 'git-describe';
 import parseUrl from 'parse-url';
 
 import * as AppMenu from './menus/menu';
+import {registerNocturneArchive} from './nocturne/archive-store';
 import {registerNocturneSettings} from './nocturne/settings-store';
 import * as plugins from './plugins';
 import {newWindow} from './ui/window';
@@ -40,8 +41,9 @@ import * as windowUtils from './utils/window-utils';
 
 const windowSet = new Set<BrowserWindow>([]);
 
-// [nocturne] Settings persistence and IPC for the Nocturne visual layer.
+// [nocturne] Settings persistence and the Archive of printed folios, behind validated IPC.
 registerNocturneSettings();
+registerNocturneArchive();
 
 // expose to plugins
 app.config = config;

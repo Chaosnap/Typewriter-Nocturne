@@ -17,6 +17,8 @@ const commands: Record<string, (focusedWindow?: BrowserWindow) => void> = {
   'nocturne:lighting': nocturneCommand('lighting'),
   'nocturne:studio': nocturneCommand('studio'),
   'nocturne:sound': nocturneCommand('sound'),
+  'nocturne:print': nocturneCommand('print'),
+  'nocturne:archive': nocturneCommand('archive'),
   'window:new': () => {
     // If window is created on the same tick, it will consume event too
     setTimeout(app.createWindow, 0);

@@ -454,7 +454,276 @@
   color: #111;
 }
 
+.tn-button {
+  padding: 6px 12px;
+  border: 1px solid var(--tn-panel-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tn-panel-ink);
+  font-family: var(--tn-font-ui);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tn-button:hover,
+.tn-button:focus-visible {
+  border-color: var(--tn-accent);
+  outline: none;
+}
+
+.tn-button-primary {
+  border-color: var(--tn-accent);
+  background: rgba(255, 255, 255, 0.07);
+  font-style: italic;
+  font-size: 16px;
+}
+
+.tn-font-custom {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* ------------------------------------------------------------------ the lamp's pull cord */
+
+.tn-cord {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 10px;
+  width: 40px;
+  height: 200px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tn-cord:active {
+  cursor: grabbing;
+}
+
+.tn-cord svg {
+  display: block;
+  width: 40px;
+  height: 200px;
+  overflow: visible;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45));
+}
+
+.tn-cord:focus-visible {
+  outline: 1px dotted var(--tn-accent);
+  outline-offset: 2px;
+}
+
+.tn-cord-silk,
+.tn-cord-twist {
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+.tn-cord-silk {
+  stroke: #4a1a12;
+}
+
+.tn-cord-twist {
+  stroke: #b0573a;
+  stroke-dasharray: 2.2 3;
+  opacity: 0.75;
+}
+
+.tn-cord-sheen {
+  stroke: rgba(255, 220, 180, 0.28);
+  stroke-width: 0.8;
+}
+
+.tn-cord-ferrule {
+  fill: var(--tn-metal-lo);
+}
+
+.tn-cord-ring {
+  fill: none;
+  stroke: var(--tn-metal-lo);
+  stroke-width: 0.9;
+}
+
+.tn-cord-glint {
+  fill: rgba(255, 255, 255, 0.45);
+}
+
+.tn-cord[aria-pressed='false'] .tn-cord-glint {
+  fill: rgba(255, 255, 255, 0.18);
+}
+
+.tn-focus .tn-cord {
+  opacity: 0.35;
+}
+
+.tn-focus .tn-cord:hover {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ the Press */
+
+.tn-press {
+  position: absolute;
+  z-index: 12;
+  top: 46px;
+  left: 50%;
+  bottom: 14px;
+  width: min(1080px, calc(100% - 28px));
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+  border: 1px solid var(--tn-panel-line);
+  border-radius: 12px;
+  background: var(--tn-panel-bg);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.85);
+  color: var(--tn-panel-ink);
+  font-family: var(--tn-font-ui);
+}
+
+.tn-press-side {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+  border-right: 1px solid var(--tn-panel-line);
+}
+
+.tn-press-side h2 {
+  margin: 0 0 2px;
+  font-family: var(--tn-font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 24px;
+}
+
+.tn-press-form,
+.tn-press-archive {
+  display: grid;
+  gap: 10px;
+}
+
+.tn-press-text {
+  min-height: 220px;
+  resize: vertical;
+  font-family: var(--tn-font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.tn-press-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tn-press-sheet {
+  position: relative;
+  overflow-y: auto;
+  padding: 22px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 220, 160, 0.06), rgba(0, 0, 0, 0.35));
+}
+
+.tn-press-sheet canvas {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.tn-press-sheet canvas[hidden] {
+  display: none;
+}
+
+.tn-press-hint {
+  margin: 30% auto 0;
+  text-align: center;
+  font-style: italic;
+  color: var(--tn-panel-muted);
+}
+
+.tn-folios {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tn-folio {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.tn-folio-selected {
+  border-color: var(--tn-accent);
+}
+
+.tn-folio-open {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--tn-panel-ink);
+  font-family: var(--tn-font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tn-folio-open:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tn-folio-number {
+  grid-row: span 2;
+  align-self: center;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+  color: #c0503a;
+}
+
+.tn-folio-title {
+  font-style: italic;
+  font-size: 15px;
+}
+
+.tn-folio-date {
+  font-size: 12px;
+  color: var(--tn-panel-muted);
+}
+
+.tn-folio-delete {
+  min-width: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--tn-panel-muted);
+  font-family: var(--tn-font-ui);
+  cursor: pointer;
+}
+
+.tn-folio-delete:hover {
+  color: #e07a64;
+}
+
 @media (max-width: 720px) {
+  .tn-press {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
   .tn-studio {
     left: 12px;
     right: 12px;

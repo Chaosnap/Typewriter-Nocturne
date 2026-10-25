@@ -142,3 +142,14 @@ test('the head tips away from the direction of acceleration', (t) => {
   t.true(stepSway({position: 0, velocity: 0}, 60000, FRAME).position < 0);
   t.true(stepSway({position: 0, velocity: 0}, -60000, FRAME).position > 0);
 });
+
+test('aiming the carriage lamp swivels its beam', (t) => {
+  const settings = defaultSettings().lighting;
+  const straight = buildRig({...settings, source: 'carriage', aim: 0}, THEMES['paper-and-ink'], sheet);
+  const right = buildRig({...settings, source: 'carriage', aim: 30}, THEMES['paper-and-ink'], sheet);
+  const left = buildRig({...settings, source: 'carriage', aim: -30}, THEMES['paper-and-ink'], sheet);
+  t.is(straight.direction[0], 0);
+  t.true(right.direction[0] > 0);
+  t.true(left.direction[0] < 0);
+  t.true(irradiance(right, 650, 300) * right.exposure > irradiance(straight, 650, 300) * straight.exposure);
+});

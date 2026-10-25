@@ -55,5 +55,7 @@
   "nocturne:focus-mode": "command+shift+enter",
   "nocturne:lighting": "command+shift+l",
   "nocturne:studio": "command+shift+,",
-  "nocturne:sound": "command+shift+m"
+  "nocturne:sound": "command+shift+m",
+  "nocturne:print": "command+shift+p",
+  "nocturne:archive": "command+shift+o"
 }

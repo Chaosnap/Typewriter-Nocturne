@@ -1,5 +1,5 @@
 // The Nocturne stage round Hyper's terminals: a dark study, a sheet of paper standing in a 3D
-// typewriter, the light on the page, and the Studio.
+// typewriter, the light on the page and its pull cord, the Press and the Studio.
 //
 // Hyper's header and terminals are rendered unchanged inside it. The DOM tree is the same in every
 // mode (classic theme, focus mode, effects off), only styles change, so switching never remounts
@@ -12,11 +12,14 @@ import {activePaper, activeTheme} from '../../../app/nocturne/apply-config';
 import {stageLayout} from '../../../app/nocturne/stage-layout';
 import type {Box} from '../../../app/nocturne/stage-layout';
 import {detectGpu, renderMode} from '../lighting/gpu';
+import {Press} from '../print/press';
+import type {PressTab} from '../print/press';
 import {StageController} from '../stage-controller';
 import {getSettings, updateSettings, useNocturneSettings} from '../store';
 import {themeVariables} from '../theme-css';
 import {observeKeys} from '../typewriter/keys';
 
+import {PullCord} from './pull-cord';
 import {Studio} from './studio';
 import {Toolbar} from './toolbar';
 
@@ -38,6 +41,7 @@ export function NocturneShell({header, children}: ShellProps) {
   const settings = useNocturneSettings();
   const theme = activeTheme(settings);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [press, setPress] = useState<PressTab | null>(null);
   const [size, setSize] = useState<Size | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLCanvasElement>(null);
@@ -107,6 +111,8 @@ export function NocturneShell({header, children}: ShellProps) {
         updateSettings({typewriter: {sound: !current.typewriter.sound}});
       } else if (name === 'studio') {
         setStudioOpen((open) => !open);
+      } else if (name === 'print' || name === 'archive') {
+        setPress((open) => (open ? null : name));
       }
     };
     ipcRenderer.on('nocturne:command', onCommand);
@@ -136,6 +142,12 @@ export function NocturneShell({header, children}: ShellProps) {
     classes.push('tn-classic');
   }
   const nocturne = theme !== null && layout !== null;
+  const drawing = mode === 'basic' ? 'the plain sheet: no usable GPU for the typewriter' : `the full stage (${mode})`;
+  const toggleLamp = () => updateSettings({lighting: {enabled: !getSettings().lighting.enabled}});
+  const closePress = () => {
+    setPress(null);
+    window.focusActiveTerm?.();
+  };
   const sheetStyle = nocturne ? boxStyle(layout.sheet) : undefined;
   const textStyle = nocturne ? boxStyle(layout.text, layout.sheet) : undefined;
 
@@ -153,11 +165,26 @@ export function NocturneShell({header, children}: ShellProps) {
         </div>
         <canvas className="tn-machine" ref={machineRef} hidden={!nocturne || !layout.machine} />
         <div className="tn-vignette" />
+        {theme ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
         {theme ? (
-          <Toolbar settings={settings} studioOpen={studioOpen} onStudio={() => setStudioOpen(!studioOpen)} />
+          <Toolbar
+            settings={settings}
+            studioOpen={studioOpen}
+            pressOpen={press !== null}
+            onStudio={() => setStudioOpen(!studioOpen)}
+            onPress={() => (press ? closePress() : setPress('print'))}
+          />
         ) : null}
       </div>
-      {theme && studioOpen ? <Studio settings={settings} onClose={() => setStudioOpen(false)} /> : null}
+      {theme && studioOpen ? (
+        <Studio
+          settings={settings}
+          drawing={drawing}
+          onClose={() => setStudioOpen(false)}
+          onPress={() => setPress('print')}
+        />
+      ) : null}
+      {theme && press ? <Press settings={settings} initialTab={press} onClose={closePress} /> : null}
     </div>
   );
 }

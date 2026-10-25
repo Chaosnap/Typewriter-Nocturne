@@ -83,6 +83,20 @@ const viewMenu = (
         click(item, focusedWindow) {
           execCommand('nocturne:studio', focusedWindow);
         }
+      },
+      {
+        label: 'The Press: Print a Folio…',
+        accelerator: commandKeys['nocturne:print'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:print', focusedWindow);
+        }
+      },
+      {
+        label: 'Archive of Folios…',
+        accelerator: commandKeys['nocturne:archive'],
+        click(item, focusedWindow) {
+          execCommand('nocturne:archive', focusedWindow);
+        }
       }
     ]
   };

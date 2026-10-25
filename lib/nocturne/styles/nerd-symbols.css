@@ -1,0 +1,9 @@
+/* Symbols Nerd Font Mono (MIT, licenses/MIT-nerd-fonts.txt): Powerline, Devicons, Font Awesome,
+ * Material Design and the other icon sets of Nerd Fonts, one cell wide. Limited to the icon code
+ * points, so it never replaces a letter of the chosen face; it only fills in the icons. */
+@font-face {
+  font-family: 'Symbols Nerd Font Mono';
+  src: url('../../../assets/fonts/SymbolsNerdFontMono-Regular.ttf') format('truetype');
+  font-display: block;
+  unicode-range: U+23FB-23FE, U+2665, U+26A1, U+2B58, U+E000-F8FF, U+F0000-FFFFD;
+}

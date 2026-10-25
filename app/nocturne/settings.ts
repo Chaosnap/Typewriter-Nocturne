@@ -16,6 +16,7 @@ import type {
   LightingSettings,
   NocturneSettings,
   PaperSettings,
+  PrintSettings,
   SettingsPatch,
   ThemeChoice,
   TypewriterSettings,
@@ -47,8 +48,29 @@ export const FONTS: FontEntry[] = [
   {id: 'jetbrains-mono', label: 'JetBrains Mono', bundled: false, family: 'JetBrains Mono', ligatures: true},
   {id: 'monaspace-neon', label: 'Monaspace Neon', bundled: false, family: 'Monaspace Neon', ligatures: true},
   {id: 'commit-mono', label: 'Commit Mono', bundled: false, family: 'CommitMono', ligatures: false},
-  {id: 'recursive-mono', label: 'Recursive Mono', bundled: false, family: 'Recursive Mono Linear', ligatures: true}
+  {id: 'recursive-mono', label: 'Recursive Mono', bundled: false, family: 'Recursive Mono Linear', ligatures: true},
+  // Nerd Font builds of popular faces. The bundled Symbols Nerd Font gives every face the icons anyway.
+  {
+    id: 'jetbrains-mono-nf',
+    label: 'JetBrainsMono Nerd Font',
+    bundled: false,
+    family: 'JetBrainsMono Nerd Font',
+    ligatures: true
+  },
+  {id: 'fira-code-nf', label: 'FiraCode Nerd Font', bundled: false, family: 'FiraCode Nerd Font', ligatures: true},
+  {id: 'hack-nf', label: 'Hack Nerd Font', bundled: false, family: 'Hack Nerd Font', ligatures: false},
+  {id: 'meslo-nf', label: 'MesloLGS Nerd Font', bundled: false, family: 'MesloLGS NF', ligatures: false},
+  {
+    id: 'caskaydia-nf',
+    label: 'CaskaydiaCove Nerd Font',
+    bundled: false,
+    family: 'CaskaydiaCove Nerd Font',
+    ligatures: true
+  }
 ];
+
+/** Icons of Nerd Fonts (Powerline, Devicons, Font Awesome…), bundled and used after any face (MIT). */
+export const NERD_SYMBOLS = '"Symbols Nerd Font Mono"';
 
 const FONT_IDS: FontId[] = [...FONTS.map((font) => font.id), 'custom'];
 
@@ -64,15 +86,19 @@ const quoteFamily = (family: string) => (/^[\w-]+$/.test(family) ? family : `"${
 /** CSS font-family stack for the terminal, always ending in safe monospace and CJK fallbacks. */
 export function fontStack(typography: Pick<TypographySettings, 'font' | 'customFamily'>): string {
   if (typography.font === 'custom') {
-    return isSafeFontFamily(typography.customFamily)
-      ? `${typography.customFamily}, ${MONO_FALLBACK}`
-      : `"IBM Plex Mono", ${MONO_FALLBACK}`;
+    const family = typography.customFamily;
+    if (!isSafeFontFamily(family)) {
+      return `"IBM Plex Mono", ${NERD_SYMBOLS}, ${MONO_FALLBACK}`;
+    }
+    // A single family name is quoted (names may start with a digit); a typed stack is used as is.
+    const custom = /[,"']/.test(family) ? family : `"${family}"`;
+    return `${custom}, ${NERD_SYMBOLS}, ${MONO_FALLBACK}`;
   }
   const entry = FONTS.find((font) => font.id === typography.font);
   if (!entry?.family) {
-    return MONO_FALLBACK;
+    return `${NERD_SYMBOLS}, ${MONO_FALLBACK}`;
   }
-  return `${quoteFamily(entry.family)}, ${MONO_FALLBACK}`;
+  return `${quoteFamily(entry.family)}, ${NERD_SYMBOLS}, ${MONO_FALLBACK}`;
 }
 
 export const UI_SERIF = '"EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
@@ -165,6 +191,7 @@ export function defaultSettings(): NocturneSettings {
       source: 'theme',
       intensity: 1,
       spread: 74,
+      aim: 0,
       reach: 1,
       position: {x: 0.5, y: 0.1},
       color: '',
@@ -209,7 +236,8 @@ export function defaultSettings(): NocturneSettings {
       paperFeed: 1.5,
       paperShake: 0,
       impression: 0.8
-    }
+    },
+    print: {keepInArchive: true}
   };
 }
 
@@ -242,6 +270,11 @@ const CURSOR_STYLES: CursorStyle[] = ['block', 'bar', 'underline'];
 const VOICES: TypewriterVoice[] = ['standard', 'portable', 'electric', 'whisper'];
 const LIGHT_SOURCES = ['theme', 'carriage', 'desk-lamp', 'moonlight'] as const;
 
+function sanitizePrint(raw: unknown, base: PrintSettings): PrintSettings {
+  const value = isDict(raw) ? raw : {};
+  return {keepInArchive: bool(value.keepInArchive, base.keepInArchive)};
+}
+
 function sanitizeChrome(raw: unknown, base: ChromeSettings): ChromeSettings {
   const value = isDict(raw) ? raw : {};
   return {
@@ -270,6 +303,7 @@ function sanitizeLighting(raw: unknown, base: LightingSettings): LightingSetting
     source: oneOf(value.source, LIGHT_SOURCES, base.source),
     intensity: round(num(value.intensity, base.intensity, 0, 2)),
     spread: num(value.spread, base.spread, 20, 160, 1),
+    aim: num(value.aim, base.aim, -45, 45, 1),
     reach: round(num(value.reach, base.reach, 0.2, 2)),
     position: {
       x: round(num(position.x, base.position.x, -0.5, 1.5)),
@@ -344,7 +378,8 @@ export function sanitizeSettings(raw: unknown, base: NocturneSettings = defaultS
     paper: sanitizePaper(value.paper, base.paper),
     lighting: sanitizeLighting(value.lighting, base.lighting),
     typography: sanitizeTypography(value.typography, base.typography),
-    typewriter: sanitizeTypewriter(value.typewriter, base.typewriter)
+    typewriter: sanitizeTypewriter(value.typewriter, base.typewriter),
+    print: sanitizePrint(value.print, base.print)
   };
 }
 

@@ -94,6 +94,11 @@ export type FontId =
   | 'monaspace-neon'
   | 'commit-mono'
   | 'recursive-mono'
+  | 'jetbrains-mono-nf'
+  | 'fira-code-nf'
+  | 'hack-nf'
+  | 'meslo-nf'
+  | 'caskaydia-nf'
   | 'custom';
 export type CursorStyle = 'block' | 'bar' | 'underline';
 export type TypewriterVoice = 'standard' | 'portable' | 'electric' | 'whisper';
@@ -108,6 +113,8 @@ export type LightingSettings = {
   intensity: number;
   /** Beam angle in degrees (carriage lamp and desk lamp). */
   spread: number;
+  /** Where the lamp points, swivelled left (−) or right (+) in degrees. */
+  aim: number;
   /** 0.2–2, shown as a percentage of the sheet height. */
   reach: number;
   /** Normalised position (desk lamp, moonlight). */
@@ -185,6 +192,11 @@ export type PaperSettings = {
   texture: number;
 };
 
+export type PrintSettings = {
+  /** Printed pages are kept in the Archive (a folder in the configuration directory). */
+  keepInArchive: boolean;
+};
+
 export type ChromeSettings = {
   toolbar: boolean;
   statusBar: boolean;
@@ -204,6 +216,7 @@ export type NocturneSettings = {
   lighting: LightingSettings;
   typography: TypographySettings;
   typewriter: TypewriterSettings;
+  print: PrintSettings;
 };
 
 /** Recursive partial used for settings patches. */

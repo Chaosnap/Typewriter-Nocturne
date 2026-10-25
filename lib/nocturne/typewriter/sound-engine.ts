@@ -3,10 +3,25 @@
 // Each sound is rendered once into an AudioBuffer with an OfflineAudioContext (a few variants per
 // sound, from a seeded generator), so a keystroke only starts a buffer source: no synthesis on the
 // input path and no delay of the keystroke itself, which goes to the terminal independently.
+// Playback is placed in stereo where the type head stands and given a small room.
 
 import type {TypewriterSettings, TypewriterVoice} from '../../../app/nocturne/types';
 
-export type SoundKind = 'key' | 'space' | 'backspace' | 'return' | 'bell';
+export type SoundKind =
+  | 'key'
+  | 'space'
+  | 'backspace'
+  | 'return'
+  | 'bell'
+  | 'tab'
+  | 'history'
+  | 'nudge'
+  | 'select'
+  | 'commit'
+  | 'cord'
+  | 'seal'
+  | 'print'
+  | 'line';
 
 type Voice = {
   /** Frequency of the platen thump, Hz. */
@@ -30,7 +45,40 @@ const VOICES: Record<TypewriterVoice, Voice> = {
 
 const VARIANTS = 4;
 const SAMPLE_RATE = 44100;
-const DURATION: Record<SoundKind, number> = {key: 0.18, space: 0.22, backspace: 0.16, return: 0.62, bell: 1.6};
+const DURATION: Record<SoundKind, number> = {
+  key: 0.18,
+  space: 0.22,
+  backspace: 0.16,
+  return: 0.62,
+  bell: 1.6,
+  tab: 0.3,
+  history: 0.18,
+  nudge: 0.08,
+  select: 0.12,
+  commit: 0.26,
+  cord: 0.24,
+  seal: 0.5,
+  print: 0.9,
+  line: 0.16
+};
+
+/** Relative loudness of each sound against a keystroke. */
+const LOUDNESS: Record<SoundKind, number> = {
+  key: 1,
+  space: 1,
+  backspace: 0.9,
+  return: 0.8,
+  bell: 0.8,
+  tab: 0.8,
+  history: 0.75,
+  nudge: 0.6,
+  select: 0.6,
+  commit: 1,
+  cord: 0.9,
+  seal: 1,
+  print: 0.7,
+  line: 0.55
+};
 
 /** Small deterministic PRNG (mulberry32) so variants are reproducible. */
 function random(seed: number) {
@@ -62,6 +110,12 @@ function envelope(context: BaseAudioContext, {at, peak, decay, attack = 0.0006}:
   gain.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay);
   return gain;
 }
+
+type Filter = {type: BiquadFilterType; frequency: number; q?: number};
+
+const band = (frequency: number, q: number): Filter => ({type: 'bandpass', frequency, q});
+const high = (frequency: number): Filter => ({type: 'highpass', frequency});
+const low = (frequency: number): Filter => ({type: 'lowpass', frequency});
 
 /** A filtered noise burst. */
 function burst(
@@ -171,6 +225,64 @@ function bell(context: BaseAudioContext, out: AudioNode) {
   }
 }
 
+/** The platen knob turned one notch: two ratchet clicks over a soft roller rumble (shell history). */
+function platenNotch(context: BaseAudioContext, out: AudioNode, voice: Voice, rand: () => number) {
+  for (let i = 0; i < 2; i++) {
+    burst(context, out, rand, band(2500 + rand() * 500, 4), {at: i * 0.032, peak: 0.36, decay: 0.009});
+  }
+  burst(context, out, rand, low(520), {at: 0, peak: 0.14, decay: 0.12, attack: 0.01});
+  thump(context, out, voice.body * 1.4, {at: 0.004, peak: voice.bodyGain * 0.22, decay: 0.03});
+}
+
+/** One tooth of the escapement released without a type bar (cursor left or right). */
+function escapementTick(context: BaseAudioContext, out: AudioNode, voice: Voice, rand: () => number) {
+  burst(context, out, rand, band(3400 * (0.95 + rand() * 0.1), 5), {at: 0, peak: 0.3, decay: 0.006});
+  burst(context, out, rand, high(voice.click), {at: 0.002, peak: voice.clickGain * 0.12, decay: 0.004});
+}
+
+/** The tabulator: a key thunk, the carriage running over the rack, the tab stop. */
+function tabulator(context: BaseAudioContext, out: AudioNode, voice: Voice, rand: () => number) {
+  thump(context, out, voice.body * 0.9, {at: 0, peak: voice.bodyGain * 0.6, decay: 0.04});
+  for (let i = 0; i < 6; i++) {
+    burst(context, out, rand, band(2900 + rand() * 300, 4), {at: 0.03 + i * 0.013, peak: 0.2, decay: 0.006});
+  }
+  thump(context, out, voice.body * 0.75, {at: 0.12, peak: voice.bodyGain * 0.8, decay: 0.06});
+  burst(context, out, rand, high(1800), {at: 0.12, peak: 0.3, decay: 0.012});
+}
+
+/** Choosing an input-method candidate: a soft wooden tap. */
+function tap(context: BaseAudioContext, out: AudioNode, rand: () => number) {
+  burst(context, out, rand, band(1150 + rand() * 150, 3), {at: 0, peak: 0.3, decay: 0.022});
+  burst(context, out, rand, high(4200), {at: 0, peak: 0.08, decay: 0.003});
+}
+
+/** The pull switch of the lamp: the chain rattles, the switch clicks and clacks back. */
+function pullSwitch(context: BaseAudioContext, out: AudioNode, rand: () => number) {
+  for (const at of [0, 0.028, 0.047]) {
+    burst(context, out, rand, band(4800 + rand() * 800, 8), {at, peak: 0.12, decay: 0.012});
+  }
+  burst(context, out, rand, high(2200), {at: 0.07, peak: 0.6, decay: 0.008});
+  thump(context, out, 190, {at: 0.074, peak: 0.42, decay: 0.03});
+  burst(context, out, rand, band(1600, 2), {at: 0.16, peak: 0.18, decay: 0.01});
+}
+
+/** A wax seal pressed into warm wax: a low thud and a faint crackle. */
+function waxSeal(context: BaseAudioContext, out: AudioNode, rand: () => number) {
+  thump(context, out, 82, {at: 0, peak: 0.9, decay: 0.2});
+  burst(context, out, rand, low(900), {at: 0.01, peak: 0.25, decay: 0.16});
+  for (let i = 0; i < 7; i++) {
+    burst(context, out, rand, band(1800 + rand() * 2400, 6), {at: 0.04 + rand() * 0.3, peak: 0.05, decay: 0.004});
+  }
+}
+
+/** A sheet rolled through the platen: the line-space ratchet and the rustle of paper. */
+function paperRoll(context: BaseAudioContext, out: AudioNode, rand: () => number) {
+  for (let i = 0; i < 14; i++) {
+    burst(context, out, rand, band(2300 + rand() * 300, 3), {at: i * 0.05, peak: 0.28 - i * 0.012, decay: 0.008});
+  }
+  burst(context, out, rand, band(3200, 0.8), {at: 0, peak: 0.12, decay: 0.75, attack: 0.08});
+}
+
 function render(kind: SoundKind, voice: Voice, seed: number): Promise<AudioBuffer> {
   const context = new OfflineAudioContext(1, Math.ceil(DURATION[kind] * SAMPLE_RATE), SAMPLE_RATE);
   const rand = random(seed);
@@ -185,13 +297,55 @@ function render(kind: SoundKind, voice: Voice, seed: number): Promise<AudioBuffe
     strike(context, out, {...voice, bodyGain: voice.bodyGain * 0.5}, rand, 0.7);
   } else if (kind === 'return') {
     carriageReturn(context, out, voice, rand);
+  } else if (kind === 'tab') {
+    tabulator(context, out, voice, rand);
+  } else if (kind === 'history') {
+    platenNotch(context, out, voice, rand);
+  } else if (kind === 'nudge') {
+    escapementTick(context, out, voice, rand);
+  } else if (kind === 'select') {
+    tap(context, out, rand);
+  } else if (kind === 'commit') {
+    // Composed text lands as a firm strike followed by a lighter second bar.
+    strike(context, out, voice, rand, 1.3);
+    strike(context, out, {...voice, bodyGain: voice.bodyGain * 0.4, ringGain: voice.ringGain * 0.5}, rand, 0.8);
+  } else if (kind === 'cord') {
+    pullSwitch(context, out, rand);
+  } else if (kind === 'seal') {
+    waxSeal(context, out, rand);
+  } else if (kind === 'print') {
+    paperRoll(context, out, rand);
+  } else if (kind === 'line') {
+    strike(context, out, {...voice, bodyGain: voice.bodyGain * 0.6}, rand, 0.8);
   } else {
     bell(context, out);
   }
   return context.startRendering();
 }
 
-const KINDS: SoundKind[] = ['key', 'space', 'backspace', 'return', 'bell'];
+const KINDS = Object.keys(DURATION) as SoundKind[];
+
+/** A short, warm room: decaying stereo noise used as the impulse response of a convolver. */
+function roomResponse(context: BaseAudioContext): AudioBuffer {
+  const length = Math.ceil(0.38 * context.sampleRate);
+  const response = context.createBuffer(2, length, context.sampleRate);
+  const rand = random(1729);
+  for (let channel = 0; channel < 2; channel++) {
+    const data = response.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      data[i] = (rand() * 2 - 1) * Math.pow(1 - i / length, 3.2);
+    }
+  }
+  return response;
+}
+
+export type PlayOptions = {
+  repeat?: boolean;
+  /** Stereo position, −1 (left) to 1 (right): where the type head stands. */
+  pan?: number;
+  /** Extra gain, 0–1. */
+  gain?: number;
+};
 
 export class TypewriterSounds {
   private context: AudioContext | null = null;
@@ -234,7 +388,7 @@ export class TypewriterSounds {
     return work;
   }
 
-  play(kind: SoundKind, repeat = false) {
+  play(kind: SoundKind, {repeat = false, pan = 0, gain = 1}: PlayOptions = {}) {
     const settings = this.settings;
     if (!settings?.sound || settings.volume === 0) {
       return;
@@ -252,10 +406,12 @@ export class TypewriterSounds {
     const source = context.createBufferSource();
     source.buffer = variants[Math.floor(this.rand() * variants.length)];
     source.playbackRate.value = 1 + (this.rand() - 0.5) * 0.09 * variation;
-    const gain = context.createGain();
-    const loudness = kind === 'bell' || kind === 'return' ? 0.8 : 1;
-    gain.gain.value = settings.volume * loudness * (1 + (this.rand() - 0.5) * 0.35 * variation) * (repeat ? 0.55 : 1);
-    source.connect(gain).connect(this.master);
+    const level = context.createGain();
+    const spread = 1 + (this.rand() - 0.5) * 0.35 * variation;
+    level.gain.value = settings.volume * LOUDNESS[kind] * spread * gain * (repeat ? 0.55 : 1);
+    const panner = context.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    source.connect(level).connect(panner).connect(this.master);
     source.start();
   }
 
@@ -265,6 +421,12 @@ export class TypewriterSounds {
         this.context = new AudioContext({latencyHint: 'interactive'});
         this.master = this.context.createGain();
         this.master.connect(this.context.destination);
+        // A little of the room: the desk and the walls answer each strike.
+        const room = this.context.createConvolver();
+        room.buffer = roomResponse(this.context);
+        const wet = this.context.createGain();
+        wet.gain.value = 0.16;
+        this.master.connect(room).connect(wet).connect(this.context.destination);
       } catch {
         return null;
       }

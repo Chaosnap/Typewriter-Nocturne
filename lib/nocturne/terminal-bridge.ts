@@ -13,6 +13,13 @@ import {emit, on} from './bus';
 import {getSettings, subscribe} from './store';
 
 let activeUid: string | null = null;
+const terminals = new Map<string, Terminal>();
+
+/** Characters the user typed, waiting to be confirmed by the program's echo at this cell. */
+type Expected = {chars: string[]; col: number; row: number; at: number};
+
+/** Echo of a keystroke arrives within a few frames; composed text can take a little longer. */
+const ECHO_WINDOW_MS = 600;
 
 const PRINTABLE = /^[^\p{C}]$/u;
 
@@ -36,8 +43,7 @@ function applyExtraOptions(term: Terminal) {
 export function attachTerminal(uid: string, term: Terminal): IDisposable {
   const disposables: (() => void)[] = [];
   let frameRequest = 0;
-  // A printable key the user typed, waiting to be confirmed by the program's echo.
-  let pending: {char: string; col: number; row: number; at: number} | null = null;
+  let expected: Expected[] = [];
   let lastTypedAt = 0;
   let bellArmed = true;
 
@@ -72,26 +78,34 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       grid: {left: rect.left, top: rect.top, width: rect.width, height: rect.height}
     };
 
-    if (pending && Date.now() - pending.at < 400) {
-      // Only re-show a character the terminal itself has drawn: hidden input (passwords) never
-      // appears in the buffer, so it can never appear in an effect either.
-      const cell = buffer.getLine(buffer.baseY + pending.row)?.getCell(pending.col);
-      if (cell && cell.getChars() === pending.char) {
+    // Only re-show characters the terminal itself has drawn: hidden input (passwords) never
+    // appears in the buffer, so it can never appear in an effect either.
+    const now = Date.now();
+    expected = expected.filter((item) => {
+      if (now - item.at > ECHO_WINDOW_MS) {
+        return false;
+      }
+      const line = buffer.getLine(buffer.baseY + item.row);
+      while (item.chars.length > 0) {
+        const cell = line?.getCell(item.col);
+        if (!cell || cell.getChars() !== item.chars[0]) {
+          break;
+        }
         emit('strike', {
           uid,
-          char: pending.char,
-          col: pending.col,
-          line: buffer.baseY + pending.row,
+          char: item.chars[0],
+          col: item.col,
+          line: buffer.baseY + item.row,
           cellWidth,
           width: cellWidth * Math.max(1, cell.getWidth()),
           fg: foregroundOf(cell),
           bold: cell.isBold() !== 0
         });
-        pending = null;
+        item.col += Math.max(1, cell.getWidth());
+        item.chars.shift();
       }
-    } else {
-      pending = null;
-    }
+      return item.chars.length > 0;
+    });
 
     const bellColumn = term.cols - getSettings().typewriter.bellColumnsFromEnd;
     if (col < bellColumn - 1) {
@@ -126,13 +140,25 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       lastTypedAt = Date.now();
       if (!domEvent.isComposing && PRINTABLE.test(key)) {
         const buffer = term.buffer.active;
-        pending = {char: key, col: buffer.cursorX, row: buffer.cursorY, at: lastTypedAt};
+        expected.push({chars: [key], col: buffer.cursorX, row: buffer.cursorY, at: lastTypedAt});
       }
     })
   );
 
   const textarea = term.textarea;
   if (textarea) {
+    // Text committed by an input method (pinyin, kana…) reaches the shell without a key event.
+    const onCompositionEnd = (event: CompositionEvent) => {
+      const chars = Array.from(event.data).filter((char) => PRINTABLE.test(char));
+      if (chars.length > 0) {
+        const buffer = term.buffer.active;
+        lastTypedAt = Date.now();
+        expected.push({chars, col: buffer.cursorX, row: buffer.cursorY, at: lastTypedAt});
+      }
+    };
+    textarea.addEventListener('compositionend', onCompositionEnd);
+    disposables.push(() => textarea.removeEventListener('compositionend', onCompositionEnd));
+
     const onFocus = () => {
       activeUid = uid;
       schedule();
@@ -158,6 +184,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
   if (activeUid === null) {
     activeUid = uid;
   }
+  terminals.set(uid, term);
+  disposables.push(() => terminals.delete(uid));
   schedule();
 
   return {
@@ -176,4 +204,24 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
 /** Marks a terminal as the one whose cursor drives the carriage and lighting. */
 export function setActiveTerminal(uid: string | null) {
   activeUid = uid;
+}
+
+/**
+ * Text of the active terminal for the Press, read only when the user asks to print: the current
+ * selection, or the rows visible on screen.
+ */
+export function activeTerminalText(kind: 'selection' | 'screen'): string {
+  const term = activeUid ? terminals.get(activeUid) : undefined;
+  if (!term) {
+    return '';
+  }
+  if (kind === 'selection') {
+    return term.getSelection();
+  }
+  const buffer = term.buffer.active;
+  const rows: string[] = [];
+  for (let i = 0; i < term.rows; i++) {
+    rows.push(buffer.getLine(buffer.viewportY + i)?.translateToString(true) ?? '');
+  }
+  return rows.join('\n');
 }

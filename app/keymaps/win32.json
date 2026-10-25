@@ -50,5 +50,7 @@
   "nocturne:focus-mode": "ctrl+shift+enter",
   "nocturne:lighting": "ctrl+shift+l",
   "nocturne:studio": "ctrl+shift+,",
-  "nocturne:sound": "ctrl+alt+m"
+  "nocturne:sound": "ctrl+alt+m",
+  "nocturne:print": "ctrl+shift+p",
+  "nocturne:archive": "ctrl+shift+o"
 }

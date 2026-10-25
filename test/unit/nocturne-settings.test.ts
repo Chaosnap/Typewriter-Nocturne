@@ -93,3 +93,18 @@ test('typography presets apply font and metrics', (t) => {
   t.is(study.font, 'ibm-plex-mono');
   t.is(study.preset, 'study');
 });
+
+test('lamp aim and the archive option are validated', (t) => {
+  const result = sanitizeSettings({lighting: {aim: 300}, print: {keepInArchive: 'yes'}});
+  t.is(result.lighting.aim, 45);
+  t.true(result.print.keepInArchive);
+  t.false(sanitizeSettings({print: {keepInArchive: false}}).print.keepInArchive);
+});
+
+test('every font stack carries the bundled Nerd Font symbols; custom names are quoted', (t) => {
+  for (const font of ['courier-prime', 'ibm-plex-mono', 'jetbrains-mono-nf', 'system'] as const) {
+    t.true(fontStack({font, customFamily: ''}).includes('"Symbols Nerd Font Mono"'), font);
+  }
+  t.true(fontStack({font: 'custom', customFamily: '3270 Nerd Font'}).startsWith('"3270 Nerd Font", '));
+  t.true(fontStack({font: 'custom', customFamily: 'Iosevka, monospace'}).startsWith('Iosevka, monospace, '));
+});

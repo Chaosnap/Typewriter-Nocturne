@@ -56,3 +56,13 @@ export function MoonIcon() {
     </svg>
   );
 }
+
+export function QuillIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M16.5 3.2C11 4 7.2 8.4 5.6 14.4l1.6-.6c.9-2.4 2.3-4.5 4.3-6.1-1.4 2-2.4 4.1-2.9 6.3 4.6-1.4 7.4-6 7.9-10.8z" />
+      <path d="M5.6 14.4L4 17.2" />
+      <path d="M3 17.6h7" opacity="0.6" />
+    </svg>
+  );
+}

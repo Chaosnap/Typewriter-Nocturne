@@ -4,11 +4,10 @@
 import React from 'react';
 
 import {PAPER_IDS, PAPERS} from '../../../app/nocturne/papers';
-import {applyLightingPreset, FONTS} from '../../../app/nocturne/settings';
+import {applyLightingPreset} from '../../../app/nocturne/settings';
 import {THEMES} from '../../../app/nocturne/themes';
 import type {
   EffectQuality,
-  FontId,
   LightingPresetId,
   NocturneSettings,
   ThemeId,
@@ -17,6 +16,7 @@ import type {
 import {getSettings, setSettings, updateSettings} from '../store';
 
 import {percent, Section, Segmented, Slider, Switch} from './controls';
+import {FontPicker} from './font-picker';
 
 const THEME_IDS: ThemeId[] = ['paper-and-ink', 'midnight-study', 'moonlit-poetry'];
 
@@ -41,14 +41,18 @@ const VOICES: readonly {value: TypewriterVoice; label: string}[] = [
 ];
 
 const degrees = (value: number) => `${Math.round(value)}°`;
+const signedDegrees = (value: number) => (value > 0 ? `+${Math.round(value)}°` : degrees(value));
 const pixels = (value: number) => `${value}px`;
 
 type StudioProps = {
   settings: NocturneSettings;
+  /** What the stage draws right now, e.g. "the full stage" or "the plain sheet (no usable GPU)". */
+  drawing: string;
   onClose: () => void;
+  onPress: () => void;
 };
 
-export function Studio({settings, onClose}: StudioProps) {
+export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
   const {lighting, typography, typewriter, paper} = settings;
   const light = (patch: Partial<NocturneSettings['lighting']>) =>
     updateSettings({lighting: {...patch, preset: 'custom'}});
@@ -134,25 +138,7 @@ export function Studio({settings, onClose}: StudioProps) {
       </Section>
 
       <Section title="Type">
-        <div className="tn-slider">
-          <div className="tn-slider-head">
-            <label className="tn-label" htmlFor="tn-font">
-              Typeface
-            </label>
-          </div>
-          <select
-            id="tn-font"
-            className="tn-input"
-            value={typography.font === 'custom' ? 'courier-prime' : typography.font}
-            onChange={(event) => type({font: event.currentTarget.value as FontId})}
-          >
-            {FONTS.map((font) => (
-              <option key={font.id} value={font.id}>
-                {font.bundled ? font.label : `${font.label} (if installed)`}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FontPicker typography={typography} onChange={type} />
         <Slider
           label="Type size"
           value={typography.fontSize}
@@ -177,7 +163,7 @@ export function Studio({settings, onClose}: StudioProps) {
         <Switch label="Lamp" checked={lighting.enabled} onChange={(enabled) => updateSettings({lighting: {enabled}})} />
         <Segmented label="Preset" value={preset} options={PRESETS} onChange={choosePreset} />
         <Slider
-          label="Intensity"
+          label="Brightness"
           value={lighting.intensity}
           min={0}
           max={2}
@@ -186,13 +172,22 @@ export function Studio({settings, onClose}: StudioProps) {
           onChange={(intensity) => light({intensity})}
         />
         <Slider
-          label="Spread"
+          label="Beam angle"
           value={lighting.spread}
           min={20}
           max={160}
           step={1}
           format={degrees}
           onChange={(spread) => light({spread})}
+        />
+        <Slider
+          label="Aim"
+          value={lighting.aim}
+          min={-45}
+          max={45}
+          step={1}
+          format={signedDegrees}
+          onChange={(aim) => light({aim})}
         />
         <Slider
           label="Reach"
@@ -261,6 +256,18 @@ export function Studio({settings, onClose}: StudioProps) {
         />
       </Section>
 
+      <Section title="Press & Archive">
+        <Switch
+          label="Keep printed pages"
+          checked={settings.print.keepInArchive}
+          onChange={(keepInArchive) => updateSettings({print: {keepInArchive}})}
+          note="Printed folios are kept as plain text in the archive folder of the configuration directory, on this computer only."
+        />
+        <button type="button" className="tn-button" onClick={onPress}>
+          Open the Press…
+        </button>
+      </Section>
+
       <Section title="Quiet">
         <Switch label="Focus mode" checked={settings.focusMode} onChange={(focusMode) => updateSettings({focusMode})} />
         <Switch
@@ -279,6 +286,7 @@ export function Studio({settings, onClose}: StudioProps) {
           Auto leaves out the typewriter and the light on computers without a usable GPU (virtual machines, remote
           desktops), where they would slow the terminal down.
         </p>
+        <p className="tn-note">Now drawing {drawing}.</p>
       </Section>
     </aside>
   );

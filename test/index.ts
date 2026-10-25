@@ -183,6 +183,46 @@ test.serial('pasting CJK text reaches the shell intact', async (t) => {
   t.truthy(await waitForText(/纸与墨-paste[\s\S]*纸与墨-paste/));
 });
 
+test.serial('typing through an input method strikes keys and reaches the shell intact', async (t) => {
+  const strikes = () =>
+    page.evaluate(() => Number(document.querySelector<HTMLElement>('.tn-stage')?.dataset.keys ?? 0));
+  const before = await strikes();
+  await page.keyboard.type('echo ');
+  // The same events an input method produces: a growing preedit text, then the committed text.
+  const cdp = await page.context().newCDPSession(page);
+  for (const text of ['n', 'ni', 'nih', 'niha', 'nihao']) {
+    await cdp.send('Input.imeSetComposition', {text, selectionStart: text.length, selectionEnd: text.length});
+  }
+  await cdp.send('Input.insertText', {text: '你好'});
+  await page.keyboard.press('Enter');
+  await pause(500);
+  const struck = (await strikes()) - before;
+  // echo + space (5), five preedit changes, the return; the commit counts when the IME reports it.
+  t.true(struck >= 11, `keys struck: ${struck}`);
+  if (!isWindows) {
+    t.truthy(await waitForText(/echo 你好[\s\S]*你好/));
+  }
+});
+
+test.serial('pulling the lamp cord switches the lamp', async (t) => {
+  const pressed = () => page.getAttribute('.tn-cord', 'aria-pressed');
+  const before = await pressed();
+  const box = await page.locator('.tn-cord').boundingBox();
+  t.truthy(box, 'the cord is on screen');
+  if (!box) {
+    return;
+  }
+  await page.mouse.move(box.x + box.width / 2, box.y + 110);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) {
+    await page.mouse.move(box.x + box.width / 2, box.y + 110 + i * 8);
+  }
+  await page.mouse.up();
+  await pause(300);
+  t.not(await pressed(), before);
+  await page.click('.term_active .xterm');
+});
+
 test.serial('resizing the window resizes the PTY', async (t) => {
   const readCols = async (marker: string) => {
     await run(isWindows ? `Write-Output ("${marker}-" + [Console]::WindowWidth)` : `echo "${marker}-$(tput cols)"`);
@@ -202,6 +242,19 @@ test.serial('resizing the window resizes the PTY', async (t) => {
   t.true(wide > narrow, `expected more columns after widening (narrow=${narrow}, wide=${wide})`);
   await screenshot('resized');
 });
+
+const SNIPPET = [
+  "// Shall I compare thee to a summer's day?",
+  'function leaves(tree, depth = 0) {',
+  '  if (!tree.children.length) {',
+  '    return [tree.name];',
+  '  }',
+  '  return tree.children.flatMap((child) => leaves(child, depth + 1));',
+  '}',
+  '',
+  'const verse = leaves(oak).map((leaf, i) => `${i + 1}. ${leaf}`);',
+  "console.log(verse.join('\\n'));"
+].join('\n');
 
 const LOOKS: [string, Record<string, unknown>][] = [
   ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: false}],
@@ -254,6 +307,25 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   await pause(2000);
   await screenshot('nocturne-studio');
   await nocturneCommand('studio');
+
+  // The Press: a snippet printed as a folio, sealed and kept in the Archive.
+  await nocturneCommand('print');
+  await page.waitForSelector('.tn-press');
+  await page.click('.tn-press .tn-segmented button:text-is("Snippet")');
+  await page.fill('.tn-press input[aria-label="Title"]', 'On the Recursion of Leaves');
+  await page.fill('.tn-press textarea', SNIPPET);
+  await page.click('.tn-press .tn-button-primary');
+  await page.waitForSelector('.tn-press[data-state="printed"]', {timeout: 30000});
+  await pause(500);
+  await screenshot('nocturne-press');
+  await page.click('.tn-press .tn-segmented button:text-is("Archive")');
+  await page.waitForSelector('.tn-folio', {timeout: 10000});
+  t.true((await page.locator('.tn-folio').count()) >= 1, 'the folio is kept in the Archive');
+  await page.click('.tn-folio-open');
+  await pause(800);
+  await screenshot('nocturne-archive');
+  await nocturneCommand('print');
+  await page.click('.term_active .xterm');
 
   // The half-typed command is still in the shell's line editor: effects never touched the input.
   await setNocturne({lighting: {quality: 'auto'}});

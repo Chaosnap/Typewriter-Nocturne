@@ -10,8 +10,10 @@ This directory is copied into every installer (`resources/licenses/`).
 | `OFL-courier-prime.txt` | Courier Prime (SIL OFL 1.1, © The Courier Prime Project Authors) — manuscript typeface |
 | `OFL-eb-garamond.txt` | EB Garamond (SIL OFL 1.1, © The EB Garamond Project Authors) — interface serif |
 | `OFL-cormorant-garamond.txt` | Cormorant Garamond (SIL OFL 1.1, © The Cormorant Project Authors) — display serif |
+| `MIT-nerd-fonts.txt` | Symbols Nerd Font Mono 3.2.1 (MIT, © Ryan L McIntyre) — Nerd Font icons after every terminal face |
 
-The fonts are bundled unmodified (WOFF2/WOFF subsets from the `@fontsource` packages) and are not
-sold separately. Third-party npm dependencies keep their own licence
+The fonts are bundled unmodified (WOFF2/WOFF subsets from the `@fontsource` packages; the Nerd Font
+symbols from the upstream v3.2.1 tag, fetched in CI by `bin/ci/fetch-fonts.sh` and verified by hash) and
+are not sold separately. Third-party npm dependencies keep their own licence
 files inside the packaged `node_modules`, and CI fails on licences incompatible with MIT
 distribution (`bin/ci/check-licenses.js`).

@@ -21,8 +21,9 @@ import '@fontsource/eb-garamond/latin-500.css';
 import '@fontsource/eb-garamond/latin-600.css';
 import '@fontsource/cormorant-garamond/latin-500-italic.css';
 import '@fontsource/cormorant-garamond/latin-600.css';
+import './styles/nerd-symbols.css';
 
-const FACES = [
+const FACES: (string | [string, string])[] = [
   '300 14px "IBM Plex Mono"',
   '400 14px "IBM Plex Mono"',
   'italic 400 14px "IBM Plex Mono"',
@@ -36,14 +37,18 @@ const FACES = [
   'italic 400 14px "EB Garamond"',
   '600 14px "EB Garamond"',
   'italic 500 14px "Cormorant Garamond"',
-  '600 14px "Cormorant Garamond"'
+  '600 14px "Cormorant Garamond"',
+  // The icon font only covers icon code points, so it loads for a Powerline glyph.
+  ['14px "Symbols Nerd Font Mono"', '\ue0a0']
 ];
 
 function loadFaces(timeoutMs: number): Promise<void> {
   if (typeof document === 'undefined' || !('fonts' in document)) {
     return Promise.resolve();
   }
-  const loads = Promise.all(FACES.map((face) => document.fonts.load(face).catch(() => []))).then(() => undefined);
+  const load = (face: string | [string, string]) =>
+    typeof face === 'string' ? document.fonts.load(face) : document.fonts.load(face[0], face[1]);
+  const loads = Promise.all(FACES.map((face) => load(face).catch(() => []))).then(() => undefined);
   const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
   return Promise.race([loads, timeout]);
 }

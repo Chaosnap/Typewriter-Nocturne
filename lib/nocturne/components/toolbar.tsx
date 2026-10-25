@@ -1,17 +1,20 @@
-// The small brass tools at the top right of the stage: lamp, typewriter sound, focus mode and the
-// Studio. Each is also a command (View menu and keyboard shortcuts).
+// The small brass tools at the top right of the stage: the Press, typewriter sound, focus mode and
+// the Studio. Each is also a command (View menu and keyboard shortcuts). The lamp has its own pull
+// cord at the top left.
 
 import React from 'react';
 
 import type {NocturneSettings} from '../../../app/nocturne/types';
 import {updateSettings} from '../store';
 
-import {BellIcon, FocusIcon, LampIcon, StudioIcon} from './icons';
+import {BellIcon, FocusIcon, QuillIcon, StudioIcon} from './icons';
 
 type ToolbarProps = {
   settings: NocturneSettings;
   studioOpen: boolean;
+  pressOpen: boolean;
   onStudio: () => void;
+  onPress: () => void;
 };
 
 type ToolProps = {
@@ -40,16 +43,12 @@ function Tool({label, pressed, onClick, children}: ToolProps) {
   );
 }
 
-export function Toolbar({settings, studioOpen, onStudio}: ToolbarProps) {
-  const {lighting, typewriter, focusMode} = settings;
+export function Toolbar({settings, studioOpen, pressOpen, onStudio, onPress}: ToolbarProps) {
+  const {typewriter, focusMode} = settings;
   return (
     <div className="tn-tools" role="toolbar" aria-label="Typewriter Nocturne">
-      <Tool
-        label="Lamp on / off"
-        pressed={lighting.enabled}
-        onClick={() => updateSettings({lighting: {enabled: !lighting.enabled}})}
-      >
-        <LampIcon />
+      <Tool label="The Press: print and seal a folio" pressed={pressOpen} onClick={onPress}>
+        <QuillIcon />
       </Tool>
       <Tool
         label="Typewriter sound on / off"

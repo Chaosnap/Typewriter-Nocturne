@@ -58,6 +58,10 @@ runs:
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-electron-
 
+    - name: Fetch bundled fonts (pinned and hash-verified)
+      shell: bash
+      run: bin/ci/run-step.sh "Fetch fonts" bin/ci/fetch-fonts.sh
+
     - name: Install dependencies (frozen lockfile)
       shell: bash
       env:

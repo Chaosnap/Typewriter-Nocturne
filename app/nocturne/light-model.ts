@@ -120,21 +120,30 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
   let rig: LightRig;
   let reference: [number, number];
 
+  // The lamp swivels left or right by `aim` degrees.
+  const swivel = (Math.max(-45, Math.min(45, settings.aim)) * Math.PI) / 180;
+
   if (source === 'carriage') {
     // A small lamp on the carriage, just above the paper, shining up the page.
     const lamp: Vec3 = [sheet.headX, sheet.railY, 12 + 0.02 * height];
-    const aim: Vec3 = [sheet.headX, sheet.railY - 0.6 * settings.reach * height, 0];
+    const throwLength = 0.6 * settings.reach * height;
+    const aim: Vec3 = [sheet.headX + Math.tan(swivel) * throwLength, sheet.railY - throwLength, 0];
     rig = {...base, position: lamp, direction: normalize([aim[0] - lamp[0], aim[1] - lamp[1], aim[2] - lamp[2]])};
-    reference = [sheet.headX, sheet.railY - 0.5 * settings.reach * height];
+    const referenceLength = 0.5 * settings.reach * height;
+    reference = [sheet.headX + Math.tan(swivel) * referenceLength, sheet.railY - referenceLength];
   } else if (source === 'desk-lamp') {
     // An overhead desk lamp, higher for a longer reach, aimed at the middle of the page.
     const lamp: Vec3 = [position.x * width, position.y * height, (0.3 + 0.4 * settings.reach) * height];
-    const aim: Vec3 = [width * 0.5, height * 0.55, 0];
+    const dx = width * 0.5 - lamp[0];
+    const dy = height * 0.55 - lamp[1];
+    const cos = Math.cos(swivel);
+    const sin = Math.sin(swivel);
+    const aim: Vec3 = [lamp[0] + dx * cos - dy * sin, lamp[1] + dx * sin + dy * cos, 0];
     rig = {...base, position: lamp, direction: normalize([aim[0] - lamp[0], aim[1] - lamp[1], aim[2] - lamp[2]])};
     reference = [aim[0], aim[1]];
   } else {
     // Moonlight: parallel rays at 40° elevation from the moon's side, through a window frame.
-    const azimuth = Math.atan2(0.5 - position.y, 0.5 - position.x);
+    const azimuth = Math.atan2(0.5 - position.y, 0.5 - position.x) + swivel;
     const elevation = (40 * Math.PI) / 180;
     const direction = normalize([
       Math.cos(azimuth) * Math.cos(elevation),

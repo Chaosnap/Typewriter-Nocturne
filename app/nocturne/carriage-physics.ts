@@ -63,8 +63,19 @@ export function stepImpact(body: Body, target: number, params: ImpactParams, dt:
   return {position, velocity};
 }
 
+/** Below these the body counts as at rest (defaults are in pixels; pass smaller ones for radians). */
+export type RestThresholds = {distance: number; speed: number};
+
+const PIXEL_REST: RestThresholds = {distance: REST_DISTANCE, speed: REST_SPEED};
+
 /** Damped harmonic oscillator towards `target` (semi-implicit Euler with sub-steps). */
-export function stepSpring(body: Body, target: number, params: SpringParams, dt: number): Body {
+export function stepSpring(
+  body: Body,
+  target: number,
+  params: SpringParams,
+  dt: number,
+  rest: RestThresholds = PIXEL_REST
+): Body {
   const omega = 2 * Math.PI * params.frequency;
   const stiffness = omega * omega;
   const damping = 2 * params.damping * omega;
@@ -77,7 +88,7 @@ export function stepSpring(body: Body, target: number, params: SpringParams, dt:
     velocity += acceleration * h;
     position += velocity * h;
   }
-  if (Math.abs(position - target) < REST_DISTANCE && Math.abs(velocity) < REST_SPEED) {
+  if (Math.abs(position - target) < rest.distance && Math.abs(velocity) < rest.speed) {
     return {position: target, velocity: 0};
   }
   return {position, velocity};

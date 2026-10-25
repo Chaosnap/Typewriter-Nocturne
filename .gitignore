@@ -26,3 +26,6 @@ plugins
 build/icon.png
 app/static/*.png
 ci-logs
+
+# [nocturne] Fetched in CI by bin/ci/fetch-fonts.sh (pinned and hash-verified)
+assets/fonts/*.ttf
