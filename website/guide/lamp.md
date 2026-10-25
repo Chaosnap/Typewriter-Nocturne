@@ -3,7 +3,9 @@
 ## Pull the cord
 
 A long, slender cord comes down from the top edge of the room, like the cord of a theatre curtain: crimson
-silk twisted with gold, ending in a gilt tassel with a carved bell and a skirt of loose threads. Pull it down
+silk twisted with gold, ending in a tassel as passementerie makers build them: a gilt bead, a pear-shaped mould
+wound in crimson silk and laced with gold cords, a twisted gold band at its foot, and under it a skirt of fine
+silk threads that draws in at the middle and flares at the ends. Pull it down
 to switch the lamp on or off. It stretches as you pull, the switch clicks at the bottom of its travel, and the
 cord springs back and swings; every thread of the tassel swings on its own, a little behind the cord. A click
 on the cord, or <kbd>Enter</kbd> when it has keyboard focus, pulls it once. The View menu and a shortcut switch
@@ -24,9 +26,18 @@ Each theme has its own light:
 The light follows physics: irradiance falls with the square of the distance, follows Lambert's cosine law
 and has a soft-edged cone; moonlight arrives in parallel rays and casts the shadow of the window bars. The
 paper is lit as albedo × irradiance, so ink and paper darken and brighten together. The room may dim the page
-away from the lamp, but never so far that ink drops below a contrast of 4.5:1. Near the bulb the cone opens
-softly and the paper's relief is flattened where the light is brightest, so text right under the lamp reads as
+away from the lamp, but never so far that ink drops below a contrast of 4.5:1. The lamp lights the sheet as if
+it were flat, so its pool is smooth, and then rakes softly across the broad relief of the paper (its veins and
+cockles, never the fine tooth, which would glitter in a low light), so text right under the lamp reads as
 clearly as anywhere else.
+
+On Paper & Ink the beam is a clean triangle: it comes to a point at the type head and opens up the page,
+fading as it goes. The *Balanced* preset brings it back after any changes.
+
+On a dark sheet the lamp also adds its own light: a pool of it, with a soft bloom round it, computed from the
+same model and kept faint enough that ink still reads at 4.5:1 in the brightest spot. A desk lamp spills a
+little warmth into the corner nearest to it. Moonlight falls through an upright window, its panes and bars
+softly edged, set in blue night shadow.
 
 ## Settings in the Studio
 
@@ -35,10 +46,15 @@ clearly as anywhere else.
 | Lamp | On or off (the same as the cord) |
 | Pull cord | Shows or hides the cord |
 | Preset | Off, Balanced or Cinematic |
+| Light | Theme (each theme's own light), Carriage, Desk lamp or Window (moonlight), whatever the theme |
 | Brightness | How much light reaches the page |
 | Beam angle | How wide the cone of light opens, 20° to 160° |
+| Beam | Pointed (default): the cone narrows to the bulb. Soft: it opens gently round the bulb, as a large bulb's does |
 | Aim | Swivels the lamp left or right, up to 45° |
-| Reach | How far up the page the lamp throws its light |
-| Softness | How gradually the edge of the beam falls off |
+| Panes across, Panes down | The window's panes, 1 to 6 each way (moonlight only) |
+| Slant | 0° casts the window upright; up to 35° either way leans it as low, side light does (moonlight only) |
+| Across the page, Down the page | Where the window's light falls on the sheet (moonlight only) |
+| Reach | How far up the page the lamp throws its light; for moonlight, how large the window is |
+| Softness | How gradually the edge of the beam, or of the window and its bars, falls off |
 | Dust in the beam | Motes drifting through the light |
 | Film grain | Fine grain over the page; above 20% it flickers like film |

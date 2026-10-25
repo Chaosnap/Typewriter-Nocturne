@@ -4,7 +4,47 @@ Every version is built, tested and packaged by GitHub Actions; installers and SH
 [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) page. All versions so far are alphas:
 unsigned builds, see [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md).
 
-## 0.1.0-alpha.3
+## 0.1.0-alpha.4
+
+`0.1.0-alpha.3` was tagged but never published (one end-to-end test failed while its installers were built);
+everything in it is part of this version.
+
+### The desk
+
+- **Quill cursor**: in place of the block, a quill pen stands at the insertion point with its nib on the line:
+  a raven quill on light paper, a swan quill on dark, with a gilt nib in the theme's metal. It breathes, a light
+  runs up its vane, it hides when a program hides the cursor and rests, dimmed, without focus. xterm.js keeps
+  an invisible bar underneath, so input methods and screen readers are unchanged. Block, Bar and Line remain.
+- **Tassel**: a gilt bead, a pear-shaped mould wound in crimson silk and laced with gold cords, a twisted gold
+  band at its foot, and a slightly narrower skirt of fine threads that draws in at the middle and flares at the
+  ends like a hyperbola.
+- **Paper clip**: a real Gem clip slid onto the sheet, with shaded wire and a soft shadow, resting at a slight
+  tilt; it keeps pace with the scroll even when frames are slow.
+- **Light**: the pointed beam is the default again, with Soft as a choice; on Paper & Ink it is a clean
+  triangle from the type head up the page, and the *Balanced* preset brings it back. The lamp lights the sheet
+  as if it were flat and rakes softly across its broad relief, so the lit page is smooth and calm instead of
+  glittering with dark specks. On a dark sheet the lamp now adds a pool of light with a bloom (Midnight
+  Study's desk lamp glows amber on night paper); a desk lamp spills warmth into its corner.
+- **Window light**: moonlight falls through an upright window with softly edged panes, in bluer shadow. Its
+  panes across and down (1–6), its slant (0° upright, up to 35° either way) and where it falls on the page are
+  set in the Studio, which can now also choose the light itself: the theme's, the carriage lamp, a desk lamp or
+  the window.
+- **Sheet width**: from the narrowest sheet to the full length of the platen; the machine keeps its size and
+  the terminal gains the columns.
+- **Selection** follows the mouse while you drag.
+
+### The Press
+
+- The folio previews live while you choose its source, text, paper, seal, ribbon and face, even before there
+  is anything to print.
+- **Ribbons**: the silk can be laid six ways under the seal, each shown on a little seal in the chosen wax:
+  swallowtails, a loop above two tails, one band down through the seal, two bands crossed, a banner from above
+  with two tails, or a pendant falling in two long tails.
+- A *Wax seal* switch prints with or without the seal.
+- A finer seal: a bevelled, glossy pool with mottling, a twisted-cord border, softly moulded monogram and
+  emblems, five-pointed stars round the moon; the ribbon is draped satin with a sheen, hems, swallowtail ends
+  and a twist.
+- The side panel never scrolls sideways or hides its left edge.
 
 ### The room
 

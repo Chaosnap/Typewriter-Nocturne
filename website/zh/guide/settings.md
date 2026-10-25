@@ -22,14 +22,16 @@
   "theme": "paper-and-ink",
   "focusMode": false,
   "effects": true,
-  "paper": { "style": "cotton", "texture": 1 },
+  "paper": { "style": "cotton", "texture": 1, "width": 0 },
   "lighting": {
     "enabled": true,
     "preset": "balanced",
     "intensity": 1,
     "spread": 74,
+    "beam": "pointed",
     "aim": 0,
     "reach": 1,
+    "window": { "columns": 3, "rows": 2, "slant": 0, "x": 0.34, "y": 0.25 },
     "softness": 0.65,
     "particles": 0.45,
     "grain": 0.1,
@@ -40,6 +42,7 @@
     "customFamily": "",
     "fontSize": 15,
     "lineHeight": 1.4,
+    "cursorStyle": "quill",
     "selectionStyle": "ink"
   },
   "typewriter": {
@@ -57,7 +60,9 @@
       "sealColor": "crimson",
       "monogram": "N",
       "emblem": "moon",
+      "seal": true,
       "ribbon": true,
+      "ribbonStyle": "tails",
       "font": "typewriter",
       "customFont": "",
       "signature": ""
@@ -86,3 +91,10 @@
 | `focus.background` | `paper`、`dark`、`custom`（使用 `focus.color`） |
 | `scrollbar.style` / `finish` | `clip`、`bar`、`native` / `silver`、`brass`、`gold`、`black` |
 | `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 像素 |
+| `typography.cursorStyle` | `quill`（默认）、`block`、`bar`、`underline` |
+| `lighting.beam` | `pointed`（默认）、`soft` |
+| `print.style.seal` | `true` 盖火漆，`false` 不盖火漆 |
+| `print.style.ribbonStyle` | `tails`（默认）、`loop`、`band`、`cross`、`banner`、`pendant` |
+| `paper.width` | 0（最窄，默认）到 1（铺满整根滚筒） |
+| `lighting.source` | `theme`（默认）、`carriage`、`desk-lamp`、`moonlight` |
+| `lighting.window` | 月光的窗户：`columns` 和 `rows` 1–6，`slant` −35° 到 35°（0 为端正），`x` 和 `y` 0–1 |

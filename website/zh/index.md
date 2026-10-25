@@ -41,6 +41,9 @@ features:
   - title: 回形针滚动条
     details: 夹在纸边的钢丝回形针随滚动滑行、倾斜；双击压纸杆上的滚轮直达顶部或底部。
     link: /zh/guide/stage
+  - title: 羽毛笔光标
+    details: 一支羽毛笔立在输入位置，笔尖落在行上，等待输入时轻轻呼吸；浅色纸上是乌鸦羽毛笔，深色纸上是天鹅羽毛笔。
+    link: /zh/guide/type
   - title: 机器的声音
     details: 打字杆、字车回位、边距铃、翻历史命令时的滚筒棘轮、制表器，按字头位置立体声定位。
     link: /zh/guide/sounds

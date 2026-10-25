@@ -32,9 +32,11 @@ what is being drawn at the end of its last section.
 
 ## Scrolling: the paper clip and the rollers
 
-The scrollbar is a paper clip hooked over the right edge of the sheet, its front loop on the paper and its
-back loop showing beyond the edge. It glides to the scroll position and leans a little as it moves; drag it to
-scroll. The wheel, the keyboard and the trackpad scroll as always.
+The scrollbar is a Gem paper clip slid onto the right edge of the sheet: its outer loop lies on the front of
+the paper, its tongue behind it (seen only as the faint line it presses into the sheet), and the bend joining
+them stands just beyond the edge. The wire is shaded like polished metal and casts a soft shadow; the clip
+rests at a slight tilt, glides to the scroll position and leans as it moves. Drag it to scroll. The wheel, the
+keyboard and the trackpad scroll as always.
 
 **Double-click** the left roller of the paper bail to roll the paper to the top, the right one to roll it to
 the bottom; the platen turns as it does.

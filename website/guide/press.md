@@ -18,6 +18,10 @@ the seal, the face of the text and the signature are yours to choose.
 
    Only *Snippet* has a text box. The other three show how many lines they will print and the first few of
    them, and read the terminal again at the moment you print.
+
+   While you choose, the sheet on the right shows the folio as it will print, marked *Preview*: every change
+   of source, title, text, paper, seal, ribbon or face redraws it. Until there is something to print, it is
+   set with two sample lines, so the paper and seal still show.
 3. Give it a title and choose **Print and seal**. The folio is typed line by line with the sound of the
    machine, then the seal comes down.
 
@@ -46,16 +50,21 @@ Under **Paper, seal and type** in the Press:
 | Option | Choices |
 | --- | --- |
 | Paper | Laid (laid and chain lines), Cotton (fibres in a white rag sheet), Vellum (smooth, warm), Parchment (stained, darker at the edges), Night (a dark sheet with pale ink and gilt rubrics) |
+| Wax seal | Seal the folio in wax, or print it without a seal |
 | Wax | Crimson, Oxblood, Black, Gold, Emerald, Sapphire; each with its own silk |
 | Monogram | One or two letters pressed into the seal |
 | Emblem | A crescent with stars, a heraldic rose, a quill, or none |
+| Ribbon | How the silk is laid under the seal, each shown under a little seal in the chosen wax: Swallowtails (two tails), Loop (a loop above, two tails below), Band (one band down through the seal), Cross (two bands crossed), Banner (a band from above, two tails below), Pendant (a band from above falling in two long tails) |
 | Silk ribbon | The two silk tails under the seal, or the seal alone |
 | Text face | Typewriter (Courier Prime), Sonnet (EB Garamond, an upright book face), Display (Cormorant Garamond), IBM Plex Mono, the terminal's font, or any installed family |
 | Signed | The name in “— set at the typewriter, by …”; empty, it reads *by lamplight* |
 
-The seal beside the options shows what will be pressed. The seal itself is drawn with a raised, glossy lip
-of wax, a few drops that ran off the pool, a beaded border, the emblem and monogram embossed in the field, and
-the grain and highlights of real wax. A folio keeps the style it was printed with, so it looks the same when
+The seal beside the options shows what will be pressed. The seal is drawn as real wax: a pool with a
+rounded, glossy edge, mottled where it cooled unevenly, with a few drops that ran off; a raised lip round a
+sunken field; a twisted-cord border, and the monogram and emblem (a crescent with five-pointed stars, a
+heraldic rose, a quill with its barbs) softly moulded in it; grain and highlights. The ribbon is draped satin,
+laid as you choose, with a sheen along it, fine hems and swallowtail ends; a tail may turn over to show its
+back. A folio keeps the style it was printed with, so it looks the same when
 you open it again from the Archive.
 
 ![The last command printed on night paper under a gold seal](/images/press-night.jpg)

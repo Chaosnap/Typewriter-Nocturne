@@ -16,6 +16,10 @@
 
 应用内置了 *Symbols Nerd Font*（MIT 许可），它紧跟在你选的字体之后，只用于图标所在的码位。因此 Starship、Oh My Posh、lsd、eza 或 Neovim 状态栏用到的 Powerline 分隔符、Devicons、Font Awesome 等 Nerd Font 图标，用 Courier Prime 或 IBM Plex Mono 也能正常显示，无需安装打过补丁的字体。
 
+## 羽毛笔光标
+
+光标是一支立在输入位置的羽毛笔，笔尖落在行上：浅色纸上是乌鸦羽毛笔，深色纸上是天鹅羽毛笔，笔尖是与主题金属相配的鎏金笔尖。等待输入时它会轻轻呼吸，一道光沿着羽片向上流过，笔尖闪一下光；终端失去焦点时它会变暗静止，程序隐藏光标或你向上滚动时它会消失。底层 xterm.js 仍保留自己的光标（一条看不见的细线），所以输入法、选择和读屏软件都和以前一样。Studio 的 Type 一栏里的「Cursor」还可以选 Block（方块）、Bar（竖线）和 Line（下划线）。
+
 ## 字号与行距
 
 「Type size」（11 到 22 像素）和「Line spacing」（1.2 到 1.9）在同一栏。终端的字符网格始终严格等宽，中日韩双宽字符保持占两格。

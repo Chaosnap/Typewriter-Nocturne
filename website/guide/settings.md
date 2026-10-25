@@ -23,14 +23,16 @@ anything unknown or out of range falls back to its default.
   "theme": "paper-and-ink",
   "focusMode": false,
   "effects": true,
-  "paper": { "style": "cotton", "texture": 1 },
+  "paper": { "style": "cotton", "texture": 1, "width": 0 },
   "lighting": {
     "enabled": true,
     "preset": "balanced",
     "intensity": 1,
     "spread": 74,
+    "beam": "pointed",
     "aim": 0,
     "reach": 1,
+    "window": { "columns": 3, "rows": 2, "slant": 0, "x": 0.34, "y": 0.25 },
     "softness": 0.65,
     "particles": 0.45,
     "grain": 0.1,
@@ -41,6 +43,7 @@ anything unknown or out of range falls back to its default.
     "customFamily": "",
     "fontSize": 15,
     "lineHeight": 1.4,
+    "cursorStyle": "quill",
     "selectionStyle": "ink"
   },
   "typewriter": {
@@ -58,7 +61,9 @@ anything unknown or out of range falls back to its default.
       "sealColor": "crimson",
       "monogram": "N",
       "emblem": "moon",
+      "seal": true,
       "ribbon": true,
+      "ribbonStyle": "tails",
       "font": "typewriter",
       "customFont": "",
       "signature": ""
@@ -87,3 +92,10 @@ anything unknown or out of range falls back to its default.
 | `focus.background` | `paper`, `dark`, `custom` (uses `focus.color`) |
 | `scrollbar.style` / `finish` | `clip`, `bar`, `native` / `silver`, `brass`, `gold`, `black` |
 | `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 px |
+| `typography.cursorStyle` | `quill` (default), `block`, `bar`, `underline` |
+| `lighting.beam` | `pointed` (default), `soft` |
+| `print.style.seal` | `true` to seal folios in wax, `false` to print without a seal |
+| `print.style.ribbonStyle` | `tails` (default), `loop`, `band`, `cross`, `banner`, `pendant` |
+| `paper.width` | 0 (the narrowest sheet, default) to 1 (the full length of the platen) |
+| `lighting.source` | `theme` (default), `carriage`, `desk-lamp`, `moonlight` |
+| `lighting.window` | moonlight's window: `columns` and `rows` 1–6, `slant` −35° to 35° (0 = upright), `x` and `y` 0–1 |

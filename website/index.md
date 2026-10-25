@@ -41,6 +41,9 @@ features:
   - title: A paper clip for a scrollbar
     details: A wire clip hooked over the edge of the sheet glides and leans as you scroll; double-click a bail roller to roll to the top or the bottom.
     link: /guide/stage
+  - title: A quill for a cursor
+    details: A quill pen stands at the insertion point, nib on the line, breathing softly while the terminal waits; raven on light paper, swan on dark.
+    link: /guide/type
   - title: The sound of the machine
     details: Type bars, carriage return, margin bell, the platen ratchet on history recall, the tabulator, in stereo where the head stands.
     link: /guide/sounds

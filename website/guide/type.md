@@ -22,6 +22,15 @@ points of icons. Powerline separators, Devicons, Font Awesome and the other Nerd
 Oh My Posh, lsd, eza or a Neovim status line therefore render with Courier Prime or IBM Plex Mono too, without
 installing a patched font.
 
+## The quill cursor
+
+The cursor is a quill pen standing at the insertion point, its nib on the line: a raven quill on light paper,
+a swan quill on dark paper, with a gilt nib in the theme's metal. It breathes softly, a light runs up its vane
+and its nib glints while the terminal waits for you; it rests, dimmed, when the terminal is not focused, and
+disappears when a program hides the cursor or you scroll back. Underneath, xterm.js keeps its own cursor (an
+invisible bar), so input methods, selection and screen readers work as before. *Cursor* in the Type section
+of the Studio also offers Block, Bar and Line.
+
 ## Size and spacing
 
 *Type size* (11 to 22 px) and *Line spacing* (1.2 to 1.9) are in the same section. The terminal's cell grid
