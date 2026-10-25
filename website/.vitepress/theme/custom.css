@@ -80,6 +80,12 @@
 }
 
 @media (min-width: 960px) {
+  /* The default theme nudges the hero image 32px up and left (meant for a glowing logo), which
+   * would put the screenshot over the tagline. */
+  .VPHero.has-image .image-container {
+    transform: none;
+  }
+
   .VPHero .image-src {
     max-width: min(560px, 100%);
     max-height: 380px;
