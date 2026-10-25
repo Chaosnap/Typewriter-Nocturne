@@ -84,43 +84,161 @@ function random(seed: number) {
   };
 }
 
-/** Two silk tails with forked ends, with the sheen of silk along their length. */
-function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, palette: Palette) {
-  const [shadow, sheen, body] = palette.silk;
-  for (const side of [-1, 1]) {
-    const tipX = x + side * r * 1.05;
-    const tipY = y + r * 2.25;
-    c.save();
+type Point = [number, number];
+type RGB = [number, number, number];
+
+const rgbOf = (value: string): RGB => [
+  parseInt(value.slice(1, 3), 16),
+  parseInt(value.slice(3, 5), 16),
+  parseInt(value.slice(5, 7), 16)
+];
+
+/** A colour between two, made lighter or darker. */
+function tone(from: RGB, to: RGB, t: number, light: number) {
+  const channels: number[] = [];
+  for (let k = 0; k < 3; k++) {
+    channels.push(Math.round(Math.min(255, Math.max(0, (from[k] + (to[k] - from[k]) * t) * light))));
+  }
+  return `rgb(${channels.join(', ')})`;
+}
+
+/** A point and the unit tangent on a cubic Bézier. */
+function cubicAt([p0, p1, p2, p3]: Point[], t: number): {at: Point; tangent: Point} {
+  const u = 1 - t;
+  const at: Point = [
+    u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+    u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]
+  ];
+  const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0]);
+  const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1]);
+  const length = Math.hypot(dx, dy) || 1;
+  return {at, tangent: [dx / length, dy / length]};
+}
+
+/**
+ * One tail of the silk ribbon: a band of satin laid from under the seal down the page in a gentle
+ * S, ending in a swallowtail cut. Its sheen rises and falls along its length, its woven edges show
+ * as fine hems, and the left tail turns over once on the way, showing the matte back of the satin.
+ */
+function ribbonTail(c: CanvasRenderingContext2D, x: number, y: number, r: number, side: 1 | -1, palette: Palette) {
+  const [shadow, sheen, body] = palette.silk.map(rgbOf);
+  const curve: Point[] = [
+    [x + side * r * 0.1, y + r * 0.05],
+    [x + side * r * 0.58, y + r * 0.62],
+    [x + side * r * 0.52, y + r * 1.5],
+    [x + side * r * 1.02, y + r * 2.32]
+  ];
+  const width = r * 0.46;
+  const steps = 44;
+  const left: Point[] = [];
+  const right: Point[] = [];
+  const colors: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const {at, tangent} = cubicAt(curve, t);
+    const normal: Point = [-tangent[1], tangent[0]];
+    let half = width / 2;
+    let back = false;
+    // The left tail's half twist: the band narrows to its edge and turns over.
+    if (side < 0 && t > 0.5) {
+      const u = Math.min(1, (t - 0.5) / 0.18);
+      half *= Math.max(0.04, Math.abs(Math.cos(Math.PI * u)));
+      back = u > 0.5;
+    }
+    left.push([at[0] + normal[0] * half, at[1] + normal[1] * half]);
+    right.push([at[0] - normal[0] * half, at[1] - normal[1] * half]);
+    // Satin catches the light in bands where it bends; brightest just before the twist.
+    const wave = 0.86 + 0.2 * Math.sin(t * Math.PI * 1.6 + (side > 0 ? 0.6 : 2.2));
+    const gleam = side < 0 ? Math.exp(-(((t - 0.47) / 0.06) ** 2)) : 0;
+    const front = tone(body, sheen, 0.25 + gleam * 0.6, wave + gleam * 0.15);
+    colors.push(back ? tone(shadow, body, 0.45, wave * 0.9) : front);
+  }
+  const end = cubicAt(curve, 1);
+  const notch: Point = [end.at[0] - end.tangent[0] * width * 0.62, end.at[1] - end.tangent[1] * width * 0.62];
+  const outline = () => {
     c.beginPath();
-    c.moveTo(x + side * r * 0.08, y - r * 0.1);
-    c.bezierCurveTo(x + side * r * 0.4, y + r * 0.3, x + side * r * 0.62, y + r * 0.9, tipX + side * r * 0.2, tipY);
-    c.lineTo(tipX - side * r * 0.04, tipY - r * 0.3);
-    c.lineTo(tipX - side * r * 0.36, tipY + r * 0.04);
-    c.bezierCurveTo(x - side * r * 0.04, y + r * 1.2, x - side * r * 0.1, y + r * 0.5, x - side * r * 0.2, y);
+    left.forEach(([px, py], i) => (i === 0 ? c.moveTo(px, py) : c.lineTo(px, py)));
+    c.lineTo(notch[0], notch[1]);
+    [...right].reverse().forEach(([px, py]) => c.lineTo(px, py));
     c.closePath();
-    c.shadowColor = 'rgba(20, 8, 4, 0.35)';
-    c.shadowBlur = r * 0.12;
-    c.shadowOffsetY = r * 0.04;
-    const silk = c.createLinearGradient(x - side * r * 0.3, y, x + side * r * 0.9, y + r * 0.4);
-    silk.addColorStop(0, shadow);
-    silk.addColorStop(0.42, sheen);
-    silk.addColorStop(0.62, body);
-    silk.addColorStop(1, shadow);
-    c.fillStyle = silk;
-    c.fill();
-    c.shadowColor = 'transparent';
-    // Fine threads of the weave along the tail.
-    c.clip();
-    c.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  };
+
+  // Its shadow on the paper, then the satin itself, slice by slice.
+  c.save();
+  outline();
+  c.shadowColor = 'rgba(20, 8, 4, 0.38)';
+  c.shadowBlur = r * 0.1;
+  c.shadowOffsetX = r * 0.02;
+  c.shadowOffsetY = r * 0.05;
+  c.fillStyle = colors[0];
+  c.fill();
+  c.restore();
+  c.save();
+  outline();
+  c.clip();
+  for (let i = 0; i < steps; i++) {
+    const across = c.createLinearGradient(left[i][0], left[i][1], right[i][0], right[i][1]);
+    across.addColorStop(0, tone(shadow, shadow, 0, 1));
+    across.addColorStop(0.1, colors[i]);
+    across.addColorStop(0.55, colors[i]);
+    across.addColorStop(0.9, colors[i]);
+    across.addColorStop(1, tone(shadow, shadow, 0, 1));
+    c.beginPath();
+    c.moveTo(left[i][0], left[i][1]);
+    c.lineTo(left[i + 1][0], left[i + 1][1]);
+    c.lineTo(right[i + 1][0], right[i + 1][1]);
+    c.lineTo(right[i][0], right[i][1]);
+    c.closePath();
+    c.fillStyle = across;
+    c.strokeStyle = colors[i];
     c.lineWidth = 0.6;
-    for (let i = -6; i <= 6; i++) {
+    c.fill();
+    c.stroke();
+  }
+  // The weave along its length, and the hems at both edges.
+  const weave: [number, string, number][] = [
+    [0.08, 'rgba(255, 255, 255, 0.16)', r * 0.012],
+    [0.92, 'rgba(255, 255, 255, 0.1)', r * 0.012],
+    [0.3, 'rgba(255, 255, 255, 0.05)', r * 0.008],
+    [0.5, 'rgba(0, 0, 0, 0.06)', r * 0.008],
+    [0.7, 'rgba(255, 255, 255, 0.05)', r * 0.008]
+  ];
+  for (const [share, colour, lineWidth] of weave) {
+    c.beginPath();
+    left.forEach(([lx, ly], i) => {
+      const px = lx + (right[i][0] - lx) * share;
+      const py = ly + (right[i][1] - ly) * share;
+      if (i === 0) {
+        c.moveTo(px, py);
+      } else {
+        c.lineTo(px, py);
+      }
+    });
+    c.strokeStyle = colour;
+    c.lineWidth = lineWidth;
+    c.stroke();
+  }
+  c.restore();
+
+  // A few loose threads where the swallowtail was cut.
+  c.strokeStyle = tone(body, sheen, 0.3, 1);
+  c.lineWidth = r * 0.008;
+  for (const corner of [left[steps], right[steps]]) {
+    for (let k = 0; k < 3; k++) {
       c.beginPath();
-      c.moveTo(x + i * r * 0.07, y);
-      c.lineTo(tipX + i * r * 0.07, tipY + r * 0.1);
+      c.moveTo(corner[0], corner[1]);
+      c.lineTo(
+        corner[0] + end.tangent[0] * r * (0.04 + k * 0.02) + (k - 1) * r * 0.012,
+        corner[1] + end.tangent[1] * r * (0.04 + k * 0.02)
+      );
       c.stroke();
     }
-    c.restore();
   }
+}
+
+function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, palette: Palette) {
+  ribbonTail(c, x, y, r, 1, palette);
+  ribbonTail(c, x, y, r, -1, palette);
 }
 
 /** The outline of the wax: a pool that spread unevenly before it was pressed. */
@@ -166,67 +284,124 @@ function drops(c: CanvasRenderingContext2D, x: number, y: number, r: number, pal
   }
 }
 
+/**
+ * A shape pressed into the wax, raised from the field: its lower right in soft shadow, its upper
+ * left catching the light (the light comes from the upper left), its face in the field's colour.
+ */
 function emboss(c: CanvasRenderingContext2D, palette: Palette, r: number, draw: () => void) {
-  c.save();
-  c.fillStyle = palette.shade;
-  c.translate(r * 0.028, r * 0.034);
-  draw();
-  c.restore();
-  c.save();
-  c.fillStyle = palette.light;
-  c.translate(-r * 0.022, -r * 0.026);
-  draw();
-  c.restore();
+  const passes: [string, number, number][] = [
+    [palette.shade, 0.024, 0.03],
+    [palette.light, -0.018, -0.022]
+  ];
+  for (const [color, dx, dy] of passes) {
+    c.save();
+    c.fillStyle = color;
+    c.strokeStyle = color;
+    c.shadowColor = color;
+    c.shadowBlur = r * 0.025;
+    c.translate(r * dx, r * dy);
+    draw();
+    c.restore();
+  }
   c.save();
   c.fillStyle = palette.field[0];
+  c.strokeStyle = palette.field[0];
   draw();
   c.restore();
+}
+
+/** A five-pointed star. */
+function star(c: CanvasRenderingContext2D, x: number, y: number, outer: number) {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+    const radius = i % 2 === 0 ? outer : outer * 0.42;
+    c.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+  }
+  c.closePath();
+  c.fill();
 }
 
 function crescent(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
   c.beginPath();
-  c.arc(x, y, r * 0.12, Math.PI * 0.25, Math.PI * 1.75, false);
-  c.arc(x + r * 0.05, y - r * 0.01, r * 0.095, Math.PI * 1.65, Math.PI * 0.35, true);
+  c.arc(x, y, r * 0.13, Math.PI * 0.22, Math.PI * 1.78, false);
+  c.arc(x + r * 0.055, y - r * 0.012, r * 0.102, Math.PI * 1.66, Math.PI * 0.34, true);
   c.closePath();
   c.fill();
-  for (const [sx, sy, size] of [
-    [-0.24, 0.05, 0.03],
-    [0.22, -0.02, 0.034],
-    [0.3, 0.1, 0.022]
-  ]) {
-    c.beginPath();
-    c.arc(x + sx * r, y + sy * r, size * r, 0, Math.PI * 2);
-    c.fill();
-  }
+  star(c, x - r * 0.25, y + r * 0.04, r * 0.045);
+  star(c, x + r * 0.23, y - r * 0.05, r * 0.05);
+  star(c, x + r * 0.31, y + r * 0.09, r * 0.032);
 }
 
 function rose(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  // Five petals round a seeded heart, as heraldic roses are drawn, with two small leaves.
-  for (let i = 0; i < 5; i++) {
-    const angle = -Math.PI / 2 + (i * Math.PI * 2) / 5;
-    c.beginPath();
-    c.arc(x + Math.cos(angle) * r * 0.065, y + Math.sin(angle) * r * 0.065, r * 0.065, 0, Math.PI * 2);
-    c.fill();
+  // A heraldic rose: five outer petals, five inner ones turned between them, a seeded heart, and
+  // a leaf on either side.
+  for (const [count, distance, size, turn] of [
+    [5, 0.075, 0.066, 0],
+    [5, 0.04, 0.042, Math.PI / 5]
+  ]) {
+    for (let i = 0; i < count; i++) {
+      const angle = -Math.PI / 2 + turn + (i * Math.PI * 2) / count;
+      c.beginPath();
+      c.arc(x + Math.cos(angle) * r * distance, y + Math.sin(angle) * r * distance, r * size, 0, Math.PI * 2);
+      c.fill();
+    }
   }
+  c.beginPath();
+  c.arc(x, y, r * 0.026, 0, Math.PI * 2);
+  c.fill();
   for (const side of [-1, 1]) {
     c.beginPath();
-    c.ellipse(x + side * r * 0.2, y + r * 0.04, r * 0.08, r * 0.028, side * 0.35, 0, Math.PI * 2);
+    c.ellipse(x + side * r * 0.22, y + r * 0.05, r * 0.085, r * 0.03, side * 0.4, 0, Math.PI * 2);
     c.fill();
   }
 }
 
 function quill(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  // A feather laid on the slant: the vane, then the shaft to its nib.
+  // A feather laid on the slant: the vane with its barbs, then the bare shaft to the nib.
   c.save();
   c.translate(x, y);
   c.rotate(-0.55);
   c.beginPath();
-  c.moveTo(-r * 0.26, 0);
-  c.bezierCurveTo(-r * 0.12, -r * 0.1, r * 0.12, -r * 0.09, r * 0.22, -r * 0.01);
-  c.bezierCurveTo(r * 0.1, r * 0.06, -r * 0.1, r * 0.06, -r * 0.26, 0);
+  c.moveTo(-r * 0.12, 0);
+  c.bezierCurveTo(-r * 0.02, -r * 0.1, r * 0.2, -r * 0.1, r * 0.3, -r * 0.01);
+  c.bezierCurveTo(r * 0.16, r * 0.065, -r * 0.02, r * 0.06, -r * 0.12, 0);
   c.fill();
-  c.fillRect(-r * 0.34, -r * 0.008, r * 0.62, r * 0.016);
+  c.lineWidth = r * 0.014;
+  c.beginPath();
+  c.moveTo(-r * 0.34, r * 0.004);
+  c.lineTo(r * 0.3, -r * 0.008);
+  for (let i = 0; i < 6; i++) {
+    const at = -r * 0.06 + i * r * 0.055;
+    c.moveTo(at, -r * 0.004);
+    c.lineTo(at + r * 0.05, -r * 0.06);
+  }
+  c.stroke();
   c.restore();
+}
+
+/** A ring of twisted cord inside the rim, as engraved round a seal matrix. */
+function ropeBorder(c: CanvasRenderingContext2D, x: number, y: number, radius: number, r: number) {
+  c.lineWidth = r * 0.012;
+  c.beginPath();
+  c.arc(x, y, radius + r * 0.035, 0, Math.PI * 2);
+  c.stroke();
+  c.beginPath();
+  c.arc(x, y, radius - r * 0.035, 0, Math.PI * 2);
+  c.stroke();
+  c.lineWidth = r * 0.016;
+  c.lineCap = 'round';
+  c.beginPath();
+  const twists = 48;
+  for (let i = 0; i < twists; i++) {
+    const angle = (i / twists) * Math.PI * 2;
+    const inner = radius - r * 0.022;
+    const outer = radius + r * 0.022;
+    const lean = (Math.PI * 2) / twists / 2;
+    c.moveTo(x + Math.cos(angle) * inner, y + Math.sin(angle) * inner);
+    c.lineTo(x + Math.cos(angle + lean) * outer, y + Math.sin(angle + lean) * outer);
+  }
+  c.stroke();
 }
 
 /** Draws the seal centred at (x, y) with radius r. */
@@ -241,70 +416,107 @@ export function drawSeal(c: CanvasRenderingContext2D, x: number, y: number, r: n
   // The wax, with its shadow on the paper and a few drops that ran off.
   c.save();
   c.shadowColor = 'rgba(30, 10, 4, 0.5)';
-  c.shadowBlur = r * 0.2;
-  c.shadowOffsetY = r * 0.07;
+  c.shadowBlur = r * 0.22;
+  c.shadowOffsetX = r * 0.03;
+  c.shadowOffsetY = r * 0.08;
   pool(c, x, y, r, style.seed);
   c.fillStyle = waxGradient(c, x, y, r, palette);
   c.fill();
   c.restore();
   drops(c, x, y, r, palette, next);
 
+  c.save();
+  pool(c, x, y, r, style.seed);
+  c.clip();
+  // The pool's rounded edge: darker as it falls to the paper.
+  const bevel = c.createRadialGradient(x, y, r * 0.78, x, y, r * 1.08);
+  bevel.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  bevel.addColorStop(1, palette.shade);
+  c.fillStyle = bevel;
+  c.globalAlpha = 0.55;
+  c.fillRect(x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4);
+  // Wax is never one colour: soft mottling where it cooled unevenly.
+  for (let i = 0; i < 9; i++) {
+    const angle = next() * Math.PI * 2;
+    const distance = Math.sqrt(next()) * r * 0.9;
+    const mx = x + Math.cos(angle) * distance;
+    const my = y + Math.sin(angle) * distance;
+    const spread = r * (0.15 + next() * 0.25);
+    const mottle = c.createRadialGradient(mx, my, 0, mx, my, spread);
+    mottle.addColorStop(0, next() > 0.5 ? palette.light : palette.shade);
+    mottle.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    c.globalAlpha = 0.12;
+    c.fillStyle = mottle;
+    c.fillRect(mx - spread, my - spread, spread * 2, spread * 2);
+  }
+  c.globalAlpha = 1;
+  // Flow lines in the skin of the wax, between the lip and the edge.
+  c.lineWidth = r * 0.01;
+  c.strokeStyle = palette.light;
+  for (let i = 0; i < 3; i++) {
+    const radius = r * (0.88 + i * 0.045);
+    const from = Math.PI * (0.95 + next() * 0.2);
+    c.globalAlpha = 0.35 - i * 0.08;
+    c.beginPath();
+    c.arc(x + (next() - 0.5) * r * 0.03, y + (next() - 0.5) * r * 0.03, radius, from, from + Math.PI * 0.45);
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+  c.restore();
+
   // The lip: wax pushed up round the matrix, lit on its upper left, shaded on its lower right.
   c.save();
-  pool(c, x, y, r * 0.93, style.seed);
-  c.lineWidth = r * 0.1;
+  pool(c, x, y, r * 0.92, style.seed);
+  c.lineWidth = r * 0.12;
   const lip = c.createLinearGradient(x - r, y - r, x + r, y + r);
   lip.addColorStop(0, palette.light);
-  lip.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+  lip.addColorStop(0.45, 'rgba(0, 0, 0, 0)');
   lip.addColorStop(1, palette.shade);
   c.strokeStyle = lip;
   c.stroke();
   c.restore();
 
-  // The pressed field, sunk below the lip.
+  // The pressed field, sunk below the lip: in the lip's shadow on its upper left, catching light on
+  // its lower right, as a hollow does.
   const fieldRadius = r * 0.72;
   c.beginPath();
   c.arc(x, y, fieldRadius, 0, Math.PI * 2);
-  const field = c.createRadialGradient(x + r * 0.22, y + r * 0.26, r * 0.04, x, y, r * 0.78);
+  const field = c.createRadialGradient(x + r * 0.2, y + r * 0.24, r * 0.05, x, y, r * 0.78);
   field.addColorStop(0, palette.field[0]);
   field.addColorStop(1, palette.field[1]);
   c.fillStyle = field;
   c.fill();
+  const hollow = c.createLinearGradient(x - fieldRadius, y - fieldRadius, x + fieldRadius, y + fieldRadius);
+  hollow.addColorStop(0, palette.shade);
+  hollow.addColorStop(0.35, 'rgba(0, 0, 0, 0)');
+  hollow.addColorStop(0.8, 'rgba(0, 0, 0, 0)');
+  hollow.addColorStop(1, palette.light);
+  c.fillStyle = hollow;
+  c.globalAlpha = 0.38;
+  c.fill();
+  c.globalAlpha = 1;
   // Its wall: in shadow above (the light comes from the upper left), lit below.
-  c.lineWidth = r * 0.05;
+  c.lineWidth = r * 0.045;
   c.strokeStyle = palette.shade;
   c.beginPath();
   c.arc(x, y, fieldRadius, Math.PI * 0.9, Math.PI * 1.85);
   c.stroke();
   c.strokeStyle = palette.light;
-  c.lineWidth = r * 0.03;
+  c.lineWidth = r * 0.028;
   c.beginPath();
   c.arc(x, y, fieldRadius, Math.PI * 1.95, Math.PI * 0.8);
   c.stroke();
 
-  // A beaded border inside the field, as a seal matrix is engraved.
-  const beads = 30;
-  for (let i = 0; i < beads; i++) {
-    const angle = (i / beads) * Math.PI * 2;
-    const bx = x + Math.cos(angle) * r * 0.62;
-    const by = y + Math.sin(angle) * r * 0.62;
-    emboss(c, palette, r * 0.5, () => {
-      c.beginPath();
-      c.arc(bx, by, r * 0.026, 0, Math.PI * 2);
-      c.fill();
-    });
-  }
-
-  // The monogram, embossed, lowered when an emblem sits above it.
+  // The engraving: a twisted cord round the field, the monogram, the emblem above it.
+  emboss(c, palette, r * 0.7, () => ropeBorder(c, x, y, r * 0.62, r));
   const letters = Array.from(style.monogram);
-  const size = Math.round(r * (letters.length > 1 ? 0.62 : 0.86) * (style.emblem === 'none' ? 1.08 : 1));
-  const baseline = y + (style.emblem === 'none' ? r * 0.04 : r * 0.13);
+  const size = Math.round(r * (letters.length > 1 ? 0.58 : 0.8) * (style.emblem === 'none' ? 1.08 : 1));
+  const baseline = y + (style.emblem === 'none' ? r * 0.04 : r * 0.14);
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.font = `600 ${size}px ${style.display}`;
   emboss(c, palette, r, () => c.fillText(style.monogram, x, baseline));
-
-  const emblemY = y - r * 0.38;
+  const emblemY = y - r * 0.36;
   if (style.emblem === 'moon') {
     emboss(c, palette, r * 0.6, () => crescent(c, x, emblemY, r));
   } else if (style.emblem === 'rose') {
@@ -317,35 +529,46 @@ export function drawSeal(c: CanvasRenderingContext2D, x: number, y: number, r: n
   c.save();
   pool(c, x, y, r, style.seed);
   c.clip();
-  for (let i = 0; i < 46; i++) {
+  for (let i = 0; i < 60; i++) {
     const angle = next() * Math.PI * 2;
     const distance = Math.sqrt(next()) * r;
     const px = x + Math.cos(angle) * distance;
     const py = y + Math.sin(angle) * distance;
     c.beginPath();
-    c.arc(px, py, r * (0.006 + next() * 0.012), 0, Math.PI * 2);
+    c.arc(px, py, r * (0.005 + next() * 0.011), 0, Math.PI * 2);
     c.fillStyle = next() > 0.5 ? palette.shade : palette.light;
-    c.globalAlpha = 0.35;
+    c.globalAlpha = 0.32;
     c.fill();
   }
   c.globalAlpha = 1;
 
-  // Highlights on the curved wax: a broad soft sheen and a sharp glint on the lip.
-  const sheen = c.createRadialGradient(x - r * 0.45, y - r * 0.5, 0, x - r * 0.45, y - r * 0.5, r * 0.5);
-  sheen.addColorStop(0, 'rgba(255, 244, 236, 0.28)');
+  // Highlights on the glossy wax: a broad soft sheen, a sharp glint along the lip, a few sparks.
+  const sheen = c.createRadialGradient(x - r * 0.45, y - r * 0.5, 0, x - r * 0.45, y - r * 0.5, r * 0.55);
+  sheen.addColorStop(0, 'rgba(255, 244, 236, 0.3)');
   sheen.addColorStop(1, 'rgba(255, 244, 236, 0)');
   c.fillStyle = sheen;
   c.fillRect(x - r, y - r, r * 2, r * 2);
-  c.beginPath();
-  c.ellipse(x - r * 0.52, y - r * 0.58, r * 0.2, r * 0.05, -0.75, 0, Math.PI * 2);
-  c.fillStyle = 'rgba(255, 250, 244, 0.5)';
-  c.fill();
-  c.beginPath();
-  c.arc(x, y, r * 0.86, Math.PI * 1.08, Math.PI * 1.36);
-  c.lineWidth = r * 0.025;
-  c.strokeStyle = 'rgba(255, 250, 244, 0.45)';
   c.lineCap = 'round';
+  c.beginPath();
+  c.arc(x, y, r * 0.86, Math.PI * 1.06, Math.PI * 1.4);
+  c.lineWidth = r * 0.03;
+  c.strokeStyle = 'rgba(255, 250, 244, 0.55)';
   c.stroke();
+  c.beginPath();
+  c.arc(x, y, r * 0.66, Math.PI * 0.12, Math.PI * 0.32);
+  c.lineWidth = r * 0.018;
+  c.strokeStyle = 'rgba(255, 250, 244, 0.35)';
+  c.stroke();
+  for (const [sx, sy, sr] of [
+    [-0.58, -0.56, 0.035],
+    [0.62, 0.5, 0.022],
+    [-0.2, -0.82, 0.018]
+  ]) {
+    c.beginPath();
+    c.arc(x + sx * r, y + sy * r, sr * r, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255, 252, 248, 0.7)';
+    c.fill();
+  }
   c.restore();
   c.restore();
 }

@@ -303,6 +303,7 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   // animation the CPU renderer would redraw all the time, so it is left out of the pictures.
   await setNocturne({lighting: {quality: 'high', particles: 0, enabled: true}});
   t.true(await waitForMachine(120000), 'the typewriter model is drawn');
+  t.true(await page.locator('.tn-quill').isVisible(), 'the quill stands at the cursor');
 
   for (const [name, settings] of LOOKS) {
     await setNocturne(settings);

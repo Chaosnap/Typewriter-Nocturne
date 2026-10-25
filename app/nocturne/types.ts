@@ -100,8 +100,12 @@ export type FontId =
   | 'meslo-nf'
   | 'caskaydia-nf'
   | 'custom';
-export type CursorStyle = 'block' | 'bar' | 'underline';
+/** `quill`: a quill pen at the insertion point, drawn over xterm's own (invisible) cursor. */
+export type CursorStyle = 'quill' | 'block' | 'bar' | 'underline';
 export type TypewriterVoice = 'standard' | 'portable' | 'electric' | 'whisper';
+
+/** `pointed`: the beam narrows to the bulb; `soft`: it opens softly round it, as a large bulb's does. */
+export type BeamShape = 'pointed' | 'soft';
 
 export type LightingSettings = {
   /** Master switch for the lighting layer. */
@@ -113,6 +117,7 @@ export type LightingSettings = {
   intensity: number;
   /** Beam angle in degrees (carriage lamp and desk lamp). */
   spread: number;
+  beam: BeamShape;
   /** Where the lamp points, swivelled left (−) or right (+) in degrees. */
   aim: number;
   /** 0.2–2, shown as a percentage of the sheet height. */
@@ -209,6 +214,8 @@ export type FolioStyle = {
   /** One or two letters pressed into the seal. */
   monogram: string;
   emblem: SealEmblem;
+  /** The folio is sealed in wax at all. */
+  seal: boolean;
   /** The silk ribbon under the seal. */
   ribbon: boolean;
   font: FolioFont;
@@ -258,7 +265,7 @@ export type ScrollbarSettings = {
 };
 
 export type NocturneSettings = {
-  version: 1;
+  version: 2;
   theme: ThemeChoice;
   /** Hides frame, ornaments, status bar and all effects. */
   focusMode: boolean;

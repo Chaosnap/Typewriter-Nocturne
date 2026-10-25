@@ -1,6 +1,8 @@
 // Light that adds rather than multiplies, drawn into a 2D canvas over the sheet with
-// `mix-blend-mode: screen`: dust motes drifting through the beam (each lit by the same light model
-// as the paper), the glare of the carriage bulb, and a faint glow round the cursor.
+// `mix-blend-mode: screen`: the pool of light itself with a soft bloom round it (the paper light
+// below can only darken, so on a dark sheet a lamp shows only through this layer), dust motes
+// drifting through the beam (each lit by the same light model as the paper), the glare of the
+// carriage bulb, the warm spill of a desk lamp, and a faint glow round the cursor.
 
 import {lightAmount} from '../../../app/nocturne/light-model';
 import type {LightRig} from '../../../app/nocturne/light-model';
@@ -35,12 +37,33 @@ const MOTES = Array.from({length: 110}, (_, i) => ({
 
 const wrap = (value: number) => ((value % 1) + 1) % 1;
 
+/** Columns of the low-resolution light pool; rows follow the sheet's proportions. */
+const POOL_COLUMNS = 128;
+
+/**
+ * How strongly the pool of light is added. On a dark sheet it is the lamp's only light, kept low
+ * enough that ink still reads at 4.5:1 in the brightest spot; on a light sheet the paper light
+ * shows the lamp already, and the pool only lends moonlight its glow and a desk lamp its warmth.
+ */
+function poolStrength(frame: GlowFrame) {
+  if (frame.appearance === 'dark') {
+    return 0.36;
+  }
+  if (frame.rig.source === 'moonlight') {
+    return 0.2;
+  }
+  return frame.rig.source === 'desk-lamp' ? 0.1 : 0;
+}
+
 export class GlowLayer {
   private context: CanvasRenderingContext2D | null;
   private sprite: HTMLCanvasElement;
   private width = 0;
   private height = 0;
   private pixelRatio = 1;
+  private pool = document.createElement('canvas');
+  private bloom = document.createElement('canvas');
+  private poolKey = '';
 
   constructor(private canvas: HTMLCanvasElement) {
     this.context = canvas.getContext('2d');
@@ -66,6 +89,46 @@ export class GlowLayer {
     this.canvas.height = Math.max(1, Math.round(height * pixelRatio));
   }
 
+  /**
+   * The light falling on the sheet as a picture: computed from the light model at low resolution
+   * once per change of the light, with a blurred copy for the glow that light has round it.
+   */
+  private ensurePool(rig: LightRig, rgb: string) {
+    const key = JSON.stringify([rig, rgb, this.width, this.height]);
+    if (key === this.poolKey) {
+      return;
+    }
+    this.poolKey = key;
+    const columns = POOL_COLUMNS;
+    const rows = Math.max(8, Math.round((columns * this.height) / Math.max(1, this.width)));
+    const [r, g, b] = rgb.split(',').map(Number);
+    this.pool.width = columns;
+    this.pool.height = rows;
+    this.bloom.width = columns;
+    this.bloom.height = rows;
+    const p = this.pool.getContext('2d');
+    const q = this.bloom.getContext('2d');
+    if (!p || !q) {
+      return;
+    }
+    const image = p.createImageData(columns, rows);
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < columns; i++) {
+        const lit = lightAmount(rig, ((i + 0.5) / columns) * this.width, ((j + 0.5) / rows) * this.height);
+        const k = (j * columns + i) * 4;
+        image.data[k] = r;
+        image.data[k + 1] = g;
+        image.data[k + 2] = b;
+        image.data[k + 3] = Math.round(Math.min(1, lit) * 255);
+      }
+    }
+    p.putImageData(image, 0, 0);
+    q.clearRect(0, 0, columns, rows);
+    q.filter = 'blur(6px)';
+    q.drawImage(this.pool, 0, 0);
+    q.filter = 'none';
+  }
+
   clear() {
     this.context?.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
@@ -82,6 +145,27 @@ export class GlowLayer {
     }
     const {rig} = frame;
     const seconds = frame.time;
+    const pool = poolStrength(frame);
+    if (pool > 0) {
+      this.ensurePool(rig, frame.rgb);
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      c.globalAlpha = pool;
+      c.drawImage(this.pool, 0, 0, width, height);
+      c.globalAlpha = pool * 0.8;
+      c.drawImage(this.bloom, 0, 0, width, height);
+      c.globalAlpha = 1;
+    }
+    if (rig.source === 'desk-lamp') {
+      // The lamp stands just off the sheet: its warm spill colours the corner nearest to it.
+      const [x, y] = rig.position;
+      const radius = Math.max(1, height * 0.55);
+      const spill = c.createRadialGradient(x, y, 0, x, y, radius);
+      spill.addColorStop(0, `rgba(${frame.rgb}, ${frame.appearance === 'light' ? 0.1 : 0.16})`);
+      spill.addColorStop(1, `rgba(${frame.rgb}, 0)`);
+      c.fillStyle = spill;
+      c.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
     if (frame.particles > 0) {
       const count = Math.round(MOTES.length * frame.particles);
       const strength = frame.appearance === 'light' ? 0.5 : 0.9;

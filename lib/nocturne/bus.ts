@@ -21,6 +21,10 @@ export type CursorFrame = {
   viewportY: number;
   /** Buffer line of the top row when scrolled to the bottom: 0 means there is no scrollback. */
   baseY: number;
+  /** The program has hidden the cursor (DECTCEM, `ESC[?25l`), as full-screen programs often do. */
+  cursorHidden: boolean;
+  /** The terminal has keyboard focus. */
+  focused: boolean;
   /** The text grid (`.xterm-screen`) in client coordinates. */
   grid: {left: number; top: number; width: number; height: number};
 };

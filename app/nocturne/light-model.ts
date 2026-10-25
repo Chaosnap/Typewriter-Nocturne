@@ -28,8 +28,11 @@ export type LightRig = {
   cosInner: number;
   /** Multiplies irradiance before tone mapping. */
   exposure: number;
-  /** Moonlight window: centre, size of the lit patch, pane size and edge softness (px). */
-  window: {x: number; y: number; width: number; height: number; pane: number; softness: number};
+  /**
+   * Moonlight window: centre, size of the lit patch, pane size and edge softness (px), and the
+   * shear of the patch (slanting moonlight casts the window as a parallelogram).
+   */
+  window: {x: number; y: number; width: number; height: number; pane: number; softness: number; skew: number};
 };
 
 export type SheetGeometry = {
@@ -64,12 +67,13 @@ function panes(t: number, edge: number): number {
 /** Fraction of moonlight that passes the window frame at a point of the sheet. */
 export function windowGobo(rig: LightRig, x: number, y: number): number {
   const w = rig.window;
-  const u = (x - w.x) / w.width;
+  const sx = x - (y - w.y) * w.skew;
+  const u = (sx - w.x) / w.width;
   const v = (y - w.y) / w.height;
-  const edge = Math.max(0.02, w.softness / Math.max(w.width, w.height));
+  const edge = Math.max(0.01, w.softness / Math.max(w.width, w.height));
   const aperture = smoothstep(0.5, 0.5 - edge * 2, Math.abs(u)) * smoothstep(0.5, 0.5 - edge * 2, Math.abs(v));
-  const mullionEdge = Math.min(0.45, 0.04 + w.softness / w.pane);
-  const bars = panes((x - w.x) / w.pane + 0.5, mullionEdge) * panes((y - w.y) / w.pane + 0.5, mullionEdge);
+  const mullionEdge = Math.min(0.45, 0.03 + w.softness / w.pane);
+  const bars = panes((sx - w.x) / w.pane + 0.5, mullionEdge) * panes((y - w.y) / w.pane + 0.5, mullionEdge);
   return aperture * (0.3 + 0.7 * bars);
 }
 
@@ -114,7 +118,7 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
     cosOuter,
     cosInner,
     exposure: 1,
-    window: {x: width / 2, y: height / 2, width, height, pane: 120, softness: 8}
+    window: {x: width / 2, y: height / 2, width, height, pane: 120, softness: 8, skew: 0}
   };
 
   let rig: LightRig;
@@ -161,7 +165,10 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
         width: patchWidth,
         height: patchHeight,
         pane: Math.max(60, Math.min(patchWidth, patchHeight) / 2),
-        softness: 4 + 40 * settings.softness
+        // The moon is a small source: the window's shadow is nearly crisp.
+        softness: 3 + 14 * settings.softness,
+        // The patch leans away from the moon's side.
+        skew: position.x < 0.5 ? 0.3 : -0.3
       }
     };
     reference = [rig.window.x, rig.window.y];

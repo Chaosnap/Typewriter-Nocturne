@@ -1,10 +1,13 @@
 // The lamp's pull cord, coming down from above at the top left of the room like the cord of a
 // theatre curtain: a rope of three crimson silk strands laid with a gold thread, ending in a tassel
-// with a gold-bound neck, a carved gilt head, a ruff of twisted gold and a skirt of silk threads.
+// as passementerie makers build them: a gilt bead, a pear-shaped mould wrapped in crimson silk and
+// laced with gold cords, a twisted gold band round its foot, and under it, a little narrower, a skirt
+// of fine silk threads that draws in at the middle and flares at the ends like the branches of a
+// hyperbola, catching the light in a band as silk does.
 //
 // Pull it down to switch the lamp: the rope stretches, the switch clicks at the bottom of its
 // travel, the cord springs back and swings. Every thread of the skirt is its own damped pendulum
-// hanging from the ruff: threads trail behind the swing, fan out when the cord is tugged and
+// hanging from the mould: threads trail behind the swing, fan out when the cord is tugged and
 // settle at their own pace. Keyboard users press it like a button. Drawn with SVG and moved
 // through refs, so dragging never re-renders React.
 
@@ -27,8 +30,17 @@ const MAX_PULL = 60;
 const STRETCH = {frequency: 6, damping: 0.3};
 const SWING = {frequency: 0.65, damping: 0.06};
 const ANGLE_REST = {distance: 0.002, speed: 0.004};
-/** Top of the tassel's skirt, below its head and ruff, in tassel coordinates. */
-const SKIRT_TOP = 40;
+/** Top of the tassel's skirt, under the gold band at the mould's foot, in tassel coordinates. */
+const SKIRT_TOP = 33.4;
+/** Length of the skirt's threads, for the sheen that runs across them. */
+const SKIRT_LENGTH = 60;
+/**
+ * The skirt's profile, as a share of a thread's place under the band: it draws in to WAIST at
+ * WAIST_AT of its length and flares to FLARE at the ends, along the two branches of a hyperbola.
+ */
+const WAIST = 0.66;
+const WAIST_AT = 0.4;
+const FLARE = 1.5;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -37,37 +49,112 @@ const random = (n: number) => {
   return s - Math.floor(s);
 };
 
-const SILK = ['#5a0b12', '#741019', '#951c25', '#83161f', '#a3242d'];
+type Point = [number, number];
+
+/** A smooth curve through the points (Catmull-Rom, as cubic Béziers), without the initial move. */
+function curveThrough(points: Point[]) {
+  let d = '';
+  for (let i = 0; i < points.length - 1; i++) {
+    const [x0, y0] = points[Math.max(0, i - 1)];
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[i + 1];
+    const [x3, y3] = points[Math.min(points.length - 1, i + 2)];
+    const c1 = [x1 + (x2 - x0) / 6, y1 + (y2 - y0) / 6];
+    const c2 = [x2 - (x3 - x1) / 6, y2 - (y3 - y1) / 6];
+    d += ` C${c1[0].toFixed(2)} ${c1[1].toFixed(2)} ${c2[0].toFixed(2)} ${c2[1].toFixed(2)} ${x2} ${y2}`;
+  }
+  return d;
+}
+
+/** Half-width of the tassel's mould down its height: a pear under the bead, a neck, a foot. */
+const HEAD: Point[] = [
+  [3.1, 10.6],
+  [4.9, 12.6],
+  [6.5, 15.2],
+  [7.6, 18.4],
+  [7.9, 21.4],
+  [7.4, 24.2],
+  [6.3, 26.6],
+  [6, 28.6],
+  [6.6, 30.2],
+  [6.9, 31.2]
+];
+
+const HEAD_OUTLINE = (() => {
+  const right = HEAD.map(([w, y]): Point => [w, y]);
+  const left = [...HEAD].reverse().map(([w, y]): Point => [-w, y]);
+  return `M${right[0][0]} ${right[0][1]}${curveThrough(right)} L${left[0][0]} ${left[0][1]}${curveThrough(left)} Z`;
+})();
+
+/** Gold cords laced down the mould, as meridians of its round form seen from the front. */
+const HEAD_CORDS = [-0.84, -0.46, 0, 0.46, 0.84].map((f) => {
+  const points = HEAD.map(([w, y]): Point => [Number((f * w).toFixed(2)), y]);
+  return {f, d: `M${points[0][0]} ${points[0][1]}${curveThrough(points)}`};
+});
 
 type Thread = {
-  /** Root on the ruff, x in tassel coordinates. */
+  /** Where the thread leaves the band, x in tassel coordinates. */
   root: number;
   length: number;
-  /** Resting fan angle, radians. */
+  /** A thread never hangs quite straight: its own small angle at rest, radians. */
   fan: number;
   /** Natural frequency of the thread as a pendulum, Hz. */
   frequency: number;
+  /** A gradient: the threads behind are darker, a few are gold. */
   color: string;
   width: number;
 };
 
-const THREADS: Thread[] = Array.from({length: 48}, (_, i) => {
-  const root = -10.5 + (i / 47) * 21;
-  const length = 50 + random(i + 50) * 7;
-  const gold = i % 8 === 4;
+const BACK_THREADS = 40;
+const FRONT_THREADS = 56;
+
+/**
+ * Threads behind first, then the front ones over them. The skirt is round: front threads are
+ * brightest in the middle and darker towards the sides; a few gold threads run through it.
+ */
+const THREADS: Thread[] = Array.from({length: BACK_THREADS + FRONT_THREADS}, (_, n) => {
+  const back = n < BACK_THREADS;
+  const i = back ? n : n - BACK_THREADS;
+  const count = back ? BACK_THREADS : FRONT_THREADS;
+  const root = (back ? -5.6 : -6.1) + (i / (count - 1)) * (back ? 11.2 : 12.2);
+  const length = SKIRT_LENGTH - 5 + random(n + 50) * 7;
+  const gold = !back && i % 9 === 4;
+  const side = Math.abs(root);
+  let color = 'url(#tn-silk-back)';
+  if (gold) {
+    color = 'url(#tn-silk-gold)';
+  } else if (!back) {
+    // Lit by its place on the round skirt, then varied thread by thread, so each one shows.
+    const shade = random(n + 90);
+    let level = side < 2.3 ? 2 : side < 4.5 ? 0 : 1;
+    if (shade > 0.86) {
+      level = 2;
+    }
+    color = shade < 0.3 ? 'url(#tn-silk-back)' : `url(#tn-silk-${level})`;
+  }
+  let width = back ? 0.85 : 0.62;
+  if (gold) {
+    width = 0.42;
+  }
   return {
     root,
     length,
-    fan: root * 0.018 + (random(i) - 0.5) * 0.03,
+    fan: (random(n) - 0.5) * 0.04,
     // Longer threads swing slower, as pendulums do.
-    frequency: 1.45 * Math.sqrt(52 / length) * (0.92 + random(i + 7) * 0.16),
-    color: gold ? 'var(--tn-metal)' : SILK[i % SILK.length],
-    width: gold ? 0.8 : 1.15
+    frequency: 1.45 * Math.sqrt(55 / length) * (0.92 + random(n + 7) * 0.16),
+    color,
+    width
   };
 });
 
-/** The ruff under the tassel's head: a ring of twisted gold loops. */
-const RUFF = Array.from({length: 11}, (_, i) => -11 + i * 2.2);
+/** Silk catches the light in a band across the skirt: a dark root under the band, the sheen, the ends. */
+const SILKS = [
+  {id: 'tn-silk-0', stops: ['#33040a', '#7d131c', '#d9555e', '#9e1e28', '#6e1018'], sheen: 0.28},
+  {id: 'tn-silk-1', stops: ['#2c0408', '#701019', '#c9464f', '#8f1a23', '#5e0c14'], sheen: 0.32},
+  {id: 'tn-silk-2', stops: ['#3a060c', '#8a1820', '#e66a71', '#a8242e', '#741219'], sheen: 0.25},
+  {id: 'tn-silk-back', stops: ['#1c0206', '#3f0810', '#7a1a22', '#4f0b13', '#33060c'], sheen: 0.3},
+  {id: 'tn-silk-gold', stops: ['#4a3410', '#9c7a34', '#fbe6a6', '#c49a45', '#7d5c1f'], sheen: 0.29}
+];
 
 type CordState = {
   /** Extra length while pulled, px. */
@@ -88,14 +175,23 @@ type CordState = {
 
 const atRest = (body: Body) => body.position === 0 && body.velocity === 0;
 
+/** The skirt's width at a share t of its length, relative to its top: a hyperbola on each side. */
+function profile(t: number) {
+  const below = t > WAIST_AT;
+  const reach = below ? (FLARE ** 2 - WAIST ** 2) / (1 - WAIST_AT) ** 2 : (1 - WAIST ** 2) / WAIST_AT ** 2;
+  return Math.sqrt(WAIST ** 2 + reach * (t - WAIST_AT) ** 2);
+}
+
+const PROFILE = [0, 0.18, WAIST_AT, 0.7, 1].map((t) => ({t, width: profile(t)}));
+
 function threadPath(thread: Thread, angle: number) {
-  const a = thread.fan + angle;
-  const ex = thread.root + Math.sin(a) * thread.length;
-  const ey = SKIRT_TOP + Math.cos(a) * thread.length;
-  // The thread bends: its upper part stays close to the ruff, its end follows the swing.
-  const cx = thread.root + Math.sin(a * 0.4) * thread.length * 0.55;
-  const cy = SKIRT_TOP + Math.cos(a * 0.4) * thread.length * 0.55;
-  return `M${thread.root.toFixed(2)} ${SKIRT_TOP} Q${cx.toFixed(2)} ${cy.toFixed(2)} ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+  // The swing moves a thread more the further down it is, as a hanging thread bends.
+  const sway = Math.sin(thread.fan + angle) * thread.length;
+  const points = PROFILE.map(({t, width}): Point => [
+    Number((thread.root * width + sway * t * t).toFixed(2)),
+    Number((SKIRT_TOP + thread.length * t).toFixed(2))
+  ]);
+  return `M${points[0][0]} ${points[0][1]}${curveThrough(points)}`;
 }
 
 type PullCordProps = {
@@ -136,7 +232,7 @@ export function PullCord({on, onToggle}: PullCordProps) {
   };
 
   /**
-   * Threads hang from the ruff of a tassel that swings with the cord: in the tassel's frame they are
+   * Threads hang from the mould of a tassel that swings with the cord: in the tassel's frame they are
    * pulled back towards world-vertical (−angle), pushed by the swing's acceleration and fanned out by
    * a sudden tug on the cord.
    */
@@ -320,11 +416,55 @@ export function PullCord({on, onToggle}: PullCordProps) {
             <stop offset="0.45" stopColor="#b02a33" />
             <stop offset="1" stopColor="#6a1018" />
           </linearGradient>
-          <linearGradient id="tn-cord-skirt-shade" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#000" stopOpacity="0.55" />
-            <stop offset="0.3" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.2" />
+          {SILKS.map((silk) => (
+            <linearGradient
+              key={silk.id}
+              id={silk.id}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              x2="0"
+              y1={SKIRT_TOP}
+              y2={SKIRT_TOP + SKIRT_LENGTH}
+            >
+              <stop offset="0" stopColor={silk.stops[0]} />
+              <stop offset={silk.sheen - 0.14} stopColor={silk.stops[1]} />
+              <stop offset={silk.sheen} stopColor={silk.stops[2]} />
+              <stop offset={silk.sheen + 0.16} stopColor={silk.stops[3]} />
+              <stop offset="1" stopColor={silk.stops[4]} />
+            </linearGradient>
+          ))}
+          {/* The mould's crimson silk, round: shadowed at both sides, lit on the left. */}
+          <linearGradient id="tn-tassel-silk" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stopColor="#2a0307" />
+            <stop offset="0.24" stopColor="#a4303a" />
+            <stop offset="0.36" stopColor="#d15560" />
+            <stop offset="0.58" stopColor="#8c1a23" />
+            <stop offset="1" stopColor="#2c0408" />
           </linearGradient>
+          <radialGradient id="tn-tassel-volume" cx="0.4" cy="0.42" r="0.62">
+            <stop offset="0.55" stopColor="#000" stopOpacity="0" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.5" />
+          </radialGradient>
+          {/* Silk wound round the mould: fine dark lines between the turns. */}
+          <pattern id="tn-tassel-wraps" width="4" height="0.9" patternUnits="userSpaceOnUse">
+            <rect y="0.62" width="4" height="0.28" fill="#000" opacity="0.32" />
+            <rect y="0.05" width="4" height="0.16" fill="#fff" opacity="0.1" />
+          </pattern>
+          {/* A twisted gold cord (gimp) for the band at the mould's foot. */}
+          <pattern
+            id="tn-tassel-gimp"
+            width="1.6"
+            height="1.6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(52)"
+          >
+            <rect width="1.6" height="1.6" style={{fill: 'var(--tn-metal-lo)'}} />
+            <rect width="1.6" height="0.9" style={{fill: 'var(--tn-metal-hi)'}} />
+            <rect y="0.2" width="1.6" height="0.3" fill="#fff" opacity="0.4" />
+          </pattern>
+          <clipPath id="tn-tassel-head">
+            <path d={HEAD_OUTLINE} />
+          </clipPath>
           {/* Three crimson strands, each rounded by its own shading, laid with a fine gold thread. */}
           <pattern
             id="tn-cord-twist"
@@ -361,7 +501,7 @@ export function PullCord({on, onToggle}: PullCordProps) {
             <g ref={skirtRef}>
               {THREADS.map((thread) => (
                 <path
-                  key={thread.root}
+                  key={`${thread.root}-${thread.width}`}
                   d={threadPath(thread, 0)}
                   stroke={thread.color}
                   strokeWidth={thread.width}
@@ -370,24 +510,29 @@ export function PullCord({on, onToggle}: PullCordProps) {
                 />
               ))}
             </g>
-            <rect x="-13" y={SKIRT_TOP} width="26" height="60" fill="url(#tn-cord-skirt-shade)" />
-            {/* Neck: the rope bound with gold thread. */}
-            <rect x="-2.6" y="-1" width="5.2" height="9" fill="url(#tn-cord-twist)" />
-            <path className="tn-cord-binding" d="M-2.8 1 H2.8 M-2.8 2.8 H2.8 M-2.8 4.6 H2.8 M-2.8 6.4 H2.8" />
-            {/* Head: a ball, a collar and a carved bell, all gilt. */}
-            <circle cx="0" cy="11.2" r="4.4" fill="url(#tn-cord-metal-ball)" />
-            <rect x="-5.8" y="14.4" width="11.6" height="2.6" rx="1.2" fill="url(#tn-cord-metal)" />
-            <path
-              d="M0 16.6 C5.2 16.6 6.8 20 6.4 23.4 C10.6 25.6 12 31.2 10.6 36.6 L-10.6 36.6 C-12 31.2 -10.6 25.6 -6.4 23.4 C-6.8 20 -5.2 16.6 0 16.6 Z"
-              fill="url(#tn-cord-metal)"
-            />
-            <path className="tn-cord-ring" d="M-6.8 24.4 Q0 26.6 6.8 24.4 M-10.9 31.2 Q0 33.8 10.9 31.2" />
-            <path className="tn-cord-carving" d="M-4 27.6 Q-2 29.4 0 27.6 Q2 29.4 4 27.6" />
-            {RUFF.map((x) => (
-              <ellipse key={x} cx={x} cy="38.4" rx="1.5" ry="2" fill="url(#tn-cord-metal-ball)" />
-            ))}
-            <ellipse className="tn-cord-glint" cx="-4.4" cy="27.5" rx="1.4" ry="5.4" />
-            <ellipse className="tn-cord-glint" cx="-1.6" cy="10" rx="1.1" ry="1.6" />
+            {/* Neck: the rope bound with gold thread, and a gilt bead. */}
+            <rect x="-2.3" y="-1" width="4.6" height="6.2" fill="url(#tn-cord-twist)" />
+            <path className="tn-cord-binding" d="M-2.5 0.8 H2.5 M-2.5 2.4 H2.5 M-2.5 4 H2.5" />
+            <circle cx="0" cy="7.8" r="3.3" fill="url(#tn-cord-metal-ball)" />
+            <ellipse className="tn-cord-glint" cx="-1.2" cy="6.7" rx="0.9" ry="1.2" />
+            {/* The mould: crimson silk wound round it, gold cords laced down it, its volume shaded. */}
+            <path d={HEAD_OUTLINE} fill="url(#tn-tassel-silk)" />
+            <g clipPath="url(#tn-tassel-head)">
+              <rect x="-10" y="10" width="20" height="22" fill="url(#tn-tassel-wraps)" />
+              {HEAD_CORDS.map((cord) => (
+                <path
+                  key={cord.f}
+                  d={cord.d}
+                  className="tn-tassel-cord"
+                  style={{opacity: 1 - Math.abs(cord.f) * 0.45}}
+                />
+              ))}
+              <rect x="-10" y="10" width="20" height="22" fill="url(#tn-tassel-volume)" />
+            </g>
+            <ellipse className="tn-cord-glint" cx="-4.3" cy="19.5" rx="1.3" ry="4.6" />
+            {/* The band of twisted gold round the mould's foot. */}
+            <rect x="-7.3" y="30.3" width="14.6" height="3.6" rx="1.6" fill="url(#tn-tassel-gimp)" />
+            <rect x="-7.3" y="30.3" width="14.6" height="3.6" rx="1.6" fill="url(#tn-cord-round)" />
           </g>
         </g>
       </svg>

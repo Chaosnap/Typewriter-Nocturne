@@ -12,7 +12,7 @@ import {
   stepSway
 } from '../../app/nocturne/carriage-physics';
 import type {Body} from '../../app/nocturne/carriage-physics';
-import {buildRig, irradiance, lightAmount} from '../../app/nocturne/light-model';
+import {buildRig, irradiance, lightAmount, windowGobo} from '../../app/nocturne/light-model';
 import type {LightRig} from '../../app/nocturne/light-model';
 import {defaultSettings} from '../../app/nocturne/settings';
 import {THEMES} from '../../app/nocturne/themes';
@@ -123,6 +123,18 @@ test('moonlight is shaped by the window frame', (t) => {
   const onMullion = lightAmount(rig, rig.window.x + rig.window.pane / 2, rig.window.y);
   t.true(inPane > onMullion);
   t.is(lightAmount(rig, -2000, -2000), 0);
+});
+
+test('slanting moonlight casts the window as a parallelogram with nearly crisp edges', (t) => {
+  const settings = {...defaultSettings().lighting, source: 'moonlight' as const};
+  const rig = buildRig(settings, THEMES['moonlit-poetry'], sheet);
+  t.not(rig.window.skew, 0);
+  t.true(rig.window.softness < 20);
+  const square = {...rig, window: {...rig.window, skew: 0}};
+  const dy = -rig.window.pane * 0.8;
+  const x = rig.window.x + rig.window.pane * 0.3;
+  const shifted = windowGobo(rig, x + dy * rig.window.skew, rig.window.y + dy);
+  t.true(Math.abs(shifted - windowGobo(square, x, rig.window.y + dy)) < 1e-9);
 });
 
 test('the head sways against a sudden stop and comes to rest', (t) => {

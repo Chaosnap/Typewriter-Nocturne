@@ -361,7 +361,7 @@ export function drawFolio(canvas: HTMLCanvasElement, art: FolioArt): number {
     c.font = `italic 14px ${art.fonts.serif}`;
     c.fillText(`— set at the typewriter, by ${style.signature || 'lamplight'}`, MARGIN, height - 92);
   }
-  if (art.seal > 0) {
+  if (art.seal > 0 && style.seal) {
     const t = Math.min(1, art.seal);
     const lowered = 1 - Math.pow(1 - t, 3);
     const scale = 1 + (1 - lowered) * 0.6;

@@ -7,7 +7,9 @@ import {PAPER_IDS, PAPERS} from '../../../app/nocturne/papers';
 import {applyLightingPreset} from '../../../app/nocturne/settings';
 import {THEMES} from '../../../app/nocturne/themes';
 import type {
+  BeamShape,
   ClipFinish,
+  CursorStyle,
   EffectQuality,
   FocusBackground,
   LightingPresetId,
@@ -44,6 +46,11 @@ const VOICES: readonly {value: TypewriterVoice; label: string}[] = [
   {value: 'whisper', label: 'Whisper'}
 ];
 
+const BEAMS: readonly {value: BeamShape; label: string}[] = [
+  {value: 'pointed', label: 'Pointed'},
+  {value: 'soft', label: 'Soft'}
+];
+
 const SCROLLBARS: readonly {value: ScrollbarStyle; label: string}[] = [
   {value: 'clip', label: 'Paper clip'},
   {value: 'bar', label: 'Bar'},
@@ -55,6 +62,13 @@ const FINISHES: readonly {value: ClipFinish; label: string}[] = [
   {value: 'brass', label: 'Brass'},
   {value: 'gold', label: 'Gold'},
   {value: 'black', label: 'Black'}
+];
+
+const CURSORS: readonly {value: CursorStyle; label: string}[] = [
+  {value: 'quill', label: 'Quill'},
+  {value: 'block', label: 'Block'},
+  {value: 'bar', label: 'Bar'},
+  {value: 'underline', label: 'Line'}
 ];
 
 const SELECTIONS: readonly {value: SelectionStyle; label: string}[] = [
@@ -186,6 +200,12 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           onChange={(lineHeight) => type({lineHeight})}
         />
         <Segmented
+          label="Cursor"
+          value={typography.cursorStyle}
+          options={CURSORS}
+          onChange={(cursorStyle) => updateSettings({typography: {cursorStyle}})}
+        />
+        <Segmented
           label="Selection"
           value={typography.selectionStyle}
           options={SELECTIONS}
@@ -258,6 +278,7 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           format={degrees}
           onChange={(spread) => light({spread})}
         />
+        <Segmented label="Beam" value={lighting.beam} options={BEAMS} onChange={(beam) => light({beam})} />
         <Slider
           label="Aim"
           value={lighting.aim}

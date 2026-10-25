@@ -9,7 +9,14 @@
 import {ipcRenderer} from 'electron';
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 
-import {activePaper, activeTheme, inkSelectionOn, lightOn, paperEffectsOn} from '../../../app/nocturne/apply-config';
+import {
+  activePaper,
+  activeTheme,
+  inkSelectionOn,
+  lightOn,
+  paperEffectsOn,
+  quillCursorOn
+} from '../../../app/nocturne/apply-config';
 import {rollerBoxes, stageLayout} from '../../../app/nocturne/stage-layout';
 import type {Box} from '../../../app/nocturne/stage-layout';
 import {detectGpu, renderMode} from '../lighting/gpu';
@@ -22,6 +29,7 @@ import {themeVariables} from '../theme-css';
 import {observeKeys} from '../typewriter/keys';
 
 import {PullCord} from './pull-cord';
+import {QuillCursor} from './quill-cursor';
 import {ScrollClip} from './scroll-clip';
 import {Studio} from './studio';
 import {Toolbar} from './toolbar';
@@ -199,6 +207,7 @@ export function NocturneShell({header, children}: ShellProps) {
               />
             ))
           : null}
+        {nocturne && quillCursorOn(settings) ? <QuillCursor appearance={activePaper(settings).appearance} /> : null}
         {nocturne ? <ScrollClip settings={settings.scrollbar} sheet={layout.sheet} text={layout.text} /> : null}
         {showCord ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
         {theme ? (

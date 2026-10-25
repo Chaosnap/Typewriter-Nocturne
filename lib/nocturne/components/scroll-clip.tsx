@@ -1,8 +1,12 @@
 // The scrollbar of the active terminal, drawn as a paper clip on the right edge of the sheet or as
-// a slim translucent bar. It follows the scroll position with a spring, tilts a little while it
+// a slim translucent bar. It follows the scroll position with a spring, leans a little while it
 // moves, and can be dragged; dragging scrolls the terminal (the terminal's own wheel and keyboard
-// scrolling are untouched). The clip is a Gem clip with its front loop over the paper and its back
-// loop showing only beyond the paper's edge, as a clip hooked over a sheet does.
+// scrolling are untouched).
+//
+// The clip is a Gem clip slid onto the sheet: its outer loop lies on the front of the paper, its
+// inner tongue behind it (seen only as the faint line it presses into the sheet), and the bend that
+// joins them stands just beyond the paper's edge. The wire is shaded as a tube lit from the upper
+// left and casts a soft shadow on the paper.
 
 import React, {useEffect, useRef, useState} from 'react';
 
@@ -13,27 +17,45 @@ import type {ClipFinish, ScrollbarSettings} from '../../../app/nocturne/types';
 import {on} from '../bus';
 import {scrollActiveTerminal} from '../terminal-bridge';
 
-/** The clip's size: about the length of three lines of text, small beside the sheet. */
-const CLIP_WIDTH = 74;
+/** The clip's size on screen: a little shorter than ten characters, small beside the sheet. */
+const CLIP_WIDTH = 84;
 const CLIP_HEIGHT = 26;
-/** How far the clip reaches onto the paper from its edge. */
-const ON_PAPER = 42;
+/** The drawing is 100 × 31 units; the paper's edge is at x = 88, so the end bend stands beyond it. */
+const EDGE = 88;
+const ON_PAPER = (CLIP_WIDTH * EDGE) / 100;
+/** A clip slid onto a sheet by hand never sits quite square. */
+const REST_TILT = -0.1;
 const TRACK_MARGIN = 18;
 const GLIDE = {frequency: 5, damping: 0.72};
 const TILT = {frequency: 3.2, damping: 0.35};
 const TILT_REST = {distance: 0.001, speed: 0.002};
 
+/** Highlight, body and edge of the wire for each finish. */
 const FINISHES: Record<ClipFinish, [string, string, string]> = {
-  silver: ['#fafbfc', '#a7adb5', '#525861'],
-  brass: ['#f6e2ae', '#b8904c', '#5a3f19'],
-  gold: ['#fff0b8', '#d5a746', '#71500f'],
-  black: ['#8a8a8a', '#2b2b2c', '#0b0b0c']
+  silver: ['#ffffff', '#b9bfc7', '#4d535b'],
+  brass: ['#fff1c6', '#c19a52', '#4f3712'],
+  gold: ['#fff6cf', '#d9ad4c', '#6a4a0c'],
+  black: ['#9a9a9e', '#2e2e31', '#060607']
 };
 
-// Centre line of the wire, as a Gem clip lies on the page: the inner loop (behind the sheet)
-// first, then the outer loop in front.
-const BACK_LOOP = 'M22 9 H58 A4 4 0 0 1 58 17 H14';
-const FRONT_LOOP = 'M14 17 A6 6 0 0 1 14 5 H64 A8 8 0 0 1 64 21 H30';
+// The centre line of the wire. The outer loop lies on the front of the sheet; the tongue lies
+// behind it; the hinge bend joins them beyond the paper's edge.
+const FRONT = 'M90 3 H14 A12 12 0 0 0 14 27 H70';
+const HINGE = 'M90 21 A9 9 0 0 0 90 3';
+const TONGUE = 'M76 9 H26 A6 6 0 0 0 26 21 H90';
+
+/** A length of wire: a dark rim, the metal, and a highlight set towards the light. */
+function Wire({d, colors}: {d: string; colors: [string, string, string]}) {
+  const [light, body, edge] = colors;
+  return (
+    <g>
+      <path d={d} className="tn-clip-edge" stroke={edge} />
+      <path d={d} className="tn-clip-body" stroke={body} />
+      <path d={d} className="tn-clip-light" stroke={light} transform="translate(-0.3 -0.55)" />
+      <path d={d} className="tn-clip-glint" transform="translate(-0.35 -0.6)" />
+    </g>
+  );
+}
 
 type Scroll = {viewportY: number; baseY: number; rows: number};
 
@@ -92,7 +114,7 @@ export function ScrollClip({settings, sheet, text}: ScrollClipProps) {
     const element = elementRef.current;
     const m = motion.current;
     if (element) {
-      const tilt = clip ? m.tilt.position : 0;
+      const tilt = clip ? REST_TILT + m.tilt.position : 0;
       element.style.transform = `translateY(${m.y.position.toFixed(2)}px) rotate(${tilt.toFixed(4)}rad)`;
     }
   };
@@ -177,7 +199,7 @@ export function ScrollClip({settings, sheet, text}: ScrollClipProps) {
     return null;
   }
 
-  const [light, mid, dark] = FINISHES[settings.finish];
+  const colors = FINISHES[settings.finish];
   // The clip turns about the point where it grips the paper's edge.
   let style: React.CSSProperties = {
     left: sheet.x + sheet.width - ON_PAPER,
@@ -211,24 +233,28 @@ export function ScrollClip({settings, sheet, text}: ScrollClipProps) {
       onPointerCancel={onPointerUp}
     >
       {clip ? (
-        <svg viewBox={`0 0 ${CLIP_WIDTH} ${CLIP_HEIGHT}`} aria-hidden="true">
+        <svg viewBox="0 -0.5 100 31" aria-hidden="true">
           <defs>
-            <linearGradient id="tn-clip-wire" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor={light} />
-              <stop offset="0.45" stopColor={mid} />
-              <stop offset="1" stopColor={dark} />
-            </linearGradient>
-            {/* The back loop is behind the sheet: it only shows beyond the paper's edge. */}
-            <clipPath id="tn-clip-beyond">
-              <rect x={ON_PAPER} y="0" width={CLIP_WIDTH - ON_PAPER} height={CLIP_HEIGHT} />
+            <clipPath id="tn-clip-paper">
+              <rect x="-20" y="-20" width={EDGE + 20} height="70" />
             </clipPath>
+            <clipPath id="tn-clip-beyond">
+              <rect x={EDGE} y="-20" width="40" height="70" />
+            </clipPath>
+            <filter id="tn-clip-blur" x="-20%" y="-60%" width="140%" height="220%">
+              <feGaussianBlur stdDeviation="1.1" />
+            </filter>
           </defs>
-          <g clipPath="url(#tn-clip-beyond)" opacity="0.85">
-            <path d={BACK_LOOP} className="tn-clip-wire" stroke="url(#tn-clip-wire)" />
+          {/* On the paper: the line the tongue presses into the sheet, and the clip's shadow. */}
+          <g clipPath="url(#tn-clip-paper)">
+            <path d={TONGUE} className="tn-clip-pressed" />
+            <path d={`${FRONT} ${HINGE}`} className="tn-clip-shadow" filter="url(#tn-clip-blur)" />
           </g>
-          <path d={FRONT_LOOP} className="tn-clip-shadow" />
-          <path d={FRONT_LOOP} className="tn-clip-wire" stroke="url(#tn-clip-wire)" />
-          <path d={FRONT_LOOP} className="tn-clip-glint" />
+          <g clipPath="url(#tn-clip-beyond)">
+            <Wire d={TONGUE} colors={colors} />
+          </g>
+          <Wire d={HINGE} colors={colors} />
+          <Wire d={FRONT} colors={colors} />
         </svg>
       ) : null}
     </div>

@@ -154,3 +154,19 @@ test('folio faces: book serifs for verse, safe custom families only', (t) => {
   t.true(folioFontStack({font: 'custom', customFont: 'x;}'}, typography).family.startsWith('"Courier Prime"'));
   t.is(folioFontStack({font: 'terminal', customFont: ''}, typography).family, fontStack(typography));
 });
+
+test('the quill is the cursor; settings from before it had the block, which becomes the quill', (t) => {
+  t.is(defaultSettings().typography.cursorStyle, 'quill');
+  t.is(sanitizeSettings({version: 1, typography: {cursorStyle: 'block'}}).typography.cursorStyle, 'quill');
+  t.is(sanitizeSettings({version: 2, typography: {cursorStyle: 'block'}}).typography.cursorStyle, 'block');
+  t.is(sanitizeSettings({version: 1, typography: {cursorStyle: 'bar'}}).typography.cursorStyle, 'bar');
+  t.is(sanitizeSettings({typography: {cursorStyle: 'feather'}}).typography.cursorStyle, 'quill');
+});
+
+test('the beam is pointed unless chosen soft; a folio is sealed unless chosen otherwise', (t) => {
+  t.is(defaultSettings().lighting.beam, 'pointed');
+  t.is(sanitizeSettings({lighting: {beam: 'soft'}}).lighting.beam, 'soft');
+  t.is(sanitizeSettings({lighting: {beam: 'wide'}}).lighting.beam, 'pointed');
+  t.true(defaultSettings().print.style.seal);
+  t.false(sanitizeSettings({print: {style: {seal: false}}}).print.style.seal);
+});

@@ -6,7 +6,8 @@ import {
   configAffectingKey,
   inkSelectionOn,
   lightOn,
-  paperEffectsOn
+  paperEffectsOn,
+  quillCursorOn
 } from '../../app/nocturne/apply-config';
 import {contrast, isColor} from '../../app/nocturne/color';
 import {PAPERS} from '../../app/nocturne/papers';
@@ -69,7 +70,8 @@ test('the paper drives xterm colours, the settings drive fonts', (t) => {
   t.is((result.colors as unknown as Record<string, string>).limeGreen, '#32CD32');
   t.true(result.fontFamily.startsWith('"Courier Prime"'));
   t.is(result.fontSize, settings.typography.fontSize);
-  t.is(result.cursorShape, 'BLOCK');
+  // The quill is drawn over a thin bar.
+  t.is(result.cursorShape, 'BEAM');
 });
 
 test('the classic theme keeps colours from hyper.json', (t) => {
@@ -123,4 +125,18 @@ test('the ink selection hides the selection box, the classic one keeps it', (t) 
   const classic = patchSettings(defaultSettings(), {typography: {selectionStyle: 'classic'}});
   t.false(inkSelectionOn(classic));
   t.not(applyNocturneToConfig(baseConfig, classic).selectionColor, 'rgba(0, 0, 0, 0)');
+});
+
+test("under the quill, xterm keeps a thin bar in a transparent colour; Hyper's own look keeps the bar", (t) => {
+  const quill = applyNocturneToConfig(baseConfig, defaultSettings());
+  t.true(quillCursorOn(defaultSettings()));
+  t.is(quill.cursorShape, 'BEAM');
+  t.is(quill.cursorColor, 'rgba(0, 0, 0, 0)');
+  const blockSettings = patchSettings(defaultSettings(), {typography: {cursorStyle: 'block'}});
+  const block = applyNocturneToConfig(baseConfig, blockSettings);
+  t.is(block.cursorShape, 'BLOCK');
+  t.not(block.cursorColor, 'rgba(0, 0, 0, 0)');
+  const classic = patchSettings(defaultSettings(), {theme: 'classic'});
+  t.false(quillCursorOn(classic));
+  t.is(applyNocturneToConfig(baseConfig, classic).cursorShape, 'BEAM');
 });

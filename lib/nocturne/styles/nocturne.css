@@ -160,6 +160,166 @@
   outline: 1px dotted var(--tn-accent);
 }
 
+/* The quill cursor, drawn over xterm's invisible bar: a raven quill on light paper, a swan quill on
+ * dark paper, with a gilt nib in the theme's metal. Units inside the drawing are its own. */
+.tn-quill {
+  --tn-quill-edge: #120e0c;
+  --tn-quill-body: #2b2420;
+  --tn-quill-sheen: #5f5753;
+  --tn-quill-barb: rgba(168, 152, 138, 0.42);
+  --tn-quill-rachis: #e4d8c0;
+  --tn-quill-down: rgba(70, 60, 54, 0.65);
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  display: none;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0.8px 1.6px 1px rgba(0, 0, 0, 0.3));
+  animation: tn-quill-breathe 1.2s ease-in-out infinite alternate;
+}
+
+.tn-quill[data-appearance='dark'] {
+  --tn-quill-edge: #9d9485;
+  --tn-quill-body: #ebe4d6;
+  --tn-quill-sheen: #fffdf8;
+  --tn-quill-barb: rgba(140, 128, 108, 0.5);
+  --tn-quill-rachis: #fffdf6;
+  --tn-quill-down: rgba(236, 229, 216, 0.75);
+}
+
+.tn-quill svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The pen sways a little about its nib, as a hand holding it never keeps quite still. */
+.tn-quill-sway {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: tn-quill-sway 3.4s ease-in-out infinite alternate;
+}
+
+.tn-quill-vane {
+  fill: url(#tn-quill-vane);
+}
+
+.tn-quill-barbs {
+  fill: none;
+  stroke: var(--tn-quill-barb);
+  stroke-width: 0.28;
+  stroke-linecap: round;
+}
+
+.tn-quill-rachis {
+  fill: var(--tn-quill-rachis);
+}
+
+.tn-quill-rachis-light {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.22;
+  opacity: 0.55;
+}
+
+.tn-quill-down {
+  fill: none;
+  stroke: var(--tn-quill-down);
+  stroke-width: 0.35;
+  stroke-linecap: round;
+}
+
+.tn-quill-engraving {
+  fill: none;
+  stroke: var(--tn-metal-lo);
+  stroke-width: 0.3;
+}
+
+.tn-quill-hole {
+  fill: var(--tn-metal-lo);
+}
+
+/* A light that runs up the vane, from the foot to the tip. */
+.tn-quill-shine {
+  fill: #fff;
+  opacity: 0.2;
+  transform: translateY(0);
+  animation: tn-quill-shine 2.8s ease-in-out infinite;
+}
+
+.tn-quill-glint {
+  fill: #fff;
+  opacity: 0;
+  animation: tn-quill-glint 2.8s ease-in-out infinite;
+}
+
+/* Without focus the quill rests, dimmed and still. */
+.tn-quill[data-focused='false'] {
+  opacity: 0.4;
+  animation: none;
+}
+
+.tn-quill[data-focused='false'] .tn-quill-sway,
+.tn-quill[data-focused='false'] .tn-quill-shine,
+.tn-quill[data-focused='false'] .tn-quill-glint {
+  animation: none;
+}
+
+@keyframes tn-quill-breathe {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.62;
+  }
+}
+
+@keyframes tn-quill-sway {
+  from {
+    transform: rotate(-1.6deg);
+  }
+
+  to {
+    transform: rotate(1.6deg);
+  }
+}
+
+@keyframes tn-quill-shine {
+  0% {
+    transform: translateY(0);
+  }
+
+  65%,
+  100% {
+    transform: translateY(-66px);
+  }
+}
+
+@keyframes tn-quill-glint {
+  0%,
+  55%,
+  100% {
+    opacity: 0;
+  }
+
+  70% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tn-quill,
+  .tn-quill-sway,
+  .tn-quill-shine,
+  .tn-quill-glint {
+    animation: none;
+  }
+}
+
 /* The terminal's own scrollbar gives way to the clip or the bar; wheel and keys still scroll. */
 .tn-scroll-custom .xterm-viewport::-webkit-scrollbar {
   width: 0;
@@ -198,29 +358,47 @@
   overflow: visible;
 }
 
-.tn-clip-wire,
-.tn-clip-shadow,
-.tn-clip-glint {
+/* The clip's wire, in drawing units (100 across): a tube about 2.6 units thick. */
+.tn-scroll-clip path {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.tn-clip-wire {
-  stroke-width: 2.3;
+.tn-clip-edge {
+  stroke-width: 3.3;
+}
+
+.tn-clip-body {
+  stroke-width: 2.6;
+}
+
+.tn-clip-light {
+  stroke-width: 0.9;
+  opacity: 0.9;
+}
+
+/* Small specular glints along the highlight, as polished wire catches a lamp. */
+.tn-clip-glint {
+  stroke: #fff;
+  stroke-width: 0.55;
+  stroke-dasharray: 1.6 11 0.8 17;
+  opacity: 0.85;
 }
 
 .tn-clip-shadow {
-  stroke: rgba(30, 20, 10, 0.35);
-  stroke-width: 2.6;
-  transform: translate(1.2px, 1.8px);
-  filter: blur(1px);
+  stroke: rgba(28, 18, 8, 0.42);
+  stroke-width: 3;
+  transform: translate(1px, 1.9px);
 }
 
-.tn-clip-glint {
-  stroke: rgba(255, 255, 255, 0.55);
-  stroke-width: 0.6;
-  transform: translate(-0.4px, -0.6px);
+.tn-clip-pressed {
+  stroke: rgba(40, 28, 16, 0.07);
+  stroke-width: 2.2;
+}
+
+.tn-dark .tn-clip-shadow {
+  stroke: rgba(0, 0, 0, 0.6);
 }
 
 /* ------------------------------------------------------------------ tools */
@@ -622,11 +800,13 @@
   outline-offset: 2px;
 }
 
-.tn-cord-ring,
-.tn-cord-carving {
+/* Gold cords laced down the tassel's mould: a dark rim and a bright core make each one round. */
+.tn-tassel-cord {
   fill: none;
-  stroke: var(--tn-metal-lo);
-  stroke-width: 0.8;
+  stroke: var(--tn-metal);
+  stroke-width: 0.85;
+  stroke-linecap: round;
+  filter: drop-shadow(0.35px 0.5px 0.3px rgba(30, 4, 6, 0.8));
 }
 
 .tn-cord-binding {
@@ -670,11 +850,16 @@
   font-family: var(--tn-font-ui);
 }
 
+/* One column that never grows wider than the panel: a long line of terminal text or a wide control
+ * must not make the panel scroll sideways and hide its left edge. */
 .tn-press-side {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 12px;
+  min-width: 0;
   padding: 16px 18px 18px;
+  overflow-x: hidden;
   overflow-y: auto;
   border-right: 1px solid var(--tn-panel-line);
 }
@@ -685,6 +870,14 @@
   font-style: italic;
   font-weight: 500;
   font-size: 24px;
+}
+
+.tn-press-form,
+.tn-press-archive,
+.tn-press-options-body,
+.tn-press-seal-options {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 .tn-press-form,
@@ -714,6 +907,7 @@
 }
 
 .tn-press-excerpt {
+  max-width: 100%;
   margin: 6px 0 0;
   padding: 6px 0 6px 10px;
   overflow: hidden;
@@ -749,7 +943,7 @@
 
 .tn-press-seal {
   display: grid;
-  grid-template-columns: 76px 1fr;
+  grid-template-columns: 76px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -845,6 +1039,21 @@
   display: none;
 }
 
+.tn-press-badge {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  width: max-content;
+  margin: 0 auto 10px;
+  padding: 3px 12px;
+  border: 1px solid var(--tn-panel-line);
+  border-radius: 999px;
+  background: var(--tn-panel-bg);
+  color: var(--tn-panel-muted);
+  font-style: italic;
+  font-size: 13px;
+}
+
 .tn-press-hint {
   margin: 30% auto 0;
   text-align: center;
@@ -874,7 +1083,8 @@
 .tn-folio-open {
   flex: 1;
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-width: 0;
   column-gap: 8px;
   padding: 6px 8px;
   border: 0;
@@ -898,8 +1108,11 @@
 }
 
 .tn-folio-title {
+  overflow: hidden;
   font-style: italic;
   font-size: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .tn-folio-date {

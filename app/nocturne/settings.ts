@@ -213,7 +213,7 @@ export const TYPOGRAPHY_PRESETS: Record<TypographyPresetId, Partial<TypographySe
 
 export function defaultSettings(): NocturneSettings {
   return {
-    version: 1,
+    version: 2,
     theme: 'paper-and-ink',
     focusMode: false,
     effects: true,
@@ -225,6 +225,7 @@ export function defaultSettings(): NocturneSettings {
       source: 'theme',
       intensity: 1,
       spread: 74,
+      beam: 'pointed',
       aim: 0,
       reach: 1,
       position: {x: 0.5, y: 0.1},
@@ -249,7 +250,7 @@ export function defaultSettings(): NocturneSettings {
       lineHeight: 1.4,
       letterSpacing: 0,
       ligatures: false,
-      cursorStyle: 'block',
+      cursorStyle: 'quill',
       cursorWidth: 2,
       cursorBlink: false,
       smoothing: 'auto',
@@ -284,6 +285,7 @@ export function defaultFolioStyle(): FolioStyle {
     sealColor: 'crimson',
     monogram: 'N',
     emblem: 'moon',
+    seal: true,
     ribbon: true,
     font: 'typewriter',
     customFont: '',
@@ -316,7 +318,7 @@ const color = (value: unknown, fallback: string): string => (value === '' || isC
 const round = (value: number, digits = 3) => Number(value.toFixed(digits));
 
 const QUALITIES: EffectQuality[] = ['auto', 'high', 'medium', 'low'];
-const CURSOR_STYLES: CursorStyle[] = ['block', 'bar', 'underline'];
+const CURSOR_STYLES: CursorStyle[] = ['quill', 'block', 'bar', 'underline'];
 const VOICES: TypewriterVoice[] = ['standard', 'portable', 'electric', 'whisper'];
 const LIGHT_SOURCES = ['theme', 'carriage', 'desk-lamp', 'moonlight'] as const;
 
@@ -348,6 +350,7 @@ export function sanitizeFolioStyle(raw: unknown, base: FolioStyle = defaultFolio
     sealColor: oneOf(value.sealColor, SEAL_COLORS, base.sealColor),
     monogram: monogram(value.monogram, base.monogram),
     emblem: oneOf(value.emblem, SEAL_EMBLEMS, base.emblem),
+    seal: bool(value.seal, base.seal),
     ribbon: bool(value.ribbon, base.ribbon),
     font: oneOf(value.font, FOLIO_FONTS, base.font),
     customFont: isSafeFontFamily(value.customFont) ? value.customFont : base.customFont,
@@ -413,6 +416,7 @@ function sanitizeLighting(raw: unknown, base: LightingSettings): LightingSetting
     source: oneOf(value.source, LIGHT_SOURCES, base.source),
     intensity: round(num(value.intensity, base.intensity, 0, 2)),
     spread: num(value.spread, base.spread, 20, 160, 1),
+    beam: oneOf(value.beam, ['pointed', 'soft'], base.beam),
     aim: num(value.aim, base.aim, -45, 45, 1),
     reach: round(num(value.reach, base.reach, 0.2, 2)),
     position: {
@@ -476,12 +480,20 @@ function sanitizeTypewriter(raw: unknown, base: TypewriterSettings): TypewriterS
 }
 
 /** Returns a complete, valid settings object for any input (including garbage). */
+/** Version 1 had the block cursor as its default; the quill replaces it in version 2. */
+function migrate(value: Dict): Dict {
+  if (value.version !== 1 || !isDict(value.typography) || value.typography.cursorStyle !== 'block') {
+    return value;
+  }
+  return {...value, typography: {...value.typography, cursorStyle: 'quill'}};
+}
+
 export function sanitizeSettings(raw: unknown, base: NocturneSettings = defaultSettings()): NocturneSettings {
-  const value = isDict(raw) ? raw : {};
+  const value = migrate(isDict(raw) ? raw : {});
   const rawTheme = value.theme;
   const theme: ThemeChoice = rawTheme === 'classic' || isThemeId(rawTheme) ? rawTheme : base.theme;
   return {
-    version: 1,
+    version: 2,
     theme,
     focusMode: bool(value.focusMode, base.focusMode),
     effects: bool(value.effects, base.effects),

@@ -31,6 +31,7 @@ test('a draft keeps its print style, validated', (t) => {
     sealColor: 'gold',
     monogram: 'yk!',
     emblem: 'rose',
+    seal: 'yes',
     ribbon: false,
     font: 'sonnet',
     customFont: 'Bad"";',
@@ -41,6 +42,7 @@ test('a draft keeps its print style, validated', (t) => {
     sealColor: 'gold',
     monogram: 'YK',
     emblem: 'rose',
+    seal: true,
     ribbon: false,
     font: 'sonnet',
     customFont: '',
@@ -49,6 +51,7 @@ test('a draft keeps its print style, validated', (t) => {
   const odd = sanitizeDraft({text: 'x', style: {paper: 'papyrus', sealColor: 'pink', font: 'comic', monogram: '!!'}});
   t.deepEqual(odd?.style, defaultFolioStyle());
   t.is(sanitizeDraft({text: 'x', style: {signature: 'n'.repeat(90)}})?.style.signature.length, 40);
+  t.false(sanitizeDraft({text: 'x', style: {seal: false}})?.style.seal);
 });
 
 test('the last command is a source of its own', (t) => {

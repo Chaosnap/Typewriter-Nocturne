@@ -13,7 +13,8 @@ import {fontStack} from './settings';
 import {THEMES} from './themes';
 import type {NocturneSettings, NocturneTheme} from './types';
 
-const CURSOR_SHAPES = {block: 'BLOCK', bar: 'BEAM', underline: 'UNDERLINE'} as const;
+// The quill is drawn by Nocturne over a thin bar; with Hyper's own look (classic) the bar shows.
+const CURSOR_SHAPES = {quill: 'BEAM', block: 'BLOCK', bar: 'BEAM', underline: 'UNDERLINE'} as const;
 
 export function activeTheme(settings: NocturneSettings): NocturneTheme | null {
   return settings.theme === 'classic' ? null : THEMES[settings.theme];
@@ -60,10 +61,15 @@ export function paperPadding(settings: NocturneSettings): string {
   return settings.focusMode ? '10px 14px' : '26px 34px 10px';
 }
 
+/** The quill cursor is drawn: the Nocturne look with the quill chosen. */
+export function quillCursorOn(settings: NocturneSettings): boolean {
+  return settings.theme !== 'classic' && settings.typography.cursorStyle === 'quill';
+}
+
 /** xterm.js options that Hyper does not expose through its config. */
 export function extraTerminalOptions(settings: NocturneSettings) {
   return {
-    cursorWidth: settings.typography.cursorWidth,
+    cursorWidth: quillCursorOn(settings) ? 1 : settings.typography.cursorWidth,
     minimumContrastRatio: settings.typography.minimumContrast
   };
 }
@@ -80,7 +86,8 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     letterSpacing: typography.letterSpacing,
     disableLigatures: !typography.ligatures,
     cursorShape: CURSOR_SHAPES[typography.cursorStyle],
-    cursorBlink: typography.cursorBlink
+    // The quill breathes on its own; xterm's hidden bar under it need not blink.
+    cursorBlink: typography.cursorBlink && !quillCursorOn(settings)
   };
 
   const theme = activeTheme(settings);
@@ -94,7 +101,8 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     ...next,
     foregroundColor: paper.ink,
     backgroundColor: paper.paper,
-    cursorColor: paper.cursor,
+    // Under the quill, xterm's cursor is a bar in a transparent colour: present, never seen.
+    cursorColor: quillCursorOn(settings) ? 'rgba(0, 0, 0, 0)' : paper.cursor,
     cursorAccentColor: paper.paper,
     // With the ink selection the effect layer draws the selection; xterm's box stays invisible.
     selectionColor: inkSelectionOn(settings) ? 'rgba(0, 0, 0, 0)' : typography.selection || paper.selection,

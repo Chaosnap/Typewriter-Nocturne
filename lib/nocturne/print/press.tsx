@@ -180,10 +180,12 @@ export function Press({settings, initialTab, onClose}: PressProps) {
   const [newTitle, setNewTitle] = useState('');
   const [message, setMessage] = useState('');
   const [printed, setPrinted] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [hasSheet, setHasSheet] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shown = useRef<Shown | null>(null);
   const animation = useRef(0);
+  const printing = useRef(false);
   const renameTarget = useRef<string | null>(null);
 
   // The options as they stand, typed fields included; invalid entries fall back to the saved ones.
@@ -211,6 +213,26 @@ export function Press({settings, initialTab, onClose}: PressProps) {
     setFolios(await listFolios());
   };
 
+  // While composing, the sheet shows the folio as it will print, redrawn with every choice.
+  const composed = source === 'snippet' ? snippet : taken;
+  const styleKey = JSON.stringify(style);
+  useEffect(() => {
+    if (tab !== 'print' || printing.current) {
+      return;
+    }
+    const draft = sanitizeDraft({title, text: composed, source, style});
+    if (!draft) {
+      return;
+    }
+    cancelAnimationFrame(animation.current);
+    shown.current = {draft, number: null, createdAt: new Date().toISOString()};
+    setHasSheet(true);
+    setPreview(true);
+    setPrinted(false);
+    setSelected(null);
+    draw(1, 1);
+  }, [tab, source, title, composed, styleKey]);
+
   const pick = (next: FolioSource) => {
     setSource(next);
     if (next !== 'snippet') {
@@ -232,12 +254,15 @@ export function Press({settings, initialTab, onClose}: PressProps) {
   /** Types the folio line by line, then lowers and presses the seal. */
   const animate = () => {
     cancelAnimationFrame(animation.current);
+    printing.current = true;
+    setPreview(false);
     setPrinted(false);
     const lines = shown.current ? verseLines(shown.current.draft.text).length : 1;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) {
       draw(1, 1);
       emit('cue', {kind: 'seal'});
+      printing.current = false;
       setPrinted(true);
       return;
     }
@@ -263,6 +288,7 @@ export function Press({settings, initialTab, onClose}: PressProps) {
       if (seal < 1) {
         animation.current = requestAnimationFrame(frame);
       } else {
+        printing.current = false;
         setPrinted(true);
       }
     };
@@ -271,6 +297,7 @@ export function Press({settings, initialTab, onClose}: PressProps) {
 
   const print = async () => {
     // Terminal text is read again as it is printed, so it is what the terminal holds now.
+    printing.current = true;
     const text = source === 'snippet' ? snippet : activeTerminalText(source);
     if (source !== 'snippet') {
       setTaken(text);
@@ -278,13 +305,15 @@ export function Press({settings, initialTab, onClose}: PressProps) {
     commitTyped();
     const draft = sanitizeDraft({title, text, source, style});
     if (!draft) {
+      printing.current = false;
       setMessage('There is nothing to print yet.');
       return;
     }
     let number: number | null = null;
     let createdAt = new Date().toISOString();
     if (settings.print.keepInArchive) {
-      const kept = await keepFolio(draft);
+      // A folio that cannot be kept (a full disk, say) is still printed.
+      const kept = await keepFolio(draft).catch(() => null);
       if (kept) {
         number = kept.number;
         createdAt = kept.createdAt;
@@ -302,6 +331,7 @@ export function Press({settings, initialTab, onClose}: PressProps) {
     shown.current = null;
     setSelected(null);
     setPrinted(false);
+    setPreview(false);
     setHasSheet(false);
   };
 
@@ -311,6 +341,7 @@ export function Press({settings, initialTab, onClose}: PressProps) {
     setHasSheet(true);
     setSelected(folio.id);
     setConfirmDelete(null);
+    setPreview(false);
     setPrinted(true);
     draw(1, 1);
   };
@@ -487,40 +518,45 @@ export function Press({settings, initialTab, onClose}: PressProps) {
                   color={paperChip}
                   onChange={(paper) => changeStyle({paper})}
                 />
-                <div className="tn-press-seal">
-                  <SealPreview style={style} />
-                  <div className="tn-press-seal-options">
-                    <Swatches
-                      label="Wax"
-                      value={style.sealColor}
-                      options={SEALS}
-                      color={waxChip}
-                      onChange={(sealColor) => changeStyle({sealColor})}
-                    />
-                    <div className="tn-row">
-                      <label className="tn-label" htmlFor="tn-monogram">
-                        Monogram
-                      </label>
-                      <input
-                        id="tn-monogram"
-                        className="tn-input tn-monogram"
-                        value={monogram}
-                        maxLength={2}
-                        spellCheck={false}
-                        onChange={(event) => setMonogram(event.currentTarget.value)}
-                        onBlur={commitTyped}
-                        onKeyDown={(event) => event.key === 'Enter' && commitTyped()}
-                      />
+                <Switch label="Wax seal" checked={style.seal} onChange={(seal) => changeStyle({seal})} />
+                {style.seal ? (
+                  <>
+                    <div className="tn-press-seal">
+                      <SealPreview style={style} />
+                      <div className="tn-press-seal-options">
+                        <Swatches
+                          label="Wax"
+                          value={style.sealColor}
+                          options={SEALS}
+                          color={waxChip}
+                          onChange={(sealColor) => changeStyle({sealColor})}
+                        />
+                        <div className="tn-row">
+                          <label className="tn-label" htmlFor="tn-monogram">
+                            Monogram
+                          </label>
+                          <input
+                            id="tn-monogram"
+                            className="tn-input tn-monogram"
+                            value={monogram}
+                            maxLength={2}
+                            spellCheck={false}
+                            onChange={(event) => setMonogram(event.currentTarget.value)}
+                            onBlur={commitTyped}
+                            onKeyDown={(event) => event.key === 'Enter' && commitTyped()}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <Segmented
-                  label="Emblem"
-                  value={style.emblem}
-                  options={EMBLEMS}
-                  onChange={(emblem) => changeStyle({emblem})}
-                />
-                <Switch label="Silk ribbon" checked={style.ribbon} onChange={(ribbon) => changeStyle({ribbon})} />
+                    <Segmented
+                      label="Emblem"
+                      value={style.emblem}
+                      options={EMBLEMS}
+                      onChange={(emblem) => changeStyle({emblem})}
+                    />
+                    <Switch label="Silk ribbon" checked={style.ribbon} onChange={(ribbon) => changeStyle({ribbon})} />
+                  </>
+                ) : null}
                 <div className="tn-slider">
                   <div className="tn-slider-head">
                     <label className="tn-label" htmlFor="tn-folio-font">
@@ -677,6 +713,7 @@ export function Press({settings, initialTab, onClose}: PressProps) {
       </div>
       <div className="tn-press-sheet">
         {hasSheet ? null : <p className="tn-press-hint">The folio appears here, typed and sealed.</p>}
+        {preview ? <p className="tn-press-badge">Preview · not yet printed</p> : null}
         <canvas ref={canvasRef} aria-label="The printed folio" hidden={!hasSheet} />
       </div>
     </aside>

@@ -92,29 +92,30 @@ precision highp float;
 uniform sampler2D uAlbedo; uniform sampler2D uNormal;
 uniform vec2 uSize; uniform float uScale; uniform int uSource;
 uniform vec3 uLightPos; uniform vec3 uLightDir; uniform vec2 uCone; uniform float uExposure;
-uniform vec4 uWindow; uniform vec2 uPane; uniform vec3 uTint; uniform float uLamp;
+uniform vec4 uWindow; uniform vec3 uPane; uniform vec3 uTint; uniform float uLamp;
 uniform float uAmbient; uniform vec3 uAmbientTint; uniform float uRelief; uniform float uCrinkle;
-uniform float uGrain; uniform float uTime;
+uniform float uGrain; uniform float uTime; uniform float uSoft;
 out vec4 outColor;
 float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float panes(float t, float e) { float f = fract(t); return smoothstep(0.0, e, f) * smoothstep(0.0, e, 1.0 - f); }
 float gobo(vec2 p) {
+  p.x -= (p.y - uWindow.y) * uPane.z;
   vec2 uv = (p - uWindow.xy) / uWindow.zw;
-  float e = max(0.02, uPane.y / max(uWindow.z, uWindow.w));
+  float e = max(0.01, uPane.y / max(uWindow.z, uWindow.w));
   float aperture = smoothstep(0.5, 0.5 - e * 2.0, abs(uv.x)) * smoothstep(0.5, 0.5 - e * 2.0, abs(uv.y));
-  float me = min(0.45, 0.04 + uPane.y / uPane.x);
+  float me = min(0.45, 0.03 + uPane.y / uPane.x);
   float bars = panes((p.x - uWindow.x) / uPane.x + 0.5, me) * panes((p.y - uWindow.y) / uPane.x + 0.5, me);
   return aperture * (0.3 + 0.7 * bars);
 }
-// The bulb is a small sphere, not a point: near it the light is softer (no hot spot) and the edge
-// of the cone wider, as a real lamp's penumbra is.
+// A pointed beam comes from a point and narrows to it. A soft beam (uSoft = 1) comes from a small
+// sphere: near it the light has no hot spot and the edge of the cone widens, as a penumbra does.
 const float BULB = 30.0;
 float irradiance(vec3 P, vec3 n) {
   if (uSource == 2) return max(0.0, dot(n, -uLightDir)) * gobo(P.xy);
   vec3 d = P - uLightPos; float d2 = max(1.0, dot(d, d)); vec3 r = d * inversesqrt(d2);
-  float near = 1.0 - smoothstep(0.0, 260.0, sqrt(d2));
+  float near = uSoft * (1.0 - smoothstep(0.0, 260.0, sqrt(d2)));
   float cone = smoothstep(uCone.x - 0.3 * near, uCone.y, dot(r, uLightDir));
-  return cone * max(0.0, -dot(n, r)) / (d2 + BULB * BULB);
+  return cone * max(0.0, -dot(n, r)) / (d2 + uSoft * BULB * BULB);
 }
 void main() {
   ivec2 texel = ivec2(gl_FragCoord.xy);
@@ -171,7 +172,8 @@ const LIGHT_UNIFORMS = [
   'uRelief',
   'uCrinkle',
   'uGrain',
-  'uTime'
+  'uTime',
+  'uSoft'
 ] as const;
 
 type Uniforms<K extends string> = Record<K, WebGLUniformLocation | null>;
@@ -197,6 +199,8 @@ export type LightFrame = {
   relief: number;
   grain: number;
   time: number;
+  /** The beam opens softly round the bulb instead of narrowing to a point. */
+  soft: boolean;
 };
 
 const SOURCE_INDEX = {carriage: 0, 'desk-lamp': 1, moonlight: 2} as const;
@@ -385,13 +389,14 @@ export class PaperLight {
     gl.uniform2f(u.uCone, rig.cosOuter, rig.cosInner);
     gl.uniform1f(u.uExposure, rig.exposure);
     gl.uniform4f(u.uWindow, rig.window.x, rig.window.y, rig.window.width, rig.window.height);
-    gl.uniform2f(u.uPane, rig.window.pane, rig.window.softness);
+    gl.uniform3f(u.uPane, rig.window.pane, rig.window.softness, rig.window.skew);
     const peak = Math.max(frame.tint[0], frame.tint[1], frame.tint[2], 1e-6);
     gl.uniform3f(u.uTint, frame.tint[0] / peak, frame.tint[1] / peak, frame.tint[2] / peak);
     gl.uniform1f(u.uLamp, frame.lamp ? 1 : 0);
     gl.uniform1f(u.uAmbient, frame.ambient);
     gl.uniform3fv(u.uAmbientTint, frame.ambientTint);
     gl.uniform1f(u.uRelief, frame.relief);
+    gl.uniform1f(u.uSoft, frame.soft ? 1 : 0);
     gl.uniform1f(u.uCrinkle, spec.paper.surface.crinkle * spec.texture);
     gl.uniform1f(u.uGrain, frame.grain);
     gl.uniform1f(u.uTime, frame.time);

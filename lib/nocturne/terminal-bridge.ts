@@ -54,6 +54,7 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
   let expected: Expected[] = [];
   let lastTypedAt = 0;
   let bellArmed = true;
+  let cursorShown = true;
 
   const measure = () => {
     frameRequest = 0;
@@ -84,6 +85,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       visible: buffer.viewportY === buffer.baseY,
       viewportY: buffer.viewportY,
       baseY: buffer.baseY,
+      cursorHidden: !cursorShown,
+      focused: document.activeElement === term.textarea,
       grid: {left: rect.left, top: rect.top, width: rect.width, height: rect.height}
     };
 
@@ -141,6 +144,17 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
   disposables.push(subscribe(() => applyExtraOptions(term)));
 
   listen(term.onCursorMove(schedule));
+  // Programs show and hide the cursor with DECTCEM (`ESC[?25h` / `ESC[?25l`). Watched here, and
+  // left for xterm.js to apply as always (the handlers return false).
+  const cursorMode = (shown: boolean) => (params: (number | number[])[]) => {
+    if (params.includes(25)) {
+      cursorShown = shown;
+      schedule();
+    }
+    return false;
+  };
+  listen(term.parser.registerCsiHandler({prefix: '?', final: 'h'}, cursorMode(true)));
+  listen(term.parser.registerCsiHandler({prefix: '?', final: 'l'}, cursorMode(false)));
   listen(term.onResize(schedule));
   listen(term.onScroll(schedule));
   listen(term.buffer.onBufferChange(schedule));
@@ -198,6 +212,8 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
     };
     textarea.addEventListener('focus', onFocus);
     disposables.push(() => textarea.removeEventListener('focus', onFocus));
+    textarea.addEventListener('blur', schedule);
+    disposables.push(() => textarea.removeEventListener('blur', schedule));
     if (document.activeElement === textarea) {
       onFocus();
     }
@@ -213,6 +229,40 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       viewport.addEventListener('scroll', schedule, {passive: true});
       disposables.push(() => viewport.removeEventListener('scroll', schedule));
     }
+
+    // xterm reports a selection only when the mouse is released. While the user drags, the ink
+    // selection follows the mouse frame by frame, so they can see how far it reaches.
+    const element = term.element;
+    let dragFrame = 0;
+    let dragKey = '';
+    const followDrag = () => {
+      const range = term.getSelectionPosition();
+      const key = range ? `${range.start.x},${range.start.y},${range.end.x},${range.end.y}` : '';
+      if (key !== dragKey) {
+        dragKey = key;
+        emit('selection', {uid, cells: selectedCells(term)});
+      }
+      dragFrame = requestAnimationFrame(followDrag);
+    };
+    const stopDrag = () => {
+      cancelAnimationFrame(dragFrame);
+      dragFrame = 0;
+      window.removeEventListener('mouseup', stopDrag);
+    };
+    const startDrag = (event: MouseEvent) => {
+      if (event.button !== 0 || dragFrame) {
+        return;
+      }
+      // Differs from every range, so the first frame always reports (a new drag clears the old one).
+      dragKey = 'start';
+      window.addEventListener('mouseup', stopDrag);
+      dragFrame = requestAnimationFrame(followDrag);
+    };
+    element.addEventListener('mousedown', startDrag);
+    disposables.push(() => {
+      element.removeEventListener('mousedown', startDrag);
+      stopDrag();
+    });
   }
 
   // Layout changes outside the terminal (focus mode, studio panel) move the grid on screen.

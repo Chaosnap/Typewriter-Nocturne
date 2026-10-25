@@ -661,7 +661,9 @@ export class StageController {
     const floor = Math.max(ambientFloor(paper.ink, paper.paper, 4.5), paper.appearance === 'light' ? 0.55 : 0.62);
     const ambient = Math.min(1, Math.max(floor, 1 - theme.light.shade * (0.55 + 0.45 * lighting.intensity)));
     const room = toUnit(theme.palette.room);
-    const tint = (c: number) => 1 + (0.6 + c * 1.5 - 1) * 0.4;
+    // The room's colour tints the shadow; moonlit shadow is markedly blue, as night shadow looks.
+    const strength = rig.source === 'moonlight' ? 0.75 : 0.4;
+    const tint = (c: number) => 1 + (0.6 + c * 1.5 - 1) * strength;
     return {
       rig,
       lamp: this.lampOn(),
@@ -671,7 +673,8 @@ export class StageController {
       relief: 2 * lighting.paperIllumination,
       grain: lighting.grain,
       // Subtle grain is a still texture; strong grain flickers like film.
-      time: this.movingGrain() ? now / 1000 : 0
+      time: this.movingGrain() ? now / 1000 : 0,
+      soft: lighting.beam === 'soft'
     };
   }
 
