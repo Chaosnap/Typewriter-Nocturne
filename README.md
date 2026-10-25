@@ -10,21 +10,57 @@
   <a href="https://github.com/Chaosnap/Typewriter-Nocturne/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Chaosnap/Typewriter-Nocturne/actions/workflows/ci.yml/badge.svg"></a>
 </p>
 
-Typewriter Nocturne is a cross-platform terminal with the soul of a writing desk: paper and ink, brass
-and walnut, a carriage lamp, the sound of type bars. Underneath it is a complete, real terminal: it is a
-fork of [Hyper](https://github.com/vercel/hyper), with xterm.js and node-pty running your actual shell, so
-zsh, bash, PowerShell, Git, Python, Node.js, SSH, Vim, tmux and every other TUI program work as they do in
-any good terminal.
+Typewriter Nocturne is a cross-platform terminal with the soul of a writing desk: your shell typed onto a
+sheet of paper, a brass-and-enamel typewriter whose head follows the cursor, a lamp with a pull cord, the
+sound of type bars. Underneath it is a complete, real terminal: a fork of [Hyper](https://github.com/vercel/hyper)
+with xterm.js and node-pty running your actual shell, so zsh, bash, PowerShell, Git, Python, Node.js, SSH,
+Vim, tmux and every other TUI program work as they do in any good terminal.
 
-> **Status: early development (Phase 1 of 6).** The fork, rebrand, cloud build pipeline and architecture are in
-> place; the literary themes, Lighting Studio and typewriter engine are being built next. See
-> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the plan and what is already implemented.
+**[Documentation](https://chaosnap.github.io/Typewriter-Nocturne/)** ·
+**[中文文档](https://chaosnap.github.io/Typewriter-Nocturne/zh/)** ·
+**[Interactive demo](https://chaosnap.github.io/Typewriter-Nocturne/demo/)** ·
+**[Download](https://github.com/Chaosnap/Typewriter-Nocturne/releases)**
 
-| Paper & Ink | Midnight Study | Moonlit Poetry |
-| --- | --- | --- |
-| <img src="assets/nocturne/thumbnails/paper-and-ink.svg" alt="Paper & Ink theme preview"> | <img src="assets/nocturne/thumbnails/midnight-study.svg" alt="Midnight Study theme preview"> | <img src="assets/nocturne/thumbnails/moonlit-poetry.svg" alt="Moonlit Poetry theme preview"> |
+<img src="website/public/images/paper-and-ink.jpg" alt="Typewriter Nocturne in the Paper &amp; Ink theme: a shell on lit cotton paper above a 3D typewriter" width="100%">
 
-*Theme concept previews: original artwork, not screenshots. Screenshots of the real app come from CI.*
+<table>
+  <tr>
+    <td width="50%"><img src="website/public/images/midnight-study.jpg" alt="Midnight Study theme on night paper, under a desk lamp" width="100%"><br><em>Midnight Study, night paper</em></td>
+    <td width="50%"><img src="website/public/images/moonlit-poetry.jpg" alt="Moonlit Poetry theme on laid paper, moonlight through a window" width="100%"><br><em>Moonlit Poetry, laid paper</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="website/public/images/press.jpg" alt="The Press: a code snippet printed as a folio and sealed in wax" width="100%"><br><em>The Press: a snippet printed as a sealed folio</em></td>
+    <td width="50%"><img src="website/public/images/studio.jpg" alt="Nocturne Studio: theme, paper, type, lamp and sound" width="100%"><br><em>Nocturne Studio</em></td>
+  </tr>
+</table>
+
+*Screenshots of the packaged app, taken by its end-to-end tests on GitHub Actions (CI runners have no GPU,
+so the typewriter is drawn on the CPU there with Quality set to High). More in the
+[gallery](https://chaosnap.github.io/Typewriter-Nocturne/guide/gallery).*
+
+> **Status: alpha.** `v0.1.0-alpha.2` is on the [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases)
+> page. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built and what comes next.
+
+## Features
+
+* **A 3D typewriter** with physically based materials and soft shadows. The type head rides a rail with one
+  rack tooth per terminal column, moves with escapement physics, sways on its pivot and strikes the platen.
+* **Light that behaves like light**: inverse-square falloff, Lambert's cosine law, a soft spot cone, moonlight
+  through a window; brightness, beam angle and aim are adjustable, and a braided **pull cord** at the top left
+  switches the lamp. The room never dims the page below 4.5:1 contrast.
+* **Paper and ink**: six papers from cotton to parchment, each with its own fibres; freshly typed characters
+  land heavy and settle into print.
+* **Sounds of the machine**, synthesised: type bars, space bar, carriage return, margin bell, the platen
+  ratchet when you recall history with ↑/↓, the escapement on ←/→, the tabulator, placed in stereo where the
+  head stands.
+* **Input methods**: pinyin, kana and hangul compositions strike keys while you compose, and the committed text
+  lands as a firm double strike, without touching the IME or what the shell receives.
+* **Fonts**: Courier Prime and IBM Plex Mono bundled, Nerd Font presets, any installed family, and the
+  Symbols Nerd Font bundled so Nerd Font icons appear with every face.
+* **The Press**: print a snippet, the selection or the screen as a folio set like a sonnet and sealed in red
+  wax; keep it in the local **Archive**, save it as PNG or copy it.
+* **Focus Mode**, a Studio for every setting, and an **Auto quality** that keeps the terminal fast on computers
+  without a usable GPU.
 
 ## Principles
 
@@ -32,7 +68,8 @@ any good terminal.
   directory, keyboard behaviour, IME input and bracketed paste come straight from Hyper and your shell.
 * **Effects never touch your data.** Lighting and typewriter feedback sit on top of the terminal; they never
   delay, intercept or rewrite keystrokes or program output. Every effect can be turned off, and Focus Mode
-  removes all decoration at once.
+  removes all decoration at once. Terminal text is read only when you print it, and folios stay on your
+  computer.
 * **Typography that respects the grid.** Strict monospace cells for the terminal, CJK double-width characters
   intact; serif type only for the chrome around it.
 * **Built in the cloud.** Every dependency install, native rebuild, test and installer is produced by GitHub

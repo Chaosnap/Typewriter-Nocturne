@@ -1,0 +1,71 @@
+# Builds the product documentation (website/, VitePress) together with the interactive design
+# preview (docs/preview) and publishes them to GitHub Pages.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'docs/preview/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the documentation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history, so every page shows when it was last changed.
+          fetch-depth: 0
+
+      - name: Set up pnpm (version from package.json#packageManager)
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+
+      - name: Install VitePress (frozen lockfile)
+        working-directory: website
+        run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Add the interactive demo
+        run: |
+          mkdir -p website/public/demo
+          cp docs/preview/index.html website/public/demo/index.html
+
+      - name: Build
+        working-directory: website
+        run: pnpm run docs:build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/.vitepress/dist
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

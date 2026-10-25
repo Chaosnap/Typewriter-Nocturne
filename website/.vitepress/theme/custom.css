@@ -1,0 +1,156 @@
+/* Typewriter Nocturne look for the VitePress default theme: brass on a dark study, serif type,
+ * paper-coloured accents. */
+
+:root {
+  --vp-font-family-base: 'EB Garamond', 'Iowan Old Style', Palatino, Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  --vp-font-family-mono: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+  --tn-display: 'Cormorant Garamond', 'EB Garamond', Georgia, 'Songti SC', serif;
+
+  --vp-c-brand-1: #8a6420;
+  --vp-c-brand-2: #a37a33;
+  --vp-c-brand-3: #6e4f17;
+  --vp-c-brand-soft: rgba(176, 138, 74, 0.16);
+
+  --vp-c-bg: #f6f0e3;
+  --vp-c-bg-alt: #efe6d2;
+  --vp-c-bg-soft: #ebe1cb;
+  --vp-c-text-1: #2a2019;
+  --vp-c-text-2: #5e5244;
+  --vp-c-divider: rgba(90, 70, 40, 0.18);
+}
+
+.dark {
+  --vp-c-brand-1: #d8b46e;
+  --vp-c-brand-2: #c9a35c;
+  --vp-c-brand-3: #a9843f;
+  --vp-c-brand-soft: rgba(210, 173, 102, 0.16);
+
+  --vp-c-bg: #17110d;
+  --vp-c-bg-alt: #120d0a;
+  --vp-c-bg-elv: #1f1712;
+  --vp-c-bg-soft: #221a14;
+  --vp-c-text-1: #f1e6cf;
+  --vp-c-text-2: rgba(241, 230, 207, 0.7);
+  --vp-c-text-3: rgba(241, 230, 207, 0.48);
+  --vp-c-divider: rgba(201, 163, 92, 0.18);
+  --vp-c-gutter: #0b0806;
+}
+
+:root {
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #1b130c;
+  --vp-button-brand-bg: #d2ad66;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #1b130c;
+  --vp-button-brand-hover-bg: #e2bf7b;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #1b130c;
+  --vp-button-brand-active-bg: #b8914c;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f3dca4 10%, #c9a35c 50%, #8e6a2c);
+  --vp-home-hero-image-background-image: radial-gradient(circle, rgba(255, 210, 154, 0.35), transparent 65%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.VPHero .name,
+.VPHero .text,
+.vp-doc h1,
+.vp-doc h2 {
+  font-family: var(--tn-display);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.VPHero .text {
+  font-style: italic;
+}
+
+.VPHero .tagline {
+  font-size: 20px;
+}
+
+.VPHero .image-src {
+  max-width: 560px;
+  border-radius: 10px;
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.9);
+}
+
+.dark .VPContent {
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255, 210, 154, 0.07), transparent 70%),
+    var(--vp-c-bg);
+}
+
+.VPFeature .title {
+  font-family: var(--tn-display);
+  font-size: 20px;
+}
+
+.vp-doc {
+  font-size: 17.5px;
+}
+
+.vp-doc h2 {
+  font-size: 28px;
+  font-style: italic;
+}
+
+.vp-doc img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.8);
+}
+
+.vp-doc kbd {
+  padding: 0 6px;
+  border: 1px solid var(--vp-c-divider);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85em;
+}
+
+/* A printed folio, as the Press makes them. */
+.folio {
+  margin: 20px 0;
+  padding: 26px 30px;
+  border-radius: 4px;
+  background: #efe6d2;
+  color: #2a2019;
+  box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
+}
+
+.folio .caps {
+  margin: 0 0 8px;
+  color: #8e2a1c;
+  font-variant: small-caps;
+  letter-spacing: 0.24em;
+  text-align: center;
+}
+
+.folio div[class*='language-'] {
+  background: transparent !important;
+}
+
+.folio pre code {
+  color: #2a2019;
+}
+
+/* Screenshots below the features on the home page. */
+.VPHome .vp-doc {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 24px 24px 72px;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  margin: 18px 0 8px;
+}
+
+.gallery p {
+  margin: 0;
+}

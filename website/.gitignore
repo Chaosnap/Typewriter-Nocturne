@@ -1,0 +1,5 @@
+node_modules
+.vitepress/dist
+.vitepress/cache
+# Copied from docs/preview/index.html when the site is built
+public/demo

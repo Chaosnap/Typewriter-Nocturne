@@ -262,7 +262,9 @@ Integration points in upstream files (kept minimal, each marked `[nocturne]`):
 | --- | --- |
 | `lib/index.tsx` | apply the paper and typography to the config before `loadConfig` / `reloadConfig`; reload when they change; open terminals once bundled fonts are loaded |
 | `lib/containers/hyper.tsx` | wrap `Header` + `Terms` in the Nocturne stage |
-| `lib/components/term.tsx` | attach the read-only terminal bridge (cursor geometry, echoed glyphs) |
+| `lib/components/term.tsx` | attach the read-only terminal bridge (cursor geometry, echoed glyphs, text for the Press on request) |
+| `lib/components/header.tsx` | default window title |
+| `app/index.ts` | register the Archive IPC handlers |
 | `app/index.ts` | register the settings IPC handlers |
 | `app/config/windows.ts` | larger default window |
 | `webpack.config.ts` | emit bundled font files |
@@ -288,7 +290,7 @@ Integration points in upstream files (kept minimal, each marked `[nocturne]`):
 | --- | --- | --- |
 | 1 | Investigation, fork, rebrand, CI and packaging | done — macOS, Windows and Linux packages build and pass e2e in CI |
 | 2 | Design tokens, typography system, layout, icon, paper material, lighting architecture, preview | done — preview approved |
-| 3 | Themes, typewriter engine, Lighting Studio, Typography Studio | in progress — stage, model, light, sounds and Studio ported into the app |
+| 3 | Themes, typewriter engine, Lighting Studio, Typography Studio | done — stage, model, light and pull cord, sounds with IME feedback, Nerd Fonts, the Press and Archive |
 | 4 | Cross-platform packaging hardening, arm64 targets | planned |
 | 5 | Verification, performance, Electron upgrade | planned |
-| 6 | Release, documentation, screenshots | planned |
+| 6 | Release, documentation, screenshots | in progress — alpha releases, VitePress documentation on GitHub Pages, CI screenshots |
