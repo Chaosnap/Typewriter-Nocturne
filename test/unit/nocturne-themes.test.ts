@@ -3,6 +3,7 @@ import test from 'ava';
 import {
   activePaper,
   applyNocturneToConfig,
+  blockCursorOn,
   configAffectingKey,
   inkSelectionOn,
   lightOn,
@@ -64,14 +65,14 @@ const baseConfig = {
 test('the paper drives xterm colours, the settings drive fonts', (t) => {
   const settings = defaultSettings();
   const result = applyNocturneToConfig(baseConfig, settings);
-  t.is(result.backgroundColor, PAPERS.cotton.paper);
-  t.is(result.foregroundColor, PAPERS.cotton.ink);
-  t.is(result.colors.red, PAPERS.cotton.ansi.red);
+  t.is(result.backgroundColor, PAPERS.onionskin.paper);
+  t.is(result.foregroundColor, PAPERS.onionskin.ink);
+  t.is(result.colors.red, PAPERS.onionskin.ansi.red);
   t.is((result.colors as unknown as Record<string, string>).limeGreen, '#32CD32');
   t.true(result.fontFamily.startsWith('"Courier Prime"'));
   t.is(result.fontSize, settings.typography.fontSize);
-  // The quill is drawn over a thin bar.
-  t.is(result.cursorShape, 'BEAM');
+  // xterm draws the block; Nocturne dresses it with the ribbon and the type guide.
+  t.is(result.cursorShape, 'BLOCK');
 });
 
 test('the classic theme keeps colours from hyper.json', (t) => {
@@ -127,16 +128,22 @@ test('the ink selection hides the selection box, the classic one keeps it', (t) 
   t.not(applyNocturneToConfig(baseConfig, classic).selectionColor, 'rgba(0, 0, 0, 0)');
 });
 
-test("under the quill, xterm keeps a thin bar in a transparent colour; Hyper's own look keeps the bar", (t) => {
-  const quill = applyNocturneToConfig(baseConfig, defaultSettings());
-  t.true(quillCursorOn(defaultSettings()));
+test("the block is dressed in Nocturne; under the quill xterm keeps a transparent bar; Hyper's look is plain", (t) => {
+  const block = applyNocturneToConfig(baseConfig, defaultSettings());
+  t.true(blockCursorOn(defaultSettings()));
+  t.false(quillCursorOn(defaultSettings()));
+  t.is(block.cursorShape, 'BLOCK');
+  t.is(block.cursorColor, PAPERS.onionskin.cursor);
+  const quillSettings = patchSettings(defaultSettings(), {typography: {cursorStyle: 'quill'}});
+  const quill = applyNocturneToConfig(baseConfig, quillSettings);
+  t.true(quillCursorOn(quillSettings));
+  t.false(blockCursorOn(quillSettings));
   t.is(quill.cursorShape, 'BEAM');
   t.is(quill.cursorColor, 'rgba(0, 0, 0, 0)');
-  const blockSettings = patchSettings(defaultSettings(), {typography: {cursorStyle: 'block'}});
-  const block = applyNocturneToConfig(baseConfig, blockSettings);
-  t.is(block.cursorShape, 'BLOCK');
-  t.not(block.cursorColor, 'rgba(0, 0, 0, 0)');
   const classic = patchSettings(defaultSettings(), {theme: 'classic'});
-  t.false(quillCursorOn(classic));
-  t.is(applyNocturneToConfig(baseConfig, classic).cursorShape, 'BEAM');
+  t.false(blockCursorOn(classic));
+  t.is(applyNocturneToConfig(baseConfig, classic).cursorShape, 'BLOCK');
+  const classicQuill = patchSettings(classic, {typography: {cursorStyle: 'quill'}});
+  t.false(quillCursorOn(classicQuill));
+  t.is(applyNocturneToConfig(baseConfig, classicQuill).cursorShape, 'BEAM');
 });
