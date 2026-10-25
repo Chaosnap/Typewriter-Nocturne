@@ -334,7 +334,12 @@ const monogram = (value: unknown, fallback: string) => {
 
 /** A name for the signature line: printable text only, at most 40 characters. */
 const signature = (value: unknown, fallback: string) =>
-  typeof value === 'string' ? value.replace(/[^\P{C}]/gu, '').trim().slice(0, 40) : fallback;
+  typeof value === 'string'
+    ? value
+        .replace(/[^\P{C}]/gu, '')
+        .trim()
+        .slice(0, 40)
+    : fallback;
 
 export function sanitizeFolioStyle(raw: unknown, base: FolioStyle = defaultFolioStyle()): FolioStyle {
   const value = isDict(raw) ? raw : {};
