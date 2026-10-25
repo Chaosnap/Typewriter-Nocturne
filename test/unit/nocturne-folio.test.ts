@@ -15,13 +15,12 @@ import {defaultFolioStyle} from '../../app/nocturne/settings';
 
 test('a draft keeps plain text only, within limits', (t) => {
   const raw = {title: '  On\tLeaves \u001b[31m', text: 'ls\r\n\u001b[2Jecho hi\u0007 \ue0a0', source: 'screen'};
-  const expected = {
+  t.deepEqual(sanitizeDraft(raw), {
     title: 'On Leaves [31m',
     text: 'ls\n[2Jecho hi \ue0a0',
     source: 'screen',
     style: defaultFolioStyle()
-  };
-  t.deepEqual(sanitizeDraft(raw), expected);
+  });
   t.is(sanitizeDraft({text: 'x'.repeat(FOLIO_LIMITS.text + 50)})?.text.length, FOLIO_LIMITS.text);
   t.is(sanitizeDraft({text: 'x', source: 'elsewhere'})?.source, 'snippet');
 });
