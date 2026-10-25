@@ -65,7 +65,8 @@ const lightPaper = (id: PaperId, name: string, paper: string, surface: Paper['su
   ink: '#2a2019',
   inkMuted: '#6b5f52',
   cursor: '#3a2c20',
-  selection: 'rgba(176, 138, 74, 0.3)',
+  // A wash of blue-black ink, as a watercolour highlight on cream paper.
+  selection: 'rgba(52, 64, 112, 0.2)',
   ansi: LIGHT_ANSI,
   surface
 });
@@ -84,7 +85,7 @@ export const PAPERS: Record<PaperId, Paper> = {
     ink: '#e6e1ea',
     inkMuted: '#9a94a6',
     cursor: '#e9e7ff',
-    selection: 'rgba(160, 168, 214, 0.28)',
+    selection: 'rgba(196, 188, 255, 0.2)',
     ansi: NIGHT_ANSI,
     surface: {crinkle: 0.3, laid: 0, linen: 0, mottle: 0.1, age: 0}
   }

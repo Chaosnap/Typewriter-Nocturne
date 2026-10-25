@@ -1,5 +1,6 @@
 // The Nocturne stage round Hyper's terminals: a dark study, a sheet of paper standing in a 3D
-// typewriter, the light on the page and its pull cord, the Press and the Studio.
+// typewriter, the light on the page and its pull cord, the paper-clip scrollbar, the Press and the
+// Studio.
 //
 // Hyper's header and terminals are rendered unchanged inside it. The DOM tree is the same in every
 // mode (classic theme, focus mode, effects off), only styles change, so switching never remounts
@@ -8,18 +9,20 @@
 import {ipcRenderer} from 'electron';
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 
-import {activePaper, activeTheme} from '../../../app/nocturne/apply-config';
-import {stageLayout} from '../../../app/nocturne/stage-layout';
+import {activePaper, activeTheme, inkSelectionOn, lightOn, paperEffectsOn} from '../../../app/nocturne/apply-config';
+import {rollerBoxes, stageLayout} from '../../../app/nocturne/stage-layout';
 import type {Box} from '../../../app/nocturne/stage-layout';
 import {detectGpu, renderMode} from '../lighting/gpu';
 import {Press} from '../print/press';
 import type {PressTab} from '../print/press';
 import {StageController} from '../stage-controller';
 import {getSettings, updateSettings, useNocturneSettings} from '../store';
+import {scrollActiveTerminal} from '../terminal-bridge';
 import {themeVariables} from '../theme-css';
 import {observeKeys} from '../typewriter/keys';
 
 import {PullCord} from './pull-cord';
+import {ScrollClip} from './scroll-clip';
 import {Studio} from './studio';
 import {Toolbar} from './toolbar';
 
@@ -47,6 +50,7 @@ export function NocturneShell({header, children}: ShellProps) {
   const paperRef = useRef<HTMLCanvasElement>(null);
   const glowRef = useRef<HTMLCanvasElement>(null);
   const inkRef = useRef<HTMLCanvasElement>(null);
+  const selectionRef = useRef<HTMLCanvasElement>(null);
   const machineRef = useRef<HTMLCanvasElement>(null);
   const controller = useRef<StageController | null>(null);
 
@@ -79,11 +83,12 @@ export function NocturneShell({header, children}: ShellProps) {
     const paper = paperRef.current;
     const glow = glowRef.current;
     const ink = inkRef.current;
+    const selection = selectionRef.current;
     const machine = machineRef.current;
-    if (!stage || !paper || !glow || !ink || !machine) {
+    if (!stage || !paper || !glow || !ink || !selection || !machine) {
       return;
     }
-    const director = new StageController({stage, paper, glow, ink, machine}, getSettings());
+    const director = new StageController({stage, paper, glow, ink, selection, machine}, getSettings());
     controller.current = director;
     const stopObservingKeys = observeKeys();
     return () => {
@@ -128,8 +133,17 @@ export function NocturneShell({header, children}: ShellProps) {
     if (settings.focusMode) {
       classes.push('tn-focus');
     }
+    if (!paperEffectsOn(settings) && !lightOn(settings)) {
+      classes.push('tn-no-light');
+    }
+    if (!paperEffectsOn(settings)) {
+      classes.push('tn-no-ink');
+    }
     if (!settings.effects || settings.focusMode) {
       classes.push('tn-quiet');
+    }
+    if (settings.scrollbar.style !== 'native') {
+      classes.push('tn-scroll-custom');
     }
     if (studioOpen) {
       classes.push('tn-studio-open');
@@ -148,6 +162,11 @@ export function NocturneShell({header, children}: ShellProps) {
     setPress(null);
     window.focusActiveTerm?.();
   };
+  const roll = (direction: 'top' | 'bottom') => {
+    scrollActiveTerminal(direction);
+    controller.current?.roll(direction);
+  };
+  const showCord = theme !== null && settings.chrome.pullCord && !settings.focusMode;
   const sheetStyle = nocturne ? boxStyle(layout.sheet) : undefined;
   const textStyle = nocturne ? boxStyle(layout.text, layout.sheet) : undefined;
 
@@ -160,12 +179,28 @@ export function NocturneShell({header, children}: ShellProps) {
             {children}
           </div>
           <canvas className="tn-layer tn-ink" ref={inkRef} />
+          <canvas className="tn-layer tn-selection" ref={selectionRef} hidden={!inkSelectionOn(settings)} />
           <canvas className="tn-layer tn-paper-light" ref={paperRef} />
           <canvas className="tn-layer tn-glow" ref={glowRef} />
         </div>
         <canvas className="tn-machine" ref={machineRef} hidden={!nocturne || !layout.machine} />
         <div className="tn-vignette" />
-        {theme ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
+        {nocturne
+          ? rollerBoxes(layout).map((box, i) => (
+              <button
+                key={box.x}
+                type="button"
+                className="tn-roller"
+                style={boxStyle(box)}
+                aria-label={i === 0 ? 'Roll the paper to the top' : 'Roll the paper to the bottom'}
+                title={i === 0 ? 'Double-click: to the top' : 'Double-click: to the bottom'}
+                onMouseDown={(event) => event.preventDefault()}
+                onDoubleClick={() => roll(i === 0 ? 'top' : 'bottom')}
+              />
+            ))
+          : null}
+        {nocturne ? <ScrollClip settings={settings.scrollbar} sheet={layout.sheet} text={layout.text} /> : null}
+        {showCord ? <PullCord on={settings.lighting.enabled} onToggle={toggleLamp} /> : null}
         {theme ? (
           <Toolbar
             settings={settings}

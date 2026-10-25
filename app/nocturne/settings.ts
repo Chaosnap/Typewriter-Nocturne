@@ -9,14 +9,22 @@ import {isPaperId} from './papers';
 import {isThemeId} from './themes';
 import type {
   ChromeSettings,
+  ClipFinish,
   CursorStyle,
   EffectQuality,
+  FocusSettings,
+  FolioFont,
+  FolioPaperId,
+  FolioStyle,
   FontId,
   LightingPresetId,
   LightingSettings,
   NocturneSettings,
   PaperSettings,
   PrintSettings,
+  ScrollbarSettings,
+  SealColor,
+  SealEmblem,
   SettingsPatch,
   ThemeChoice,
   TypewriterSettings,
@@ -104,6 +112,32 @@ export function fontStack(typography: Pick<TypographySettings, 'font' | 'customF
 export const UI_SERIF = '"EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
 export const DISPLAY_SERIF = '"Cormorant Garamond", "EB Garamond", "Iowan Old Style", Georgia, serif';
 
+const SERIF_CJK = '"Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", SimSun, serif';
+const BOOK_SERIF = `"EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ${SERIF_CJK}`;
+
+/** The face a folio's text is printed in, with its size in pixels on the page. */
+export function folioFontStack(
+  style: Pick<FolioStyle, 'font' | 'customFont'>,
+  typography: Pick<TypographySettings, 'font' | 'customFamily'>
+): {family: string; size: number} {
+  switch (style.font) {
+    case 'sonnet':
+      return {family: BOOK_SERIF, size: 15};
+    case 'display':
+      return {family: `"Cormorant Garamond", "EB Garamond", Georgia, ${SERIF_CJK}`, size: 16.5};
+    case 'plex':
+      return {family: fontStack({font: 'ibm-plex-mono', customFamily: ''}), size: 13};
+    case 'terminal':
+      return {family: fontStack(typography), size: 13.5};
+    case 'custom':
+      return isSafeFontFamily(style.customFont)
+        ? {family: fontStack({font: 'custom', customFamily: style.customFont}), size: 14}
+        : {family: fontStack({font: 'courier-prime', customFamily: ''}), size: 14};
+    default:
+      return {family: fontStack({font: 'courier-prime', customFamily: ''}), size: 14};
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Presets
 
@@ -183,7 +217,7 @@ export function defaultSettings(): NocturneSettings {
     theme: 'paper-and-ink',
     focusMode: false,
     effects: true,
-    chrome: {toolbar: true, statusBar: true, frame: true, epigraph: true},
+    chrome: {toolbar: true, statusBar: true, frame: true, epigraph: true, pullCord: true},
     paper: {style: 'cotton', texture: 1},
     lighting: {
       enabled: true,
@@ -220,7 +254,8 @@ export function defaultSettings(): NocturneSettings {
       cursorBlink: false,
       smoothing: 'auto',
       minimumContrast: 4.5,
-      selection: ''
+      selection: '',
+      selectionStyle: 'ink'
     },
     typewriter: {
       sound: true,
@@ -237,7 +272,22 @@ export function defaultSettings(): NocturneSettings {
       paperShake: 0,
       impression: 0.8
     },
-    print: {keepInArchive: true}
+    print: {keepInArchive: true, style: defaultFolioStyle()},
+    focus: {background: 'paper', color: '#1c1916', paper: true, lighting: false},
+    scrollbar: {style: 'clip', finish: 'silver', barOpacity: 0.45, barWidth: 6}
+  };
+}
+
+export function defaultFolioStyle(): FolioStyle {
+  return {
+    paper: 'laid',
+    sealColor: 'crimson',
+    monogram: 'N',
+    emblem: 'moon',
+    ribbon: true,
+    font: 'typewriter',
+    customFont: '',
+    signature: ''
   };
 }
 
@@ -270,9 +320,63 @@ const CURSOR_STYLES: CursorStyle[] = ['block', 'bar', 'underline'];
 const VOICES: TypewriterVoice[] = ['standard', 'portable', 'electric', 'whisper'];
 const LIGHT_SOURCES = ['theme', 'carriage', 'desk-lamp', 'moonlight'] as const;
 
+const FOLIO_PAPERS: FolioPaperId[] = ['laid', 'cotton', 'vellum', 'parchment', 'night'];
+const SEAL_COLORS: SealColor[] = ['crimson', 'oxblood', 'black', 'gold', 'emerald', 'sapphire'];
+const SEAL_EMBLEMS: SealEmblem[] = ['moon', 'rose', 'quill', 'none'];
+const FOLIO_FONTS: FolioFont[] = ['typewriter', 'sonnet', 'display', 'plex', 'terminal', 'custom'];
+const CLIP_FINISHES: ClipFinish[] = ['silver', 'brass', 'gold', 'black'];
+
+/** One or two letters (any script) for the seal. */
+const monogram = (value: unknown, fallback: string) => {
+  const letters = typeof value === 'string' ? Array.from(value.trim()).filter((c) => /\p{L}|\p{N}/u.test(c)) : [];
+  return letters.length > 0 ? letters.slice(0, 2).join('').toUpperCase() : fallback;
+};
+
+/** A name for the signature line: printable text only, at most 40 characters. */
+const signature = (value: unknown, fallback: string) =>
+  typeof value === 'string' ? value.replace(/[^\P{C}]/gu, '').trim().slice(0, 40) : fallback;
+
+export function sanitizeFolioStyle(raw: unknown, base: FolioStyle = defaultFolioStyle()): FolioStyle {
+  const value = isDict(raw) ? raw : {};
+  return {
+    paper: oneOf(value.paper, FOLIO_PAPERS, base.paper),
+    sealColor: oneOf(value.sealColor, SEAL_COLORS, base.sealColor),
+    monogram: monogram(value.monogram, base.monogram),
+    emblem: oneOf(value.emblem, SEAL_EMBLEMS, base.emblem),
+    ribbon: bool(value.ribbon, base.ribbon),
+    font: oneOf(value.font, FOLIO_FONTS, base.font),
+    customFont: isSafeFontFamily(value.customFont) ? value.customFont : base.customFont,
+    signature: signature(value.signature, base.signature)
+  };
+}
+
 function sanitizePrint(raw: unknown, base: PrintSettings): PrintSettings {
   const value = isDict(raw) ? raw : {};
-  return {keepInArchive: bool(value.keepInArchive, base.keepInArchive)};
+  return {
+    keepInArchive: bool(value.keepInArchive, base.keepInArchive),
+    style: sanitizeFolioStyle(value.style, base.style)
+  };
+}
+
+function sanitizeFocus(raw: unknown, base: FocusSettings): FocusSettings {
+  const value = isDict(raw) ? raw : {};
+  const background = color(value.color, base.color);
+  return {
+    background: oneOf(value.background, ['paper', 'dark', 'custom'], base.background),
+    color: background === '' ? base.color : background,
+    paper: bool(value.paper, base.paper),
+    lighting: bool(value.lighting, base.lighting)
+  };
+}
+
+function sanitizeScrollbar(raw: unknown, base: ScrollbarSettings): ScrollbarSettings {
+  const value = isDict(raw) ? raw : {};
+  return {
+    style: oneOf(value.style, ['clip', 'bar', 'native'], base.style),
+    finish: oneOf(value.finish, CLIP_FINISHES, base.finish),
+    barOpacity: round(num(value.barOpacity, base.barOpacity, 0.1, 0.9)),
+    barWidth: num(value.barWidth, base.barWidth, 3, 12, 1)
+  };
 }
 
 function sanitizeChrome(raw: unknown, base: ChromeSettings): ChromeSettings {
@@ -281,7 +385,8 @@ function sanitizeChrome(raw: unknown, base: ChromeSettings): ChromeSettings {
     toolbar: bool(value.toolbar, base.toolbar),
     statusBar: bool(value.statusBar, base.statusBar),
     frame: bool(value.frame, base.frame),
-    epigraph: bool(value.epigraph, base.epigraph)
+    epigraph: bool(value.epigraph, base.epigraph),
+    pullCord: bool(value.pullCord, base.pullCord)
   };
 }
 
@@ -341,7 +446,8 @@ function sanitizeTypography(raw: unknown, base: TypographySettings): TypographyS
     cursorBlink: bool(value.cursorBlink, base.cursorBlink),
     smoothing: oneOf(value.smoothing, ['auto', 'grayscale', 'subpixel'], base.smoothing),
     minimumContrast: round(num(value.minimumContrast, base.minimumContrast, 1, 21), 1),
-    selection: color(value.selection, base.selection)
+    selection: color(value.selection, base.selection),
+    selectionStyle: oneOf(value.selectionStyle, ['ink', 'classic'], base.selectionStyle)
   };
 }
 
@@ -379,7 +485,9 @@ export function sanitizeSettings(raw: unknown, base: NocturneSettings = defaultS
     lighting: sanitizeLighting(value.lighting, base.lighting),
     typography: sanitizeTypography(value.typography, base.typography),
     typewriter: sanitizeTypewriter(value.typewriter, base.typewriter),
-    print: sanitizePrint(value.print, base.print)
+    print: sanitizePrint(value.print, base.print),
+    focus: sanitizeFocus(value.focus, base.focus),
+    scrollbar: sanitizeScrollbar(value.scrollbar, base.scrollbar)
   };
 }
 

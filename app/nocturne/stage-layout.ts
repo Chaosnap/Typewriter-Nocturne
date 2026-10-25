@@ -68,3 +68,22 @@ export function stageLayout(width: number, height: number, machine: boolean): St
     text: {x: sheetX, y: 0, width: sheetWidth, height: textHeight}
   };
 }
+
+/**
+ * The two knurled rollers on the paper bail, in stage coordinates (the model draws them at the same
+ * place). Double-clicking the left one scrolls the terminal to its top, the right one to its bottom.
+ */
+export function rollerBoxes(layout: StageLayout): Box[] {
+  if (!layout.machine) {
+    return [];
+  }
+  const {sheet} = layout;
+  const width = clamp(sheet.width * 0.055, 30, 56);
+  const radius = clamp(layout.machineHeight * 0.045, 9, 14);
+  return [0.2, 0.8].map((fraction) => ({
+    x: sheet.x + sheet.width * fraction - width / 2 - 4,
+    y: layout.bailY - radius - 4,
+    width: width + 8,
+    height: radius * 2 + 8
+  }));
+}

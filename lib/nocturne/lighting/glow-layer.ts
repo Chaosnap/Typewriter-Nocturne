@@ -107,7 +107,8 @@ export class GlowLayer {
       const [x, y] = rig.position;
       const radius = Math.max(1, 110 * frame.intensity);
       const glare = c.createRadialGradient(x, y, 0, x, y, radius);
-      glare.addColorStop(0, `rgba(${frame.rgb}, 0.45)`);
+      // Softer on light paper, where a bright glare would wash out the lines under the bulb.
+      glare.addColorStop(0, `rgba(${frame.rgb}, ${frame.appearance === 'light' ? 0.26 : 0.45})`);
       glare.addColorStop(1, `rgba(${frame.rgb}, 0)`);
       c.fillStyle = glare;
       c.fillRect(x - radius, y - radius, radius * 2, radius * 2);

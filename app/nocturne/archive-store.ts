@@ -14,7 +14,7 @@ import type {WebContents} from 'electron';
 import {cfgDir} from '../config/paths';
 
 import {ARCHIVE_CHANNELS} from './channels';
-import {isFolioId, sanitizeDraft, sanitizeFolio} from './folio';
+import {isFolioId, sanitizeDraft, sanitizeFolio, sanitizeTitle} from './folio';
 import type {Folio} from './folio';
 
 const MAX_FOLIOS = 500;
@@ -56,12 +56,36 @@ function save(raw: unknown): Folio | null {
     number: existing.reduce((highest, item) => Math.max(highest, item.number), 0) + 1,
     createdAt: new Date().toISOString()
   };
+  write(folio);
+  return folio;
+}
+
+function write(folio: Folio) {
   mkdirSync(archiveDir(), {recursive: true});
   const target = join(archiveDir(), `${folio.id}.json`);
   const temporary = `${target}.${process.pid}.tmp`;
   writeFileSync(temporary, `${JSON.stringify(folio, null, 2)}\n`, 'utf8');
   renameSync(temporary, target);
-  return folio;
+}
+
+/** Gives a kept folio a new title; nothing else about it changes. */
+function rename(raw: unknown): Folio | null {
+  const value = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+  if (!isFolioId(value.id)) {
+    return null;
+  }
+  let folio: Folio | null = null;
+  try {
+    folio = sanitizeFolio(JSON.parse(readFileSync(join(archiveDir(), `${value.id}.json`), 'utf8')));
+  } catch {
+    return null;
+  }
+  if (!folio || folio.id !== value.id) {
+    return null;
+  }
+  const renamed = {...folio, title: sanitizeTitle(value.title)};
+  write(renamed);
+  return renamed;
 }
 
 function remove(id: unknown): boolean {
@@ -109,6 +133,7 @@ export function registerNocturneArchive() {
   ipcMain.handle(ARCHIVE_CHANNELS.list, () => readAll());
   ipcMain.handle(ARCHIVE_CHANNELS.save, (_event, raw: unknown) => save(raw));
   ipcMain.handle(ARCHIVE_CHANNELS.remove, (_event, id: unknown) => remove(id));
+  ipcMain.handle(ARCHIVE_CHANNELS.rename, (_event, raw: unknown) => rename(raw));
   ipcMain.handle(ARCHIVE_CHANNELS.exportImage, (event, raw: unknown) => exportImage(event.sender, raw));
   ipcMain.handle(ARCHIVE_CHANNELS.reveal, async () => {
     mkdirSync(archiveDir(), {recursive: true});

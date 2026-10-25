@@ -11,6 +11,7 @@ export const ARCHIVE_CHANNELS = {
   list: 'nocturne:archive:list',
   save: 'nocturne:archive:save',
   remove: 'nocturne:archive:remove',
+  rename: 'nocturne:archive:rename',
   exportImage: 'nocturne:archive:export-image',
   reveal: 'nocturne:archive:reveal'
 } as const;

@@ -7,9 +7,13 @@ import {PAPER_IDS, PAPERS} from '../../../app/nocturne/papers';
 import {applyLightingPreset} from '../../../app/nocturne/settings';
 import {THEMES} from '../../../app/nocturne/themes';
 import type {
+  ClipFinish,
   EffectQuality,
+  FocusBackground,
   LightingPresetId,
   NocturneSettings,
+  ScrollbarStyle,
+  SelectionStyle,
   ThemeId,
   TypewriterVoice
 } from '../../../app/nocturne/types';
@@ -40,6 +44,30 @@ const VOICES: readonly {value: TypewriterVoice; label: string}[] = [
   {value: 'whisper', label: 'Whisper'}
 ];
 
+const SCROLLBARS: readonly {value: ScrollbarStyle; label: string}[] = [
+  {value: 'clip', label: 'Paper clip'},
+  {value: 'bar', label: 'Bar'},
+  {value: 'native', label: 'System'}
+];
+
+const FINISHES: readonly {value: ClipFinish; label: string}[] = [
+  {value: 'silver', label: 'Silver'},
+  {value: 'brass', label: 'Brass'},
+  {value: 'gold', label: 'Gold'},
+  {value: 'black', label: 'Black'}
+];
+
+const SELECTIONS: readonly {value: SelectionStyle; label: string}[] = [
+  {value: 'ink', label: 'Ink'},
+  {value: 'classic', label: 'Classic'}
+];
+
+const FOCUS_BACKGROUNDS: readonly {value: FocusBackground; label: string}[] = [
+  {value: 'paper', label: 'Paper'},
+  {value: 'dark', label: 'Dark'},
+  {value: 'custom', label: 'Custom'}
+];
+
 const degrees = (value: number) => `${Math.round(value)}°`;
 const signedDegrees = (value: number) => (value > 0 ? `+${Math.round(value)}°` : degrees(value));
 const pixels = (value: number) => `${value}px`;
@@ -53,7 +81,7 @@ type StudioProps = {
 };
 
 export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
-  const {lighting, typography, typewriter, paper} = settings;
+  const {lighting, typography, typewriter, paper, scrollbar, focus} = settings;
   const light = (patch: Partial<NocturneSettings['lighting']>) =>
     updateSettings({lighting: {...patch, preset: 'custom'}});
   const type = (patch: Partial<NocturneSettings['typography']>) =>
@@ -157,10 +185,60 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           format={(value) => value.toFixed(2)}
           onChange={(lineHeight) => type({lineHeight})}
         />
+        <Segmented
+          label="Selection"
+          value={typography.selectionStyle}
+          options={SELECTIONS}
+          onChange={(selectionStyle) => updateSettings({typography: {selectionStyle}})}
+        />
+      </Section>
+
+      <Section title="Scrollbar">
+        <Segmented
+          label="Style"
+          value={scrollbar.style}
+          options={SCROLLBARS}
+          onChange={(style) => updateSettings({scrollbar: {style}})}
+        />
+        {scrollbar.style === 'clip' ? (
+          <Segmented
+            label="Finish"
+            value={scrollbar.finish}
+            options={FINISHES}
+            onChange={(finish) => updateSettings({scrollbar: {finish}})}
+          />
+        ) : null}
+        {scrollbar.style === 'bar' ? (
+          <>
+            <Slider
+              label="Opacity"
+              value={scrollbar.barOpacity}
+              min={0.1}
+              max={0.9}
+              step={0.01}
+              format={percent}
+              onChange={(barOpacity) => updateSettings({scrollbar: {barOpacity}})}
+            />
+            <Slider
+              label="Width"
+              value={scrollbar.barWidth}
+              min={3}
+              max={12}
+              step={1}
+              format={pixels}
+              onChange={(barWidth) => updateSettings({scrollbar: {barWidth}})}
+            />
+          </>
+        ) : null}
       </Section>
 
       <Section title="Lamp">
         <Switch label="Lamp" checked={lighting.enabled} onChange={(enabled) => updateSettings({lighting: {enabled}})} />
+        <Switch
+          label="Pull cord"
+          checked={settings.chrome.pullCord}
+          onChange={(pullCord) => updateSettings({chrome: {pullCord}})}
+        />
         <Segmented label="Preset" value={preset} options={PRESETS} onChange={choosePreset} />
         <Slider
           label="Brightness"
@@ -270,6 +348,36 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
 
       <Section title="Quiet">
         <Switch label="Focus mode" checked={settings.focusMode} onChange={(focusMode) => updateSettings({focusMode})} />
+        <Segmented
+          label="Focus background"
+          value={focus.background}
+          options={FOCUS_BACKGROUNDS}
+          onChange={(background) => updateSettings({focus: {background}})}
+        />
+        {focus.background === 'custom' ? (
+          <div className="tn-row">
+            <label className="tn-label" htmlFor="tn-focus-color">
+              Colour
+            </label>
+            <input
+              id="tn-focus-color"
+              type="color"
+              className="tn-color"
+              value={focus.color}
+              onChange={(event) => updateSettings({focus: {color: event.currentTarget.value}})}
+            />
+          </div>
+        ) : null}
+        <Switch
+          label="Paper in focus mode"
+          checked={focus.paper}
+          onChange={(value) => updateSettings({focus: {paper: value}})}
+        />
+        <Switch
+          label="Light in focus mode"
+          checked={focus.lighting}
+          onChange={(value) => updateSettings({focus: {lighting: value}})}
+        />
         <Switch
           label="All visual effects"
           checked={settings.effects}

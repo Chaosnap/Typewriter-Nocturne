@@ -271,7 +271,8 @@ const LOOKS: [string, Record<string, unknown>][] = [
   ['midnight-study', {theme: 'midnight-study', paper: {style: 'night'}, focusMode: false}],
   ['moonlit-poetry', {theme: 'moonlit-poetry', paper: {style: 'laid'}, focusMode: false}],
   ['parchment', {theme: 'paper-and-ink', paper: {style: 'parchment'}, focusMode: false}],
-  ['focus-mode', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true}]
+  ['focus-mode', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true}],
+  ['focus-dark', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true, focus: {background: 'dark'}}]
 ];
 
 test.serial('the typewriter stage renders every theme and paper over a live shell', async (t) => {
@@ -310,6 +311,9 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
     // Let the terminal redraw at its new size and the paper surface finish on the CPU.
     await pause(4000);
     await screenshot(`nocturne-${name}`);
+    if (settings.focusMode) {
+      t.is(await page.locator('.tn-cord').count(), 0, 'no pull cord in focus mode');
+    }
   }
 
   await setNocturne(LOOKS[0][1]);
@@ -336,12 +340,82 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   await page.click('.tn-folio-open');
   await pause(800);
   await screenshot('nocturne-archive');
+
+  // The last command and its output, on night paper under a gold seal signed by name. Terminal
+  // sources show what they will print instead of the snippet box.
+  await page.click('.tn-press .tn-segmented button:text-is("Print")');
+  await page.click('.tn-press .tn-segmented button:text-is("Command")');
+  t.is(await page.locator('.tn-press textarea').count(), 0, 'no snippet box for terminal sources');
+  t.true((await page.textContent('.tn-press-excerpt'))?.includes('Every line of code'), 'the last command');
+  await page.fill('.tn-press input[aria-label="Title"]', 'Every Line of Code');
+  await page.click('.tn-swatch[aria-label="Night"]');
+  await page.click('.tn-swatch[aria-label="Gold"]');
+  await page.click('.tn-press .tn-segmented button:text-is("Rose")');
+  await page.selectOption('#tn-folio-font', 'sonnet');
+  await page.fill('#tn-signature', 'Ada');
+  await page.click('.tn-press .tn-button-primary');
+  await page.waitForSelector('.tn-press[data-state="printed"]', {timeout: 30000});
+  await pause(500);
+  await screenshot('nocturne-press-night');
+
+  // Renaming one folio, then deleting both at once.
+  await page.click('.tn-press .tn-segmented button:text-is("Archive")');
+  await page.waitForSelector('.tn-folio:nth-child(2)', {timeout: 10000});
+  await page.click('.tn-folio-action >> nth=0');
+  await page.fill('.tn-folio-rename', 'A Renamed Sonnet');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.tn-folio-title:text-is("A Renamed Sonnet")', {timeout: 10000});
+  await page.click('.tn-archive-tools button:text-is("Select")');
+  await page.click('.tn-archive-tools button:text-is("Select all")');
+  await pause(300);
+  await screenshot('nocturne-archive-select');
+  await page.click('.tn-button-danger');
+  await page.click('.tn-button-danger');
+  await page.waitForSelector('.tn-folio', {state: 'detached', timeout: 10000});
+  t.is(await page.locator('.tn-folio').count(), 0, 'the chosen folios are deleted');
   await nocturneCommand('print');
   await page.click('.term_active .xterm');
 
   // The half-typed command is still in the shell's line editor: effects never touched the input.
-  await setNocturne({lighting: {quality: 'auto'}});
-  await pause(1000);
   await run('"');
   t.truthy(await waitForText(/Sonnet XVIII[\s\S]*Sonnet XVIII/));
+});
+
+test.serial('the paper clip and the bail rollers scroll the terminal', async (t) => {
+  await run(isWindows ? '1..150 | ForEach-Object { "verse-$_" }' : 'seq -f "verse-%g" 1 150');
+  await waitForText('verse-150');
+  t.true(await waitForMachine(60000), 'the typewriter model is drawn');
+  const clip = page.locator('.tn-scroll-clip');
+  await clip.waitFor({timeout: 10000});
+  const position = async () => Number(await clip.getAttribute('aria-valuenow'));
+  const end = Number(await clip.getAttribute('aria-valuemax'));
+  t.true(end > 0, 'there is scrollback');
+  t.is(await position(), end);
+
+  await page.dblclick('.tn-roller >> nth=0');
+  await pause(1000);
+  t.is(await position(), 0, 'the left roller rolls the paper to the top');
+
+  const box = await clip.boundingBox();
+  t.truthy(box, 'the clip is on screen');
+  if (box) {
+    const x = box.x + box.width * 0.7;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(x, y + i * 12);
+    }
+    await page.mouse.up();
+  }
+  await pause(1000);
+  const dragged = await position();
+  t.true(dragged > 0 && dragged < end, `dragging the clip scrolled to ${dragged} of ${end}`);
+  await screenshot('nocturne-clip');
+
+  await page.dblclick('.tn-roller >> nth=1');
+  await pause(1000);
+  t.is(await position(), end, 'the right roller rolls it to the bottom');
+  await setNocturne({lighting: {quality: 'auto'}});
+  await page.click('.term_active .xterm');
 });

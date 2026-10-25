@@ -7,7 +7,7 @@
 // changed; frames run only while something moves or an ambient effect is on, never while the
 // window is hidden. In `basic` mode (no usable GPU, see lighting/gpu.ts) no WebGL is used at all.
 
-import {activePaper, activeTheme} from '../../app/nocturne/apply-config';
+import {activePaper, activeTheme, inkSelectionOn, lightOn, paperEffectsOn} from '../../app/nocturne/apply-config';
 import {CARRIAGE_RETURN, ESCAPEMENT, stepImpact, stepSpring, stepSway} from '../../app/nocturne/carriage-physics';
 import type {Body} from '../../app/nocturne/carriage-physics';
 import {toUnit} from '../../app/nocturne/color';
@@ -20,7 +20,7 @@ import type {StageLayout} from '../../app/nocturne/stage-layout';
 import type {NocturneSettings, NocturneTheme} from '../../app/nocturne/types';
 
 import {on} from './bus';
-import type {CueKind, CursorFrame, KeyKind, StrikeEvent} from './bus';
+import type {CueKind, CursorFrame, KeyKind, SelectedCell, StrikeEvent} from './bus';
 import {GlowLayer} from './lighting/glow-layer';
 import type {RenderMode} from './lighting/gpu';
 import {PaperLight} from './lighting/paper-light';
@@ -29,6 +29,8 @@ import {createMachine} from './machine/typewriter-machine';
 import {lightColorOf} from './theme-css';
 import {InkLayer} from './typewriter/ink-layer';
 import type {InkStyle, InkViewport} from './typewriter/ink-layer';
+import {SelectionLayer} from './typewriter/selection-layer';
+import type {SelectionLook} from './typewriter/selection-layer';
 import {TypewriterSounds} from './typewriter/sound-engine';
 import type {SoundKind} from './typewriter/sound-engine';
 
@@ -37,6 +39,7 @@ export type StageElements = {
   paper: HTMLCanvasElement;
   glow: HTMLCanvasElement;
   ink: HTMLCanvasElement;
+  selection: HTMLCanvasElement;
   machine: HTMLCanvasElement;
 };
 
@@ -86,6 +89,7 @@ export class StageController {
   private paperLightFailed = false;
   private glow: GlowLayer;
   private ink: InkLayer;
+  private selection: SelectionLayer;
   private machine: Machine | null = null;
   private machineFailed = false;
   private sounds = new TypewriterSounds();
@@ -132,6 +136,7 @@ export class StageController {
     this.settings = settings;
     this.glow = new GlowLayer(elements.glow);
     this.ink = new InkLayer(elements.ink);
+    this.selection = new SelectionLayer(elements.selection);
     this.sounds.configure(settings.typewriter);
 
     this.disposers.push(
@@ -139,7 +144,8 @@ export class StageController {
       on('strike', (strike) => this.onStrike(strike)),
       on('key', ({kind, repeat}) => this.onKey(kind, repeat)),
       on('marginBell', () => this.onMarginBell()),
-      on('cue', ({kind}) => this.onCue(kind))
+      on('cue', ({kind}) => this.onCue(kind)),
+      on('selection', ({uid, cells}) => this.onSelection(uid, cells))
     );
     const wake = () => this.invalidate();
     document.addEventListener('visibilitychange', wake);
@@ -189,7 +195,7 @@ export class StageController {
   }
 
   private onStrike(strike: StrikeEvent) {
-    const off = !this.effects() || this.reduceMotion.matches || this.settings.typewriter.impression <= 0;
+    const off = !paperEffectsOn(this.settings) || this.reduceMotion.matches || this.settings.typewriter.impression <= 0;
     if (off || strike.uid !== this.cursor?.uid) {
       return;
     }
@@ -269,6 +275,25 @@ export class StageController {
     this.schedule();
   }
 
+  private onSelection(uid: string, cells: SelectedCell[]) {
+    if (this.cursor && uid !== this.cursor.uid) {
+      return;
+    }
+    const animate = inkSelectionOn(this.settings) && !this.reduceMotion.matches;
+    this.selection.set(cells, performance.now(), animate);
+    this.schedule();
+  }
+
+  /** Double-clicking a bail roller rolls the paper to its top or bottom: the platen turns a full turn. */
+  roll(direction: 'top' | 'bottom') {
+    this.platenTarget += direction === 'top' ? -360 : 360;
+    if (!this.moves()) {
+      this.platen = {position: this.platenTarget, velocity: 0};
+    }
+    this.play('print', false, 0.7);
+    this.schedule();
+  }
+
   private onMarginBell() {
     if (this.theme() && this.settings.typewriter.marginBell) {
       this.play('bell');
@@ -292,8 +317,14 @@ export class StageController {
   // ------------------------------------------------------------------------------------------
   // State
 
+  /** The paper light canvas is drawn: for the paper's texture, for the lamp, or both. */
   private effects() {
-    return this.settings.effects && !this.settings.focusMode;
+    return paperEffectsOn(this.settings) || lightOn(this.settings);
+  }
+
+  /** Depth of the paper's relief; flat when only the light is kept in Focus Mode. */
+  private texture() {
+    return paperEffectsOn(this.settings) ? this.settings.paper.texture : 0;
   }
 
   /** WebGL layers (paper light, typewriter) are in use. */
@@ -303,11 +334,12 @@ export class StageController {
 
   /** Physics and ambient animation run. */
   private moves() {
-    return this.effects() && this.full() && !this.reduceMotion.matches && !this.constrained;
+    const {settings} = this;
+    return settings.effects && !settings.focusMode && this.full() && !this.reduceMotion.matches && !this.constrained;
   }
 
   private lampOn() {
-    return this.effects() && this.settings.lighting.enabled;
+    return lightOn(this.settings);
   }
 
   private renderLabel() {
@@ -381,7 +413,7 @@ export class StageController {
     const paper = activePaper(this.settings);
     const ratio = this.pixelRatio();
     const {sheet} = layout;
-    const surfaceKey = JSON.stringify([sheet.width, sheet.height, ratio, paper.id, this.settings.paper.texture]);
+    const surfaceKey = JSON.stringify([sheet.width, sheet.height, ratio, paper.id, paper.paper, this.texture()]);
     const spec = this.machineSpec(theme, paper);
     const machineKey = spec ? JSON.stringify([spec, theme.id]) : '';
     if (surfaceKey === this.surfaceKey && machineKey === this.machineKey) {
@@ -397,13 +429,14 @@ export class StageController {
       this.surfaceKey = surfaceKey;
       this.glow.resize(sheet.width, sheet.height, ratio);
       this.ink.resize(sheet.width, sheet.height, ratio);
+      this.selection.resize(sheet.width, sheet.height, ratio);
       if (this.full()) {
         this.ensurePaperLight()?.build({
           width: sheet.width,
           height: sheet.height,
           pixelRatio: ratio,
           paper,
-          texture: this.settings.paper.texture
+          texture: this.texture()
         });
       }
     }
@@ -589,10 +622,12 @@ export class StageController {
       }
     }
 
-    const inking = this.ink.render(now, this.inkStyle(paper, effects), this.inkViewport(layout));
+    const viewport = this.inkViewport(layout);
+    const inking = this.ink.render(now, this.inkStyle(paper, effects), viewport);
+    const selecting = this.selection.render(now, this.selectionLook(paper), viewport);
     this.dirty = this.dirty && deferred;
     this.cursorMoved = false;
-    if (stillMoving || ambient || inking || deferred) {
+    if (stillMoving || ambient || inking || selecting || deferred) {
       this.schedule();
     } else {
       this.lastTime = 0;
@@ -674,7 +709,17 @@ export class StageController {
       letterSpacing: typography.letterSpacing,
       ink: paper.ink,
       ansi: paper.ansi,
-      impression: effects ? typewriter.impression : 0
+      impression: effects && paperEffectsOn(this.settings) ? typewriter.impression : 0
+    };
+  }
+
+  private selectionLook(paper: Paper): SelectionLook {
+    const {typography} = this.settings;
+    return {
+      ...this.inkStyle(paper, true),
+      paper: paper.paper,
+      wash: typography.selection || paper.selection,
+      enabled: inkSelectionOn(this.settings)
     };
   }
 
@@ -687,6 +732,7 @@ export class StageController {
       left: grid.left - layout.sheet.x,
       top: grid.top - layout.sheet.y,
       cellHeight: grid.cellHeight,
+      cellWidth: grid.cellWidth,
       viewportY: cursor.viewportY
     };
   }

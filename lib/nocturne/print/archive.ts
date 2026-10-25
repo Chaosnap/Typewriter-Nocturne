@@ -20,6 +20,11 @@ export async function keepFolio(draft: FolioDraft): Promise<Folio | null> {
   return sanitizeFolio(raw);
 }
 
+export async function renameFolio(id: string, title: string): Promise<Folio | null> {
+  const raw: unknown = await ipcRenderer.invoke(ARCHIVE_CHANNELS.rename, {id, title});
+  return sanitizeFolio(raw);
+}
+
 export async function removeFolio(id: string): Promise<boolean> {
   const raw: unknown = await ipcRenderer.invoke(ARCHIVE_CHANNELS.remove, id);
   return raw === true;

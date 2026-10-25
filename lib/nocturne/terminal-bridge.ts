@@ -5,15 +5,23 @@
 // keystrokes for the afterimage / ink-bloom effects. It never writes to the terminal, never
 // subscribes to PTY data and never delays input.
 
-import type {IBufferCell, IDisposable, Terminal} from 'xterm';
+import type {IBufferCell, IDisposable, IMarker, Terminal} from 'xterm';
 
 import {extraTerminalOptions} from '../../app/nocturne/apply-config';
 
 import {emit, on} from './bus';
+import type {SelectedCell} from './bus';
 import {getSettings, subscribe} from './store';
 
 let activeUid: string | null = null;
 const terminals = new Map<string, Terminal>();
+/** Where each of the last few commands was entered: markers follow their lines as the buffer scrolls. */
+const commandMarks = new Map<string, IMarker[]>();
+
+/** The ink selection effect animates at most this many cells; a larger selection just gets the wash. */
+const MAX_SELECTED_CELLS = 4000;
+/** Commands remembered per terminal for the Press (Enter on an empty prompt counts, so a few). */
+const MAX_COMMAND_MARKS = 8;
 
 /** Characters the user typed, waiting to be confirmed by the program's echo at this cell. */
 type Expected = {chars: string[]; col: number; row: number; at: number};
@@ -75,6 +83,7 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
       alternate: buffer.type === 'alternate',
       visible: buffer.viewportY === buffer.baseY,
       viewportY: buffer.viewportY,
+      baseY: buffer.baseY,
       grid: {left: rect.left, top: rect.top, width: rect.width, height: rect.height}
     };
 
@@ -142,8 +151,32 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
         const buffer = term.buffer.active;
         expected.push({chars: [key], col: buffer.cursorX, row: buffer.cursorY, at: lastTypedAt});
       }
+      // Remember where a command was entered, so the Press can print the last command and its output.
+      if (domEvent.key === 'Enter' && !domEvent.isComposing && term.buffer.active.type === 'normal') {
+        const marker = term.registerMarker(0);
+        if (marker) {
+          const marks = [...(commandMarks.get(uid) ?? []), marker];
+          marks.slice(0, -MAX_COMMAND_MARKS).forEach((old) => old.dispose());
+          commandMarks.set(uid, marks.slice(-MAX_COMMAND_MARKS));
+        }
+      }
     })
   );
+
+  // The ink selection effect needs the selected cells, read after xterm has updated the selection.
+  let selectionRequest = 0;
+  const readSelection = () => {
+    selectionRequest = 0;
+    emit('selection', {uid, cells: selectedCells(term)});
+  };
+  listen(
+    term.onSelectionChange(() => {
+      if (!selectionRequest) {
+        selectionRequest = requestAnimationFrame(readSelection);
+      }
+    })
+  );
+  disposables.push(() => cancelAnimationFrame(selectionRequest));
 
   const textarea = term.textarea;
   if (textarea) {
@@ -174,6 +207,12 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
     const observer = new ResizeObserver(schedule);
     observer.observe(term.element);
     disposables.push(() => observer.disconnect());
+    // Scrolling with the wheel or the scrollbar moves the viewport without term.onScroll.
+    const viewport = term.element.querySelector('.xterm-viewport');
+    if (viewport) {
+      viewport.addEventListener('scroll', schedule, {passive: true});
+      disposables.push(() => viewport.removeEventListener('scroll', schedule));
+    }
   }
 
   // Layout changes outside the terminal (focus mode, studio panel) move the grid on screen.
@@ -185,7 +224,11 @@ export function attachTerminal(uid: string, term: Terminal): IDisposable {
     activeUid = uid;
   }
   terminals.set(uid, term);
-  disposables.push(() => terminals.delete(uid));
+  disposables.push(() => {
+    terminals.delete(uid);
+    commandMarks.get(uid)?.forEach((marker) => marker.dispose());
+    commandMarks.delete(uid);
+  });
   schedule();
 
   return {
@@ -206,11 +249,53 @@ export function setActiveTerminal(uid: string | null) {
   activeUid = uid;
 }
 
+/** The cells of the current selection, line by line (empty when nothing is selected). */
+function selectedCells(term: Terminal): SelectedCell[] {
+  const range = term.getSelectionPosition();
+  if (!range) {
+    return [];
+  }
+  const buffer = term.buffer.active;
+  const cells: SelectedCell[] = [];
+  for (let line = range.start.y; line <= range.end.y && cells.length < MAX_SELECTED_CELLS; line++) {
+    const row = buffer.getLine(line);
+    if (!row) {
+      continue;
+    }
+    const first = line === range.start.y ? range.start.x : 0;
+    const last = line === range.end.y ? range.end.x : term.cols;
+    for (let col = first; col < last && cells.length < MAX_SELECTED_CELLS; col++) {
+      const cell = row.getCell(col);
+      const char = cell?.getChars() ?? '';
+      if (cell && char && char !== ' ') {
+        const fg = foregroundOf(cell);
+        cells.push({line, col, char, width: Math.max(1, cell.getWidth()), fg, bold: cell.isBold() !== 0});
+      }
+    }
+  }
+  return cells;
+}
+
+const rowsText = (term: Terminal, from: number, to: number) => {
+  const buffer = term.buffer.active;
+  const rows: string[] = [];
+  for (let line = from; line <= to; line++) {
+    rows.push(buffer.getLine(line)?.translateToString(true) ?? '');
+  }
+  while (rows.length > 0 && !rows[rows.length - 1].trim()) {
+    rows.pop();
+  }
+  return rows.join('\n');
+};
+
+export type TerminalTextKind = 'command' | 'selection' | 'screen';
+
 /**
- * Text of the active terminal for the Press, read only when the user asks to print: the current
+ * Text of the active terminal for the Press, read only when the user asks to print: the last
+ * command with its output (from where it was entered up to the current prompt), the current
  * selection, or the rows visible on screen.
  */
-export function activeTerminalText(kind: 'selection' | 'screen'): string {
+export function activeTerminalText(kind: TerminalTextKind): string {
   const term = activeUid ? terminals.get(activeUid) : undefined;
   if (!term) {
     return '';
@@ -219,9 +304,39 @@ export function activeTerminalText(kind: 'selection' | 'screen'): string {
     return term.getSelection();
   }
   const buffer = term.buffer.active;
-  const rows: string[] = [];
-  for (let i = 0; i < term.rows; i++) {
-    rows.push(buffer.getLine(buffer.viewportY + i)?.translateToString(true) ?? '');
+  if (kind === 'command') {
+    const marks = (activeUid ? commandMarks.get(activeUid) : undefined) ?? [];
+    const prompt = buffer.baseY + buffer.cursorY;
+    const promptText = buffer.getLine(prompt)?.translateToString(true).trim();
+    // The most recent command that has finished: its line is above the prompt the cursor is on, and
+    // it is not a bare prompt (Enter pressed on an empty line).
+    const mark = [...marks].reverse().find((marker) => {
+      if (marker.isDisposed || marker.line < 0 || marker.line >= prompt) {
+        return false;
+      }
+      return buffer.getLine(marker.line)?.translateToString(true).trim() !== promptText;
+    });
+    if (mark && buffer.type === 'normal') {
+      const text = rowsText(term, mark.line, prompt - 1);
+      if (text.trim()) {
+        return text;
+      }
+    }
   }
-  return rows.join('\n');
+  return rowsText(term, buffer.viewportY, buffer.viewportY + term.rows - 1);
+}
+
+/** Scrolls the active terminal to its top, its bottom or a buffer line. */
+export function scrollActiveTerminal(to: 'top' | 'bottom' | number) {
+  const term = activeUid ? terminals.get(activeUid) : undefined;
+  if (!term) {
+    return;
+  }
+  if (to === 'top') {
+    term.scrollToTop();
+  } else if (to === 'bottom') {
+    term.scrollToBottom();
+  } else {
+    term.scrollToLine(Math.max(0, Math.round(to)));
+  }
 }

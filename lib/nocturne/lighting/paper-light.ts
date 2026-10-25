@@ -106,11 +106,15 @@ float gobo(vec2 p) {
   float bars = panes((p.x - uWindow.x) / uPane.x + 0.5, me) * panes((p.y - uWindow.y) / uPane.x + 0.5, me);
   return aperture * (0.3 + 0.7 * bars);
 }
+// The bulb is a small sphere, not a point: near it the light is softer (no hot spot) and the edge
+// of the cone wider, as a real lamp's penumbra is.
+const float BULB = 30.0;
 float irradiance(vec3 P, vec3 n) {
   if (uSource == 2) return max(0.0, dot(n, -uLightDir)) * gobo(P.xy);
   vec3 d = P - uLightPos; float d2 = max(1.0, dot(d, d)); vec3 r = d * inversesqrt(d2);
-  float cone = smoothstep(uCone.x, uCone.y, dot(r, uLightDir));
-  return cone * max(0.0, -dot(n, r)) / d2;
+  float near = 1.0 - smoothstep(0.0, 260.0, sqrt(d2));
+  float cone = smoothstep(uCone.x - 0.3 * near, uCone.y, dot(r, uLightDir));
+  return cone * max(0.0, -dot(n, r)) / (d2 + BULB * BULB);
 }
 void main() {
   ivec2 texel = ivec2(gl_FragCoord.xy);
@@ -118,14 +122,19 @@ void main() {
   vec2 nxy = texelFetch(uNormal, texel, 0).xy * 2.0 - 1.0;
   vec3 n = vec3(nxy, sqrt(max(0.0, 1.0 - dot(nxy, nxy))));
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), n) * uExposure)) * uLamp;
+  // The lamp shades a gently flattened surface: grazing light near the bulb would otherwise turn
+  // every fibre into a shadow and make the text hard to read.
+  vec3 nl = normalize(vec3(n.xy * 0.35, 1.0));
+  float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), nl) * uExposure)) * uLamp;
   vec2 uv = p / uSize;
   float vignette = smoothstep(0.15, 1.1, length((uv - vec2(0.5, 0.55)) * vec2(1.0, 1.15)));
   float ambient = mix(1.0, uAmbient * (1.0 - 0.3 * vignette), uLamp);
   vec3 irr = uAmbientTint * ambient + (1.0 - ambient) * lit * uTint;
-  // Fibres catch the room light from the upper left: a few percent, bounded so ink stays crisp.
-  float bound = (0.16 * uCrinkle + 0.04) * uRelief;
-  irr *= clamp(1.0 + (-n.x * 0.35 - n.y * 0.55) * (0.6 + 2.2 * uCrinkle) * uRelief, 1.0 - bound, 1.0 + bound);
+  // Fibres catch the room light from the upper left: a few percent, bounded so ink stays crisp,
+  // and quieter where the lamp is bright, so the page under the bulb reads cleanly.
+  float relief = uRelief * (1.0 - 0.65 * lit);
+  float bound = (0.16 * uCrinkle + 0.04) * relief;
+  irr *= clamp(1.0 + (-n.x * 0.35 - n.y * 0.55) * (0.6 + 2.2 * uCrinkle) * relief, 1.0 - bound, 1.0 + bound);
   // A sheet is never perfectly flat: its side edges fall off gently.
   irr *= mix(0.9, 1.0, smoothstep(0.0, 28.0, min(uv.x, 1.0 - uv.x) * uSize.x));
   float g = hash12(gl_FragCoord.xy + fract(uTime * 7.31) * 113.0) - 0.5;

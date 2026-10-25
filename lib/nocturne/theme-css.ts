@@ -3,8 +3,8 @@
 
 import type React from 'react';
 
+import {activePaper} from '../../app/nocturne/apply-config';
 import {mix, withAlpha} from '../../app/nocturne/color';
-import {PAPERS} from '../../app/nocturne/papers';
 import {DISPLAY_SERIF, fontStack, UI_SERIF} from '../../app/nocturne/settings';
 import type {NocturneSettings, NocturneTheme} from '../../app/nocturne/types';
 
@@ -21,7 +21,7 @@ export function themeVariables(theme: NocturneTheme, settings: NocturneSettings)
 
   const variables: Record<string, string> = {
     '--tn-room': palette.room,
-    '--tn-sheet': PAPERS[settings.paper.style].paper,
+    '--tn-sheet': activePaper(settings).paper,
     '--tn-room-edge': palette.roomEdge,
     '--tn-paper': palette.paper,
     '--tn-paper-edge': palette.paperEdge,

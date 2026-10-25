@@ -4,6 +4,7 @@ import {
   applyLightingPreset,
   applyTypographyPreset,
   defaultSettings,
+  folioFontStack,
   fontStack,
   isSafeFontFamily,
   LIGHTING_PRESETS,
@@ -107,4 +108,49 @@ test('every font stack carries the bundled Nerd Font symbols; custom names are q
   }
   t.true(fontStack({font: 'custom', customFamily: '3270 Nerd Font'}).startsWith('"3270 Nerd Font", '));
   t.true(fontStack({font: 'custom', customFamily: 'Iosevka, monospace'}).startsWith('Iosevka, monospace, '));
+});
+
+test('the pull cord, the scrollbar and the selection style are validated', (t) => {
+  const defaults = defaultSettings();
+  t.true(defaults.chrome.pullCord);
+  t.is(defaults.scrollbar.style, 'clip');
+  t.is(defaults.typography.selectionStyle, 'ink');
+  const result = sanitizeSettings({
+    chrome: {pullCord: false},
+    scrollbar: {style: 'bar', finish: 'chrome', barOpacity: 5, barWidth: 1},
+    typography: {selectionStyle: 'neon'}
+  });
+  t.false(result.chrome.pullCord);
+  t.is(result.scrollbar.style, 'bar');
+  t.is(result.scrollbar.finish, 'silver');
+  t.true(result.scrollbar.barOpacity <= 0.9);
+  t.true(result.scrollbar.barWidth >= 3);
+  t.is(result.typography.selectionStyle, 'ink');
+});
+
+test('focus mode keeps its own background and effects', (t) => {
+  t.deepEqual(defaultSettings().focus, {background: 'paper', color: '#1c1916', paper: true, lighting: false});
+  const result = sanitizeSettings({focus: {background: 'custom', color: 'url(x)', paper: 'no', lighting: true}});
+  t.is(result.focus.background, 'custom');
+  t.is(result.focus.color, '#1c1916');
+  t.true(result.focus.paper);
+  t.true(result.focus.lighting);
+  t.is(sanitizeSettings({focus: {background: 'video'}}).focus.background, 'paper');
+});
+
+test('print style patches replace the style as a whole', (t) => {
+  const style = {...defaultSettings().print.style, paper: 'vellum' as const, signature: 'Yuki'};
+  const result = patchSettings(defaultSettings(), {print: {style}});
+  t.is(result.print.style.paper, 'vellum');
+  t.is(result.print.style.signature, 'Yuki');
+  t.true(result.print.keepInArchive);
+});
+
+test('folio faces: book serifs for verse, safe custom families only', (t) => {
+  const typography = {font: 'ibm-plex-mono', customFamily: ''} as const;
+  t.true(folioFontStack({font: 'sonnet', customFont: ''}, typography).family.startsWith('"EB Garamond"'));
+  t.true(folioFontStack({font: 'typewriter', customFont: ''}, typography).family.startsWith('"Courier Prime"'));
+  t.true(folioFontStack({font: 'custom', customFont: 'Baskerville'}, typography).family.startsWith('"Baskerville"'));
+  t.true(folioFontStack({font: 'custom', customFont: 'x;}'}, typography).family.startsWith('"Courier Prime"'));
+  t.is(folioFontStack({font: 'terminal', customFont: ''}, typography).family, fontStack(typography));
 });

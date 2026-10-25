@@ -1,6 +1,13 @@
 import test from 'ava';
 
-import {applyNocturneToConfig, configAffectingKey} from '../../app/nocturne/apply-config';
+import {
+  activePaper,
+  applyNocturneToConfig,
+  configAffectingKey,
+  inkSelectionOn,
+  lightOn,
+  paperEffectsOn
+} from '../../app/nocturne/apply-config';
 import {contrast, isColor} from '../../app/nocturne/color';
 import {PAPERS} from '../../app/nocturne/papers';
 import {defaultSettings, patchSettings} from '../../app/nocturne/settings';
@@ -84,4 +91,36 @@ test('changing the paper changes the terminal colours', (t) => {
   const night = applyNocturneToConfig(baseConfig, patchSettings(defaultSettings(), {paper: {style: 'night'}}));
   t.is(night.backgroundColor, PAPERS.night.paper);
   t.is(night.foregroundColor, PAPERS.night.ink);
+});
+
+test('focus mode can lay the text on the night paper or on a colour of its own', (t) => {
+  const focus = patchSettings(defaultSettings(), {focusMode: true});
+  t.is(activePaper(focus).paper, PAPERS[focus.paper.style].paper);
+  t.is(activePaper(patchSettings(focus, {focus: {background: 'dark'}})).paper, PAPERS.night.paper);
+  const deep = activePaper(patchSettings(focus, {focus: {background: 'custom', color: '#102030'}}));
+  t.is(deep.paper, '#102030');
+  t.is(deep.ink, PAPERS.night.ink);
+  const pale = activePaper(patchSettings(focus, {focus: {background: 'custom', color: '#f0f4f8'}}));
+  t.is(pale.ink, PAPERS.cotton.ink);
+  // Outside focus mode the focus background does nothing.
+  const normal = patchSettings(defaultSettings(), {focus: {background: 'dark'}});
+  t.is(activePaper(normal).paper, PAPERS[normal.paper.style].paper);
+});
+
+test('focus mode keeps paper effects and drops the light unless asked', (t) => {
+  const focus = patchSettings(defaultSettings(), {focusMode: true});
+  t.true(paperEffectsOn(focus));
+  t.false(lightOn(focus));
+  t.true(lightOn(patchSettings(focus, {focus: {lighting: true}})));
+  t.false(paperEffectsOn(patchSettings(focus, {focus: {paper: false}})));
+  t.true(lightOn(defaultSettings()));
+});
+
+test('the ink selection hides the selection box, the classic one keeps it', (t) => {
+  const ink = applyNocturneToConfig(baseConfig, defaultSettings());
+  t.true(inkSelectionOn(defaultSettings()));
+  t.is(ink.selectionColor, 'rgba(0, 0, 0, 0)');
+  const classic = patchSettings(defaultSettings(), {typography: {selectionStyle: 'classic'}});
+  t.false(inkSelectionOn(classic));
+  t.not(applyNocturneToConfig(baseConfig, classic).selectionColor, 'rgba(0, 0, 0, 0)');
 });

@@ -130,11 +130,97 @@
 .tn-classic .tn-layer,
 .tn-classic .tn-machine,
 .tn-classic .tn-vignette,
-.tn-quiet .tn-layer,
 .tn-quiet .tn-vignette,
+.tn-no-light .tn-paper-light,
+.tn-no-light .tn-glow,
+.tn-no-ink .tn-ink,
+.tn-no-ink .tn-selection,
 .tn-basic .tn-paper-light,
 .tn-basic .tn-glow {
   display: none;
+}
+
+.tn-layer[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ bail rollers, scrollbar */
+
+.tn-roller {
+  position: absolute;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tn-roller:focus-visible {
+  outline: 1px dotted var(--tn-accent);
+}
+
+/* The terminal's own scrollbar gives way to the clip or the bar; wheel and keys still scroll. */
+.tn-scroll-custom .xterm-viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.tn-scroll {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  touch-action: none;
+  cursor: grab;
+  will-change: transform;
+}
+
+.tn-scroll:active {
+  cursor: grabbing;
+}
+
+.tn-scroll-bar {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.tn-dark .tn-scroll-bar {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.tn-scroll-clip svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tn-clip-wire,
+.tn-clip-shadow,
+.tn-clip-glint {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tn-clip-wire {
+  stroke-width: 2.3;
+}
+
+.tn-clip-shadow {
+  stroke: rgba(30, 20, 10, 0.35);
+  stroke-width: 2.6;
+  transform: translate(1.2px, 1.8px);
+  filter: blur(1px);
+}
+
+.tn-clip-glint {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 0.6;
+  transform: translate(-0.4px, -0.6px);
 }
 
 /* ------------------------------------------------------------------ tools */
@@ -321,6 +407,25 @@
   gap: 12px;
 }
 
+.tn-color {
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--tn-panel-line);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tn-color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.tn-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
 .tn-label,
 .tn-value {
   font-family: var(--tn-font-mono);
@@ -490,9 +595,9 @@
   position: absolute;
   z-index: 4;
   top: 0;
-  left: 8px;
-  width: 44px;
-  height: 300px;
+  left: 6px;
+  width: 52px;
+  height: 400px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -506,10 +611,10 @@
 
 .tn-cord svg {
   display: block;
-  width: 44px;
-  height: 300px;
+  width: 52px;
+  height: 400px;
   overflow: visible;
-  filter: drop-shadow(1px 4px 3px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(1px 5px 4px rgba(0, 0, 0, 0.5));
 }
 
 .tn-cord:focus-visible {
@@ -517,10 +622,18 @@
   outline-offset: 2px;
 }
 
-.tn-cord-ring {
+.tn-cord-ring,
+.tn-cord-carving {
   fill: none;
   stroke: var(--tn-metal-lo);
   stroke-width: 0.8;
+}
+
+.tn-cord-binding {
+  fill: none;
+  stroke: var(--tn-metal-hi);
+  stroke-width: 0.9;
+  opacity: 0.85;
 }
 
 .tn-cord-glint {
@@ -532,11 +645,7 @@
 }
 
 .tn-focus .tn-cord {
-  opacity: 0.35;
-}
-
-.tn-focus .tn-cord:hover {
-  opacity: 1;
+  display: none;
 }
 
 /* ------------------------------------------------------------------ the Press */
@@ -597,6 +706,124 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* What a terminal source will print, in place of the snippet box. */
+.tn-press-taken .tn-note {
+  margin: 0;
+}
+
+.tn-press-excerpt {
+  margin: 6px 0 0;
+  padding: 6px 0 6px 10px;
+  overflow: hidden;
+  border-left: 2px solid var(--tn-panel-line);
+  color: var(--tn-panel-muted);
+  font-family: var(--tn-font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre;
+  text-overflow: ellipsis;
+  -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent);
+  mask-image: linear-gradient(90deg, #000 80%, transparent);
+}
+
+.tn-press-options {
+  border-top: 1px solid var(--tn-panel-line);
+  border-bottom: 1px solid var(--tn-panel-line);
+  padding: 8px 0;
+}
+
+.tn-press-options summary {
+  cursor: pointer;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--tn-panel-ink);
+}
+
+.tn-press-options-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tn-press-seal {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.tn-seal-preview {
+  width: 76px;
+  height: 76px;
+}
+
+.tn-press-seal-options {
+  display: grid;
+  gap: 8px;
+}
+
+.tn-monogram {
+  width: 54px;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: var(--tn-font-display);
+  font-size: 17px;
+  letter-spacing: 0.08em;
+}
+
+.tn-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tn-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.tn-swatch[aria-pressed='true'] {
+  outline: 2px solid var(--tn-accent);
+  outline-offset: 2px;
+}
+
+.tn-swatch:focus-visible {
+  outline: 1px dotted var(--tn-accent);
+  outline-offset: 3px;
+}
+
+.tn-archive-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tn-archive-tools .tn-button {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.tn-button[aria-pressed='true'] {
+  border-color: var(--tn-accent);
+}
+
+.tn-button-danger:not(:disabled) {
+  border-color: #b8553f;
+  color: #f0a08c;
+}
+
+.tn-button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .tn-press-sheet {
@@ -691,6 +918,37 @@
 
 .tn-folio-delete:hover {
   color: #e07a64;
+}
+
+.tn-folio-action {
+  min-width: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--tn-panel-muted);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tn-folio:hover .tn-folio-action,
+.tn-folio-action:focus-visible {
+  opacity: 1;
+}
+
+.tn-folio-action:hover {
+  color: var(--tn-accent);
+}
+
+.tn-folio-check {
+  align-self: center;
+  margin: 0 2px 0 8px;
+  accent-color: var(--tn-accent);
+}
+
+.tn-folio-rename {
+  flex: 1;
+  margin: 4px;
+  font-style: italic;
 }
 
 @media (max-width: 720px) {

@@ -5,12 +5,18 @@
 // sanitizeFolio(), which keeps only plain text of bounded size. A folio is never executed or
 // interpreted; it is only drawn.
 
-export type FolioSource = 'snippet' | 'selection' | 'screen';
+import {defaultFolioStyle, sanitizeFolioStyle} from './settings';
+import type {FolioStyle} from './types';
+
+/** `command`: the last command run in the terminal, with its output. */
+export type FolioSource = 'snippet' | 'selection' | 'screen' | 'command';
 
 export type FolioDraft = {
   title: string;
   text: string;
   source: FolioSource;
+  /** How it is printed; kept with the folio so it looks the same when reopened. */
+  style: FolioStyle;
 };
 
 export type Folio = FolioDraft & {
@@ -24,7 +30,7 @@ export type Folio = FolioDraft & {
 
 export const FOLIO_LIMITS = {title: 120, text: 64000, lines: 400, lineLength: 240};
 
-const SOURCES: FolioSource[] = ['snippet', 'selection', 'screen'];
+const SOURCES: FolioSource[] = ['snippet', 'selection', 'screen', 'command'];
 
 const isDict = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -35,6 +41,10 @@ const isDict = (value: unknown): value is Record<string, unknown> =>
  */
 const plainText = (value: string) => value.replace(/\r\n?/g, '\n').replace(/[^\P{Cc}\t\n]/gu, '');
 
+/** A title on one line, of bounded length. */
+export const sanitizeTitle = (raw: unknown) =>
+  typeof raw === 'string' ? plainText(raw).replace(/\s+/g, ' ').trim().slice(0, FOLIO_LIMITS.title) : '';
+
 export function sanitizeDraft(raw: unknown): FolioDraft | null {
   if (!isDict(raw) || typeof raw.text !== 'string') {
     return null;
@@ -43,9 +53,10 @@ export function sanitizeDraft(raw: unknown): FolioDraft | null {
   if (!text.trim()) {
     return null;
   }
-  const title = typeof raw.title === 'string' ? plainText(raw.title).replace(/\s+/g, ' ').trim() : '';
   const source = SOURCES.find((item) => item === raw.source) ?? 'snippet';
-  return {title: title.slice(0, FOLIO_LIMITS.title), text, source};
+  // Folios printed before there were print options have none: they get the defaults.
+  const style = sanitizeFolioStyle(raw.style, defaultFolioStyle());
+  return {title: sanitizeTitle(raw.title), text, source, style};
 }
 
 export const isFolioId = (value: unknown): value is string =>
@@ -161,7 +172,8 @@ export function folioDate(iso: string): string {
 const SOURCE_NAMES: Record<FolioSource, string> = {
   snippet: 'a snippet',
   selection: 'the terminal',
-  screen: 'the terminal'
+  screen: 'the terminal',
+  command: 'the last command'
 };
 
 export const folioSourceName = (source: FolioSource) => SOURCE_NAMES[source];

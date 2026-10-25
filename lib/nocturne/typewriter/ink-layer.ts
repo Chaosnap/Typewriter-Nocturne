@@ -46,11 +46,35 @@ export type InkViewport = {
   left: number;
   top: number;
   cellHeight: number;
+  cellWidth: number;
   /** Buffer line shown in the top row. */
   viewportY: number;
 };
 
 type Strike = StrikeEvent & {at: number};
+
+/** The colour xterm.js gives a cell: default ink, one of the 16 ANSI colours, or a true colour. */
+export function glyphColor(fg: StrikeEvent['fg'], style: InkStyle): string {
+  if (typeof fg === 'string') {
+    return fg;
+  }
+  if (typeof fg === 'number' && fg < 16) {
+    return style.ansi[ANSI_ORDER[fg]];
+  }
+  return style.ink;
+}
+
+/**
+ * Sets the font of a glyph and measures it as xterm.js does: the glyph box is centred in the cell
+ * and drawn on the ideographic baseline.
+ */
+export function glyphMetrics(c: CanvasRenderingContext2D, style: InkStyle, bold: boolean, viewport: InkViewport) {
+  const weight = bold ? style.fontWeightBold : style.fontWeight;
+  c.font = `${weight} ${style.fontSize}px ${style.fontFamily}`;
+  const metrics = c.measureText('W');
+  const charHeight = Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent);
+  return {charHeight, charTop: Math.round((viewport.cellHeight - charHeight) / 2)};
+}
 
 const smooth = (t: number) => {
   const x = Math.min(1, Math.max(0, t));
@@ -98,16 +122,6 @@ export class InkLayer {
     return this.strikes.length > 0;
   }
 
-  private colorOf(strike: StrikeEvent, style: InkStyle) {
-    if (typeof strike.fg === 'string') {
-      return strike.fg;
-    }
-    if (typeof strike.fg === 'number' && strike.fg < 16) {
-      return style.ansi[ANSI_ORDER[strike.fg]];
-    }
-    return style.ink;
-  }
-
   /** Draws the strikes that are still settling; returns whether any remain. */
   render(now: number, style: InkStyle, viewport: InkViewport | null) {
     const c = this.context;
@@ -124,19 +138,14 @@ export class InkLayer {
     c.textBaseline = 'ideographic';
     for (const strike of this.strikes) {
       const k = (1 - smooth((now - strike.at) / SETTLE_MS)) * style.impression;
-      const weight = strike.bold ? style.fontWeightBold : style.fontWeight;
-      c.font = `${weight} ${style.fontSize}px ${style.fontFamily}`;
-      // xterm.js centres the glyph box in the cell and draws on the ideographic baseline.
-      const metrics = c.measureText('W');
-      const charHeight = Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent);
-      const charTop = Math.round((viewport.cellHeight - charHeight) / 2);
+      const {charHeight, charTop} = glyphMetrics(c, style, strike.bold, viewport);
       const x = viewport.left + strike.col * strike.cellWidth + Math.floor(style.letterSpacing / 2);
       const top = viewport.top + (strike.line - viewport.viewportY) * viewport.cellHeight;
       if (top < -viewport.cellHeight || top > this.height) {
         continue;
       }
       const baseline = top + charTop + charHeight;
-      const color = this.colorOf(strike, style);
+      const color = glyphColor(strike.fg, style);
       const scale = 1 + 0.07 * k;
       const cx = x + strike.width / 2;
       const cy = top + viewport.cellHeight / 2;

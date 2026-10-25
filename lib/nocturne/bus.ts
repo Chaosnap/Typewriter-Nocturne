@@ -19,6 +19,8 @@ export type CursorFrame = {
   visible: boolean;
   /** Buffer line shown in the top row of the viewport. */
   viewportY: number;
+  /** Buffer line of the top row when scrolled to the bottom: 0 means there is no scrollback. */
+  baseY: number;
   /** The text grid (`.xterm-screen`) in client coordinates. */
   grid: {left: number; top: number; width: number; height: number};
 };
@@ -56,6 +58,18 @@ export type KeyKind =
   | 'select'
   | 'commit';
 
+/** One selected cell, for the ink selection effect. */
+export type SelectedCell = {
+  /** Absolute buffer line and column. */
+  line: number;
+  col: number;
+  char: string;
+  /** Cells the glyph covers (2 for wide characters). */
+  width: number;
+  fg: number | string | null;
+  bold: boolean;
+};
+
 /** Sounds of the room rather than of the keys. */
 export type CueKind = 'cord' | 'seal' | 'print' | 'line';
 
@@ -70,6 +84,8 @@ type EventMap = {
   marginBell: {uid: string};
   /** The lamp cord was pulled, a folio printed or sealed. */
   cue: {kind: CueKind};
+  /** The selection of the active terminal changed; no cells when it was cleared. */
+  selection: {uid: string; cells: SelectedCell[]};
 };
 
 type Handler<K extends keyof EventMap> = (payload: EventMap[K]) => void;
@@ -79,7 +95,8 @@ const handlers: {[K in keyof EventMap]: Set<Handler<K>>} = {
   strike: new Set(),
   key: new Set(),
   marginBell: new Set(),
-  cue: new Set()
+  cue: new Set(),
+  selection: new Set()
 };
 
 let lastCursor: CursorFrame | null = null;

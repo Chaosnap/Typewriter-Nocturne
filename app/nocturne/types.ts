@@ -159,7 +159,11 @@ export type TypographySettings = {
   minimumContrast: number;
   /** Empty string = the theme's selection colour. */
   selection: string;
+  /** `ink`: selected text dissolves like ink and re-forms under a soft wash; `classic`: xterm's box. */
+  selectionStyle: SelectionStyle;
 };
+
+export type SelectionStyle = 'ink' | 'classic';
 
 export type TypewriterSettings = {
   /** Global mute for every typewriter sound. */
@@ -192,9 +196,31 @@ export type PaperSettings = {
   texture: number;
 };
 
+export type FolioPaperId = 'laid' | 'cotton' | 'vellum' | 'parchment' | 'night';
+export type SealColor = 'crimson' | 'oxblood' | 'black' | 'gold' | 'emerald' | 'sapphire';
+export type SealEmblem = 'moon' | 'rose' | 'quill' | 'none';
+/** `sonnet`: an upright book face, as sonnets are printed; `custom`: `customFont`. */
+export type FolioFont = 'typewriter' | 'sonnet' | 'display' | 'plex' | 'terminal' | 'custom';
+
+/** How a folio is printed: its paper, its seal, the face of its text and the signature. */
+export type FolioStyle = {
+  paper: FolioPaperId;
+  sealColor: SealColor;
+  /** One or two letters pressed into the seal. */
+  monogram: string;
+  emblem: SealEmblem;
+  /** The silk ribbon under the seal. */
+  ribbon: boolean;
+  font: FolioFont;
+  customFont: string;
+  /** "set at the typewriter, by …"; empty = "by lamplight". */
+  signature: string;
+};
+
 export type PrintSettings = {
   /** Printed pages are kept in the Archive (a folder in the configuration directory). */
   keepInArchive: boolean;
+  style: FolioStyle;
 };
 
 export type ChromeSettings = {
@@ -202,6 +228,33 @@ export type ChromeSettings = {
   statusBar: boolean;
   frame: boolean;
   epigraph: boolean;
+  /** The lamp's pull cord at the top left (never shown in Focus Mode). */
+  pullCord: boolean;
+};
+
+/** The sheet in Focus Mode: the chosen paper, the night paper, or a colour of your own. */
+export type FocusBackground = 'paper' | 'dark' | 'custom';
+
+export type FocusSettings = {
+  background: FocusBackground;
+  /** Used when `background` is `custom`. */
+  color: string;
+  /** Paper texture and type impressions stay on in Focus Mode. */
+  paper: boolean;
+  /** The light stays on in Focus Mode. */
+  lighting: boolean;
+};
+
+/** `clip`: a paper clip on the sheet's edge; `bar`: a translucent bar; `native`: the system's. */
+export type ScrollbarStyle = 'clip' | 'bar' | 'native';
+export type ClipFinish = 'silver' | 'brass' | 'gold' | 'black';
+
+export type ScrollbarSettings = {
+  style: ScrollbarStyle;
+  finish: ClipFinish;
+  /** The translucent bar: opacity 0.1–0.9, width 3–12 px. */
+  barOpacity: number;
+  barWidth: number;
 };
 
 export type NocturneSettings = {
@@ -217,6 +270,8 @@ export type NocturneSettings = {
   typography: TypographySettings;
   typewriter: TypewriterSettings;
   print: PrintSettings;
+  focus: FocusSettings;
+  scrollbar: ScrollbarSettings;
 };
 
 /** Recursive partial used for settings patches. */

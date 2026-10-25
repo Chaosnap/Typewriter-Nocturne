@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import {stageLayout} from '../../app/nocturne/stage-layout';
+import {rollerBoxes, stageLayout} from '../../app/nocturne/stage-layout';
 
 const SIZES: [number, number][] = [
   [1280, 786],
@@ -27,4 +27,13 @@ test('without the machine the sheet and the text fill the stage', (t) => {
   t.false(layout.machine);
   t.deepEqual(layout.sheet, {x: 0, y: 0, width: 1000, height: 700});
   t.deepEqual(layout.text, layout.sheet);
+});
+
+test('the bail rollers sit on the bail, left and right of the sheet, and not without the machine', (t) => {
+  const layout = stageLayout(1280, 786, true);
+  const [left, right] = rollerBoxes(layout);
+  t.true(left.x + left.width < right.x);
+  t.true(left.y < layout.bailY && left.y + left.height > layout.bailY);
+  t.true(left.x > layout.sheet.x && right.x + right.width < layout.sheet.x + layout.sheet.width);
+  t.deepEqual(rollerBoxes(stageLayout(1280, 786, false)), []);
 });

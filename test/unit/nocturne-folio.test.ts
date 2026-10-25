@@ -3,18 +3,64 @@ import test from 'ava';
 import {
   FOLIO_LIMITS,
   folioDate,
+  folioSourceName,
   isFolioId,
   sanitizeDraft,
   sanitizeFolio,
+  sanitizeTitle,
   toRoman,
   verseLines
 } from '../../app/nocturne/folio';
+import {defaultFolioStyle} from '../../app/nocturne/settings';
 
 test('a draft keeps plain text only, within limits', (t) => {
   const raw = {title: '  On\tLeaves \u001b[31m', text: 'ls\r\n\u001b[2Jecho hi\u0007 \ue0a0', source: 'screen'};
-  t.deepEqual(sanitizeDraft(raw), {title: 'On Leaves [31m', text: 'ls\n[2Jecho hi \ue0a0', source: 'screen'});
+  const expected = {
+    title: 'On Leaves [31m',
+    text: 'ls\n[2Jecho hi \ue0a0',
+    source: 'screen',
+    style: defaultFolioStyle()
+  };
+  t.deepEqual(sanitizeDraft(raw), expected);
   t.is(sanitizeDraft({text: 'x'.repeat(FOLIO_LIMITS.text + 50)})?.text.length, FOLIO_LIMITS.text);
   t.is(sanitizeDraft({text: 'x', source: 'elsewhere'})?.source, 'snippet');
+});
+
+test('a draft keeps its print style, validated', (t) => {
+  const style = {
+    paper: 'night',
+    sealColor: 'gold',
+    monogram: 'yk!',
+    emblem: 'rose',
+    ribbon: false,
+    font: 'sonnet',
+    customFont: 'Bad"";',
+    signature: ' Yuki \u0007 '
+  };
+  t.deepEqual(sanitizeDraft({text: 'x', style})?.style, {
+    paper: 'night',
+    sealColor: 'gold',
+    monogram: 'YK',
+    emblem: 'rose',
+    ribbon: false,
+    font: 'sonnet',
+    customFont: '',
+    signature: 'Yuki'
+  });
+  const odd = sanitizeDraft({text: 'x', style: {paper: 'papyrus', sealColor: 'pink', font: 'comic', monogram: '!!'}});
+  t.deepEqual(odd?.style, defaultFolioStyle());
+  t.is(sanitizeDraft({text: 'x', style: {signature: 'n'.repeat(90)}})?.style.signature.length, 40);
+});
+
+test('the last command is a source of its own', (t) => {
+  t.is(sanitizeDraft({text: 'ls\nREADME.md', source: 'command'})?.source, 'command');
+  t.is(folioSourceName('command'), 'the last command');
+});
+
+test('titles are one line of bounded length', (t) => {
+  t.is(sanitizeTitle('  A\n new\ttitle \u001b '), 'A new title');
+  t.is(sanitizeTitle('t'.repeat(FOLIO_LIMITS.title + 10)).length, FOLIO_LIMITS.title);
+  t.is(sanitizeTitle(42), '');
 });
 
 test('empty or malformed drafts are refused', (t) => {

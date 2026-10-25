@@ -6,6 +6,7 @@
 
 import type {configOptions} from '../../typings/config';
 
+import {luminanceOfUnit, toUnit} from './color';
 import {PAPERS} from './papers';
 import type {Paper} from './papers';
 import {fontStack} from './settings';
@@ -18,8 +19,37 @@ export function activeTheme(settings: NocturneSettings): NocturneTheme | null {
   return settings.theme === 'classic' ? null : THEMES[settings.theme];
 }
 
+/**
+ * The sheet the terminal is typed on. In Focus Mode it can be the night paper or a colour of the
+ * user's own; a custom colour takes the light or the night paper's inks, whichever reads on it.
+ */
 export function activePaper(settings: NocturneSettings): Paper {
-  return PAPERS[settings.paper.style];
+  const chosen = PAPERS[settings.paper.style];
+  if (!settings.focusMode || settings.focus.background === 'paper') {
+    return chosen;
+  }
+  if (settings.focus.background === 'dark') {
+    return PAPERS.night;
+  }
+  const dark = luminanceOfUnit(toUnit(settings.focus.color)) < 0.18;
+  const inks = dark ? PAPERS.night : PAPERS.cotton;
+  return {...inks, paper: settings.focus.color, surface: {...inks.surface, mottle: 0, age: 0}};
+}
+
+/** Paper texture and type impressions are drawn (in Focus Mode only if the user keeps them). */
+export function paperEffectsOn(settings: NocturneSettings): boolean {
+  return settings.theme !== 'classic' && settings.effects && (!settings.focusMode || settings.focus.paper);
+}
+
+/** The lamp's light is drawn (in Focus Mode only if the user keeps it). */
+export function lightOn(settings: NocturneSettings): boolean {
+  const allowed = !settings.focusMode || settings.focus.lighting;
+  return settings.theme !== 'classic' && settings.effects && settings.lighting.enabled && allowed;
+}
+
+/** The ink selection effect replaces xterm's selection box. */
+export function inkSelectionOn(settings: NocturneSettings): boolean {
+  return paperEffectsOn(settings) && settings.typography.selectionStyle === 'ink';
 }
 
 /** Paper margins around the text grid, inside the sheet. */
@@ -66,7 +96,8 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
     backgroundColor: paper.paper,
     cursorColor: paper.cursor,
     cursorAccentColor: paper.paper,
-    selectionColor: typography.selection || paper.selection,
+    // With the ink selection the effect layer draws the selection; xterm's box stays invisible.
+    selectionColor: inkSelectionOn(settings) ? 'rgba(0, 0, 0, 0)' : typography.selection || paper.selection,
     borderColor: theme.palette.border,
     padding: paperPadding(settings),
     colors: {...config.colors, ...paper.ansi}
@@ -75,5 +106,7 @@ export function applyNocturneToConfig<T extends configOptions>(config: T, settin
 
 /** A key that changes only when the produced config would change (avoids needless reloads). */
 export function configAffectingKey(settings: NocturneSettings): string {
-  return JSON.stringify([settings.theme, settings.focusMode, settings.typography, settings.paper.style]);
+  const paper = activePaper(settings);
+  const key = [settings.theme, settings.focusMode, settings.typography, paper.paper, inkSelectionOn(settings)];
+  return JSON.stringify(key);
 }
