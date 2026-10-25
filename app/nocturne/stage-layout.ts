@@ -4,6 +4,9 @@
 //
 // Coordinates are CSS pixels relative to the stage (the area below the toolbar). The sheet starts
 // a little above the stage so its top edge is never seen; it runs down behind the platen.
+//
+// The machine is proportioned to the window, not to the sheet: the platen keeps its length while
+// the sheet is made wider, up to the full length of the platen.
 
 export type Box = {x: number; y: number; width: number; height: number};
 
@@ -15,6 +18,10 @@ export type StageLayout = {
   machineHeight: number;
   machineTop: number;
   sheet: Box;
+  /** The side margin the machine is proportioned to: the left edge of the narrowest sheet. */
+  margin: number;
+  /** The platen's ends, stage x. */
+  platen: {left: number; right: number};
   platenY: number;
   platenRadius: number;
   /** The paper bail: the chrome bar that holds the sheet against the platen. */
@@ -27,7 +34,11 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 export const SHEET_OVERHANG = 12;
 
-export function stageLayout(width: number, height: number, machine: boolean): StageLayout {
+/**
+ * The layout for a stage of this size. `paperWidth` widens the sheet from the narrowest (0) to the
+ * full length of the platen (1).
+ */
+export function stageLayout(width: number, height: number, machine: boolean, paperWidth = 0): StageLayout {
   if (!machine) {
     const whole = {x: 0, y: 0, width, height};
     return {
@@ -37,6 +48,8 @@ export function stageLayout(width: number, height: number, machine: boolean): St
       machineHeight: 0,
       machineTop: height,
       sheet: whole,
+      margin: 0,
+      platen: {left: 0, right: width},
       platenY: height,
       platenRadius: 0,
       bailY: height,
@@ -47,7 +60,12 @@ export function stageLayout(width: number, height: number, machine: boolean): St
   const machineHeight = clamp(height * 0.3, 160, 300);
   // Side margins of about 8.5% leave room for the platen ends and knobs without wide empty bands.
   const margins = width < 720 ? 40 : 2 * clamp(width * 0.085, 64, 150);
-  const sheetWidth = Math.round(Math.max(160, Math.min(width - margins, 1240)));
+  const narrowest = Math.round(Math.max(160, Math.min(width - margins, 1240)));
+  const margin = Math.round((width - narrowest) / 2);
+  // The platen runs a little past the narrowest sheet on both sides, to its knobs.
+  const reach = Math.min(margin * 0.45, 90);
+  const platen = {left: margin - reach, right: margin + narrowest + reach};
+  const sheetWidth = Math.round(narrowest + 2 * reach * clamp(paperWidth, 0, 1));
   const sheetX = Math.round((width - sheetWidth) / 2);
   const machineTop = height - machineHeight;
   const platenRadius = machineHeight * 0.12;
@@ -62,6 +80,8 @@ export function stageLayout(width: number, height: number, machine: boolean): St
     machineHeight,
     machineTop,
     sheet: {x: sheetX, y: -SHEET_OVERHANG, width: sheetWidth, height: Math.ceil(platenY + SHEET_OVERHANG)},
+    margin,
+    platen,
     platenY,
     platenRadius,
     bailY,

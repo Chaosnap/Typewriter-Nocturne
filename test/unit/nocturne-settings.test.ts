@@ -170,3 +170,26 @@ test('the beam is pointed unless chosen soft; a folio is sealed unless chosen ot
   t.true(defaultSettings().print.style.seal);
   t.false(sanitizeSettings({print: {style: {seal: false}}}).print.style.seal);
 });
+
+test('the moonlit window is upright by default; its panes, slant and place are kept in range', (t) => {
+  t.deepEqual(defaultSettings().lighting.window, {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.25});
+  const result = sanitizeSettings({lighting: {window: {columns: 40, rows: 0, slant: -90, x: 2, y: 'top'}}});
+  t.deepEqual(result.lighting.window, {columns: 6, rows: 1, slant: -35, x: 1, y: 0.25});
+});
+
+test('the sheet is narrowest by default and at most as wide as the platen; the ribbon is laid six ways', (t) => {
+  t.is(defaultSettings().paper.width, 0);
+  t.is(sanitizeSettings({paper: {width: 3}}).paper.width, 1);
+  t.is(sanitizeSettings({paper: {width: -1}}).paper.width, 0);
+  t.is(defaultSettings().print.style.ribbonStyle, 'tails');
+  t.is(sanitizeSettings({print: {style: {ribbonStyle: 'cross'}}}).print.style.ribbonStyle, 'cross');
+  t.is(sanitizeSettings({print: {style: {ribbonStyle: 'bow'}}}).print.style.ribbonStyle, 'tails');
+});
+
+test('the balanced preset brings back the pointed beam, straight up the page', (t) => {
+  const custom = patchSettings(defaultSettings(), {lighting: {beam: 'soft', aim: 30, spread: 140, preset: 'custom'}});
+  const balanced = applyLightingPreset(custom, 'balanced').lighting;
+  t.is(balanced.beam, 'pointed');
+  t.is(balanced.aim, 0);
+  t.is(balanced.spread, 74);
+});

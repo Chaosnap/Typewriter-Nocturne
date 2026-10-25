@@ -376,7 +376,7 @@ export function drawFolio(canvas: HTMLCanvasElement, art: FolioArt): number {
       monogram: style.monogram,
       color: style.sealColor,
       emblem: style.emblem,
-      ribbon: style.ribbon,
+      ribbon: style.ribbon ? style.ribbonStyle : null,
       display: art.fonts.display
     });
     c.restore();

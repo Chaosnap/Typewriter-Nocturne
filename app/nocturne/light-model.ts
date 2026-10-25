@@ -29,10 +29,20 @@ export type LightRig = {
   /** Multiplies irradiance before tone mapping. */
   exposure: number;
   /**
-   * Moonlight window: centre, size of the lit patch, pane size and edge softness (px), and the
-   * shear of the patch (slanting moonlight casts the window as a parallelogram).
+   * Moonlight window: centre and size of the lit patch, its panes across and down, edge softness
+   * (px), and the shear of the patch (slanting light casts the window as a parallelogram; 0 is
+   * upright).
    */
-  window: {x: number; y: number; width: number; height: number; pane: number; softness: number; skew: number};
+  window: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    columns: number;
+    rows: number;
+    softness: number;
+    skew: number;
+  };
 };
 
 export type SheetGeometry = {
@@ -58,23 +68,32 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Soft periodic window bars: 1 inside a pane, 0 on a mullion. */
-function panes(t: number, edge: number): number {
-  const f = t - Math.floor(t);
-  return smoothstep(0, edge, f) * smoothstep(0, edge, 1 - f);
+/** Half the width of a glazing bar, in pixels, for panes of this size. */
+export const barHalfWidth = (paneWidth: number, paneHeight: number) =>
+  Math.min(16, Math.max(4, 0.04 * Math.min(paneWidth, paneHeight)));
+
+/** Light passed between two bars along one axis: 0 on a bar, 1 in the pane, blurred by `soft`. */
+function between(offset: number, cell: number, bar: number, soft: number): number {
+  const t = offset / cell;
+  const fromBar = Math.abs(t - Math.round(t)) * cell;
+  return smoothstep(bar - soft, bar + soft, fromBar);
 }
 
 /** Fraction of moonlight that passes the window frame at a point of the sheet. */
 export function windowGobo(rig: LightRig, x: number, y: number): number {
   const w = rig.window;
+  const soft = Math.max(0.5, w.softness);
   const sx = x - (y - w.y) * w.skew;
-  const u = (sx - w.x) / w.width;
-  const v = (y - w.y) / w.height;
-  const edge = Math.max(0.01, w.softness / Math.max(w.width, w.height));
-  const aperture = smoothstep(0.5, 0.5 - edge * 2, Math.abs(u)) * smoothstep(0.5, 0.5 - edge * 2, Math.abs(v));
-  const mullionEdge = Math.min(0.45, 0.03 + w.softness / w.pane);
-  const bars = panes((sx - w.x) / w.pane + 0.5, mullionEdge) * panes((y - w.y) / w.pane + 0.5, mullionEdge);
-  return aperture * (0.3 + 0.7 * bars);
+  const dx = sx - w.x;
+  const dy = y - w.y;
+  const across = smoothstep(-soft, soft, w.width / 2 - Math.abs(dx));
+  const down = smoothstep(-soft, soft, w.height / 2 - Math.abs(dy));
+  // Bars between the panes; the window's frame is the bar at each edge.
+  const paneWidth = w.width / w.columns;
+  const paneHeight = w.height / w.rows;
+  const bar = barHalfWidth(paneWidth, paneHeight);
+  const open = between(dx + w.width / 2, paneWidth, bar, soft) * between(dy + w.height / 2, paneHeight, bar, soft);
+  return across * down * (0.1 + 0.9 * open);
 }
 
 /** Irradiance (before exposure) at sheet point (x, y) for a paper normal. */
@@ -118,11 +137,12 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
     cosOuter,
     cosInner,
     exposure: 1,
-    window: {x: width / 2, y: height / 2, width, height, pane: 120, softness: 8, skew: 0}
+    window: {x: width / 2, y: height / 2, width, height, columns: 3, rows: 2, softness: 8, skew: 0}
   };
 
   let rig: LightRig;
-  let reference: [number, number];
+  /** What reaches the reference point, which the exposure lights to `intensity`. */
+  let referenceIrradiance: number;
 
   // The lamp swivels left or right by `aim` degrees.
   const swivel = (Math.max(-45, Math.min(45, settings.aim)) * Math.PI) / 180;
@@ -134,7 +154,8 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
     const aim: Vec3 = [sheet.headX + Math.tan(swivel) * throwLength, sheet.railY - throwLength, 0];
     rig = {...base, position: lamp, direction: normalize([aim[0] - lamp[0], aim[1] - lamp[1], aim[2] - lamp[2]])};
     const referenceLength = 0.5 * settings.reach * height;
-    reference = [sheet.headX + Math.tan(swivel) * referenceLength, sheet.railY - referenceLength];
+    const reference = [sheet.headX + Math.tan(swivel) * referenceLength, sheet.railY - referenceLength];
+    referenceIrradiance = irradiance(rig, reference[0], reference[1]);
   } else if (source === 'desk-lamp') {
     // An overhead desk lamp, higher for a longer reach, aimed at the middle of the page.
     const lamp: Vec3 = [position.x * width, position.y * height, (0.3 + 0.4 * settings.reach) * height];
@@ -144,7 +165,7 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
     const sin = Math.sin(swivel);
     const aim: Vec3 = [lamp[0] + dx * cos - dy * sin, lamp[1] + dx * sin + dy * cos, 0];
     rig = {...base, position: lamp, direction: normalize([aim[0] - lamp[0], aim[1] - lamp[1], aim[2] - lamp[2]])};
-    reference = [aim[0], aim[1]];
+    referenceIrradiance = irradiance(rig, aim[0], aim[1]);
   } else {
     // Moonlight: parallel rays at 40° elevation from the moon's side, through a window frame.
     const azimuth = Math.atan2(0.5 - position.y, 0.5 - position.x) + swivel;
@@ -154,26 +175,26 @@ export function buildRig(settings: LightingSettings, theme: NocturneTheme, sheet
       Math.sin(azimuth) * Math.cos(elevation),
       -Math.sin(elevation)
     ]);
-    const patchWidth = width * 0.62 * settings.reach;
-    const patchHeight = height * 0.7 * settings.reach;
+    const frame = settings.window;
     rig = {
       ...base,
       direction,
       window: {
-        x: width * (0.5 + (position.x - 0.5) * 0.45),
-        y: height * (0.5 + (position.y - 0.5) * 0.45),
-        width: patchWidth,
-        height: patchHeight,
-        pane: Math.max(60, Math.min(patchWidth, patchHeight) / 2),
-        // The moon is a small source: the window's shadow is nearly crisp.
-        softness: 3 + 14 * settings.softness,
-        // The patch leans away from the moon's side.
-        skew: position.x < 0.5 ? 0.3 : -0.3
+        x: width * frame.x,
+        y: height * frame.y,
+        width: width * 0.62 * settings.reach,
+        height: height * 0.7 * settings.reach,
+        columns: frame.columns,
+        rows: frame.rows,
+        // Light scattered on the way blurs the window's edges and bars.
+        softness: 4 + 40 * settings.softness,
+        // Upright by default; a slant leans the window as light from low and to the side does.
+        skew: Math.tan((Math.max(-35, Math.min(35, frame.slant)) * Math.PI) / 180)
       }
     };
-    reference = [rig.window.x, rig.window.y];
+    // Measured where the moonlight passes the window unobstructed, in the middle of a pane.
+    referenceIrradiance = Math.max(0, -direction[2]);
   }
 
-  const referenceIrradiance = irradiance(rig, reference[0], reference[1]);
   return {...rig, exposure: referenceIrradiance > 0 ? settings.intensity / referenceIrradiance : 0};
 }

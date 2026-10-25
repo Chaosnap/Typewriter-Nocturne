@@ -967,6 +967,41 @@
   letter-spacing: 0.08em;
 }
 
+.tn-ribbons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.tn-ribbon {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 3px 0;
+  border: 1px solid var(--tn-panel-line);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tn-ribbon[aria-pressed='true'] {
+  border-color: var(--tn-accent);
+  box-shadow: inset 0 0 0 1px var(--tn-accent);
+}
+
+.tn-ribbon:focus-visible {
+  outline: 1px dotted var(--tn-accent);
+  outline-offset: 2px;
+}
+
+.tn-ribbon-chip {
+  display: block;
+  width: 40px;
+  max-width: 100%;
+  height: 54px;
+  object-fit: contain;
+}
+
 .tn-swatches {
   display: flex;
   flex-wrap: wrap;

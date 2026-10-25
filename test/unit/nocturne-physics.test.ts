@@ -119,20 +119,38 @@ test('the carriage lamp lights the text above the carriage, not below it', (t) =
 test('moonlight is shaped by the window frame', (t) => {
   const settings = {...defaultSettings().lighting, source: 'moonlight' as const, softness: 0};
   const rig = buildRig(settings, THEMES['moonlit-poetry'], sheet);
-  const inPane = lightAmount(rig, rig.window.x, rig.window.y);
-  const onMullion = lightAmount(rig, rig.window.x + rig.window.pane / 2, rig.window.y);
-  t.true(inPane > onMullion);
+  const {x, y, width, height, columns, rows} = rig.window;
+  // The middle of the first pane, and the bar between the first two panes across.
+  const paneY = y - height / 2 + height / rows / 2;
+  const inPane = lightAmount(rig, x - width / 2 + width / columns / 2, paneY);
+  const onBar = lightAmount(rig, x - width / 2 + width / columns, paneY);
+  t.true(Math.abs(inPane - (1 - Math.exp(-settings.intensity))) < 1e-6, 'a pane is lit to the chosen intensity');
+  t.true(inPane > onBar * 3);
   t.is(lightAmount(rig, -2000, -2000), 0);
 });
 
-test('slanting moonlight casts the window as a parallelogram with nearly crisp edges', (t) => {
+test('the window has the panes chosen across and down', (t) => {
+  const settings = {...defaultSettings().lighting, source: 'moonlight' as const, softness: 0};
+  const frame = {...settings.window, columns: 4, rows: 1};
+  const rig = buildRig({...settings, window: frame}, THEMES['moonlit-poetry'], sheet);
+  const left = rig.window.x - rig.window.width / 2;
+  // Bars at a quarter, half and three quarters of the width; one row, so no bar across.
+  for (const share of [0.25, 0.5, 0.75]) {
+    t.true(windowGobo(rig, left + rig.window.width * share, rig.window.y) < 0.2, `bar at ${share}`);
+  }
+  for (const share of [0.125, 0.375, 0.625, 0.875]) {
+    t.true(windowGobo(rig, left + rig.window.width * share, rig.window.y) > 0.95, `pane at ${share}`);
+  }
+});
+
+test('the window is upright unless slanted; a slant casts it as a parallelogram', (t) => {
   const settings = {...defaultSettings().lighting, source: 'moonlight' as const};
-  const rig = buildRig(settings, THEMES['moonlit-poetry'], sheet);
-  t.not(rig.window.skew, 0);
-  t.true(rig.window.softness < 20);
+  t.is(buildRig(settings, THEMES['moonlit-poetry'], sheet).window.skew, 0);
+  const rig = buildRig({...settings, window: {...settings.window, slant: 20}}, THEMES['moonlit-poetry'], sheet);
+  t.true(Math.abs(rig.window.skew - Math.tan((20 * Math.PI) / 180)) < 1e-9);
   const square = {...rig, window: {...rig.window, skew: 0}};
-  const dy = -rig.window.pane * 0.8;
-  const x = rig.window.x + rig.window.pane * 0.3;
+  const dy = -rig.window.height * 0.3;
+  const x = rig.window.x + rig.window.width * 0.1;
   const shifted = windowGobo(rig, x + dy * rig.window.skew, rig.window.y + dy);
   t.true(Math.abs(shifted - windowGobo(square, x, rig.window.y + dy)) < 1e-9);
 });

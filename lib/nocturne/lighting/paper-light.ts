@@ -4,11 +4,14 @@
 // the shader only reads its own uniforms and never sees terminal content.
 //
 // Two passes keep the per-frame cost tiny:
-//   1. surface (on layout or paper change): the paper's albedo and its fibre normals, into two
-//      textures. This is the expensive part (fractal noise, foxing, laid lines, linen weave).
+//   1. surface (on layout or paper change): the paper's albedo, its fibre normals and the normals
+//      of its broad relief, into two textures. This is the expensive part (fractal noise, foxing,
+//      laid lines, linen weave).
 //   2. light (when the lamp moves, or for animated film grain): reads both textures and applies
 //      the physical light model of app/nocturne/light-model.ts (inverse-square law, Lambert's
-//      cosine law, a soft spot cone, a window gobo for moonlight, exposure tone mapping).
+//      cosine law, a soft spot cone, a window gobo for moonlight, exposure tone mapping). The lamp
+//      lights the sheet as if it were flat and then rakes softly across its broad relief: lit by a
+//      low lamp, the fine tooth of the paper would glitter like sand.
 
 import type {LightRig} from '../../../app/nocturne/light-model';
 import type {Paper} from '../../../app/nocturne/papers';
@@ -45,6 +48,13 @@ float relief(vec2 p) {
   float weave = 0.5 + 0.5 * sin(p.x * 6.2831 / 3.4) * sin(p.y * 6.2831 / 3.4);
   float slub = noise(p * vec2(0.07, 1.3));
   return mix(r, r * 0.3 + weave * 0.5 + slub * 0.35, uLinen);
+}
+// The broad relief alone: the veins and cockles of the sheet and its long fibres, without the
+// fine tooth or the laid and woven lines. This is what a raking lamp shows of a page.
+float broad(vec2 p) {
+  vec2 w = vec2(fbm(p * 0.012 + uSeed), fbm(p * 0.012 + uSeed + 9.2));
+  float veins = 1.0 - abs(fbm(p * 0.02 + w * 3.0) * 2.0 - 1.0);
+  return 0.35 * pow(veins, 6.0) + 0.12 * noise(p * vec2(0.25, 0.08)) + 0.2 * fbm(p * 0.035 + uSeed * 3.0);
 }
 // Albedo relative to the paper colour: mottling, and for aged paper darker ragged edges, foxing,
 // tide lines and a fold.
@@ -83,8 +93,12 @@ void main() {
   float h0 = relief(p);
   float slope = 1.2 + 3.0 * uCrinkle;
   vec3 n = normalize(vec3(-(relief(p + vec2(e, 0.0)) - h0) * slope, -(relief(p + vec2(0.0, e)) - h0) * slope, 1.0));
+  // The broad relief's slope over a few pixels.
+  float s = 2.5;
+  float b0 = broad(p);
+  vec3 soft = normalize(vec3(-(broad(p + vec2(s, 0.0)) - b0) / s * slope, -(broad(p + vec2(0.0, s)) - b0) / s * slope, 1.0));
   outAlbedo = vec4(albedo(p), 1.0);
-  outNormal = vec4(n.xy * 0.5 + 0.5, 0.0, 1.0);
+  outNormal = vec4(n.xy * 0.5 + 0.5, soft.xy * 0.5 + 0.5);
 }`;
 
 const LIGHT = `#version 300 es
@@ -92,20 +106,25 @@ precision highp float;
 uniform sampler2D uAlbedo; uniform sampler2D uNormal;
 uniform vec2 uSize; uniform float uScale; uniform int uSource;
 uniform vec3 uLightPos; uniform vec3 uLightDir; uniform vec2 uCone; uniform float uExposure;
-uniform vec4 uWindow; uniform vec3 uPane; uniform vec3 uTint; uniform float uLamp;
+uniform vec4 uWindow; uniform vec4 uPanes; uniform vec3 uTint; uniform float uLamp;
 uniform float uAmbient; uniform vec3 uAmbientTint; uniform float uRelief; uniform float uCrinkle;
 uniform float uGrain; uniform float uTime; uniform float uSoft;
 out vec4 outColor;
 float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
-float panes(float t, float e) { float f = fract(t); return smoothstep(0.0, e, f) * smoothstep(0.0, e, 1.0 - f); }
+// The moonlit window (uPanes: panes across and down, edge softness in pixels, slant as a shear).
+float between(float offset, float cell, float bar, float soft) {
+  float t = offset / cell;
+  return smoothstep(bar - soft, bar + soft, abs(t - round(t)) * cell);
+}
 float gobo(vec2 p) {
-  p.x -= (p.y - uWindow.y) * uPane.z;
-  vec2 uv = (p - uWindow.xy) / uWindow.zw;
-  float e = max(0.01, uPane.y / max(uWindow.z, uWindow.w));
-  float aperture = smoothstep(0.5, 0.5 - e * 2.0, abs(uv.x)) * smoothstep(0.5, 0.5 - e * 2.0, abs(uv.y));
-  float me = min(0.45, 0.03 + uPane.y / uPane.x);
-  float bars = panes((p.x - uWindow.x) / uPane.x + 0.5, me) * panes((p.y - uWindow.y) / uPane.x + 0.5, me);
-  return aperture * (0.3 + 0.7 * bars);
+  float soft = max(0.5, uPanes.z);
+  p.x -= (p.y - uWindow.y) * uPanes.w;
+  vec2 d = p - uWindow.xy;
+  vec2 inside = smoothstep(-soft, soft, uWindow.zw * 0.5 - abs(d));
+  vec2 pane = uWindow.zw / uPanes.xy;
+  float bar = clamp(0.04 * min(pane.x, pane.y), 4.0, 16.0);
+  float open = between(d.x + uWindow.z * 0.5, pane.x, bar, soft) * between(d.y + uWindow.w * 0.5, pane.y, bar, soft);
+  return inside.x * inside.y * (0.1 + 0.9 * open);
 }
 // A pointed beam comes from a point and narrows to it. A soft beam (uSoft = 1) comes from a small
 // sphere: near it the light has no hot spot and the edge of the cone widens, as a penumbra does.
@@ -120,20 +139,28 @@ float irradiance(vec3 P, vec3 n) {
 void main() {
   ivec2 texel = ivec2(gl_FragCoord.xy);
   vec3 albedo = texelFetch(uAlbedo, texel, 0).rgb;
-  vec2 nxy = texelFetch(uNormal, texel, 0).xy * 2.0 - 1.0;
-  vec3 n = vec3(nxy, sqrt(max(0.0, 1.0 - dot(nxy, nxy))));
+  vec4 normals = texelFetch(uNormal, texel, 0);
+  vec2 nxy = normals.xy * 2.0 - 1.0;
+  vec2 soft = normals.zw * 2.0 - 1.0;
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  // The lamp shades a gently flattened surface: grazing light near the bulb would otherwise turn
-  // every fibre into a shadow and make the text hard to read.
-  vec3 nl = normalize(vec3(n.xy * 0.35, 1.0));
-  float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), nl) * uExposure)) * uLamp;
+  // The lamp lights the sheet as if it were flat, so its pool is smooth however low the lamp
+  // stands (shading every fibre in grazing light would sprinkle the page with dark specks)...
+  float lit = (1.0 - exp(-irradiance(vec3(p, 0.0), vec3(0.0, 0.0, 1.0)) * uExposure)) * uLamp;
+  // ...and then rakes softly across the broad relief: the side of each rise that faces the lamp a
+  // little brighter, the far side a little darker, by a few percent at most.
+  vec2 toward = uSource == 2 ? -uLightDir.xy : uLightPos.xy - p;
+  toward /= max(1e-3, length(toward));
+  float rake = clamp(dot(soft, toward) * (2.0 + 4.0 * uCrinkle), -1.0, 1.0);
+  lit *= 1.0 + rake * (0.03 + 0.04 * uCrinkle) * min(uRelief, 1.5);
   vec2 uv = p / uSize;
   float vignette = smoothstep(0.15, 1.1, length((uv - vec2(0.5, 0.55)) * vec2(1.0, 1.15)));
   float ambient = mix(1.0, uAmbient * (1.0 - 0.3 * vignette), uLamp);
   vec3 irr = uAmbientTint * ambient + (1.0 - ambient) * lit * uTint;
   // Fibres catch the room light from the upper left: a few percent, bounded so ink stays crisp,
-  // and quieter where the lamp is bright, so the page under the bulb reads cleanly.
+  // and quieter where the lamp is bright. In its light only the broad relief shows, so the page
+  // under the bulb is calm and reads cleanly.
   float relief = uRelief * (1.0 - 0.65 * lit);
+  vec2 n = mix(nxy, soft, smoothstep(0.0, 0.45, lit));
   float bound = (0.16 * uCrinkle + 0.04) * relief;
   irr *= clamp(1.0 + (-n.x * 0.35 - n.y * 0.55) * (0.6 + 2.2 * uCrinkle) * relief, 1.0 - bound, 1.0 + bound);
   // A sheet is never perfectly flat: its side edges fall off gently.
@@ -164,7 +191,7 @@ const LIGHT_UNIFORMS = [
   'uCone',
   'uExposure',
   'uWindow',
-  'uPane',
+  'uPanes',
   'uTint',
   'uLamp',
   'uAmbient',
@@ -389,7 +416,8 @@ export class PaperLight {
     gl.uniform2f(u.uCone, rig.cosOuter, rig.cosInner);
     gl.uniform1f(u.uExposure, rig.exposure);
     gl.uniform4f(u.uWindow, rig.window.x, rig.window.y, rig.window.width, rig.window.height);
-    gl.uniform3f(u.uPane, rig.window.pane, rig.window.softness, rig.window.skew);
+    const {columns, rows, softness, skew} = rig.window;
+    gl.uniform4f(u.uPanes, columns, rows, softness, skew);
     const peak = Math.max(frame.tint[0], frame.tint[1], frame.tint[2], 1e-6);
     gl.uniform3f(u.uTint, frame.tint[0] / peak, frame.tint[1] / peak, frame.tint[2] / peak);
     gl.uniform1f(u.uLamp, frame.lamp ? 1 : 0);

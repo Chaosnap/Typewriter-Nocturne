@@ -12,7 +12,8 @@
 
 import React, {useEffect, useRef} from 'react';
 
-import {on} from '../bus';
+import {getLastCursor, on} from '../bus';
+import type {CursorFrame} from '../bus';
 
 /** The drawing's box with the nib at (0, 0): it reaches 4 units left of the nib and 74 above it. */
 const VIEW = {left: 4, top: 74, width: 64, height: 78};
@@ -154,9 +155,10 @@ export function QuillCursor({appearance}: QuillCursorProps) {
   const elementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    return on('cursor', (frame) => {
+    const place = (frame: CursorFrame) => {
       const element = elementRef.current;
-      const stage = element?.offsetParent;
+      // The stage, not offsetParent: that is null while the quill is hidden, so it would never show.
+      const stage = element?.parentElement;
       if (!element || !stage) {
         return;
       }
@@ -174,7 +176,13 @@ export function QuillCursor({appearance}: QuillCursorProps) {
       element.style.height = `${height.toFixed(2)}px`;
       element.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
       element.dataset.focused = String(frame.focused);
-    });
+    };
+    // The cursor may have stopped moving before the quill was switched on.
+    const last = getLastCursor();
+    if (last) {
+      place(last);
+    }
+    return on('cursor', place);
   }, []);
 
   return (

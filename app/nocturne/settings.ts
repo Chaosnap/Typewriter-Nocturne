@@ -22,6 +22,7 @@ import type {
   NocturneSettings,
   PaperSettings,
   PrintSettings,
+  RibbonStyle,
   ScrollbarSettings,
   SealColor,
   SealEmblem,
@@ -30,7 +31,8 @@ import type {
   TypewriterSettings,
   TypewriterVoice,
   TypographyPresetId,
-  TypographySettings
+  TypographySettings,
+  WindowSettings
 } from './types';
 
 // ---------------------------------------------------------------------------------------------
@@ -147,6 +149,8 @@ export const LIGHTING_PRESETS: Record<LightingPresetId, Partial<LightingSettings
     enabled: true,
     intensity: 1,
     spread: 74,
+    beam: 'pointed',
+    aim: 0,
     reach: 1,
     softness: 0.65,
     bloom: 0.25,
@@ -218,7 +222,7 @@ export function defaultSettings(): NocturneSettings {
     focusMode: false,
     effects: true,
     chrome: {toolbar: true, statusBar: true, frame: true, epigraph: true, pullCord: true},
-    paper: {style: 'cotton', texture: 1},
+    paper: {style: 'cotton', texture: 1, width: 0},
     lighting: {
       enabled: true,
       preset: 'balanced',
@@ -229,6 +233,7 @@ export function defaultSettings(): NocturneSettings {
       aim: 0,
       reach: 1,
       position: {x: 0.5, y: 0.1},
+      window: {columns: 3, rows: 2, slant: 0, x: 0.34, y: 0.25},
       color: '',
       softness: 0.65,
       bloom: 0.25,
@@ -287,6 +292,7 @@ export function defaultFolioStyle(): FolioStyle {
     emblem: 'moon',
     seal: true,
     ribbon: true,
+    ribbonStyle: 'tails',
     font: 'typewriter',
     customFont: '',
     signature: ''
@@ -325,6 +331,7 @@ const LIGHT_SOURCES = ['theme', 'carriage', 'desk-lamp', 'moonlight'] as const;
 const FOLIO_PAPERS: FolioPaperId[] = ['laid', 'cotton', 'vellum', 'parchment', 'night'];
 const SEAL_COLORS: SealColor[] = ['crimson', 'oxblood', 'black', 'gold', 'emerald', 'sapphire'];
 const SEAL_EMBLEMS: SealEmblem[] = ['moon', 'rose', 'quill', 'none'];
+const RIBBON_STYLES: RibbonStyle[] = ['tails', 'loop', 'band', 'cross', 'banner', 'pendant'];
 const FOLIO_FONTS: FolioFont[] = ['typewriter', 'sonnet', 'display', 'plex', 'terminal', 'custom'];
 const CLIP_FINISHES: ClipFinish[] = ['silver', 'brass', 'gold', 'black'];
 
@@ -352,6 +359,7 @@ export function sanitizeFolioStyle(raw: unknown, base: FolioStyle = defaultFolio
     emblem: oneOf(value.emblem, SEAL_EMBLEMS, base.emblem),
     seal: bool(value.seal, base.seal),
     ribbon: bool(value.ribbon, base.ribbon),
+    ribbonStyle: oneOf(value.ribbonStyle, RIBBON_STYLES, base.ribbonStyle),
     font: oneOf(value.font, FOLIO_FONTS, base.font),
     customFont: isSafeFontFamily(value.customFont) ? value.customFont : base.customFont,
     signature: signature(value.signature, base.signature)
@@ -403,7 +411,19 @@ function sanitizePaper(raw: unknown, base: PaperSettings): PaperSettings {
   const style = value.style;
   return {
     style: isPaperId(style) ? style : base.style,
-    texture: round(num(value.texture, base.texture, 0, 1.6))
+    texture: round(num(value.texture, base.texture, 0, 1.6)),
+    width: round(num(value.width, base.width, 0, 1))
+  };
+}
+
+function sanitizeWindow(raw: unknown, base: WindowSettings): WindowSettings {
+  const value = isDict(raw) ? raw : {};
+  return {
+    columns: num(value.columns, base.columns, 1, 6, 1),
+    rows: num(value.rows, base.rows, 1, 6, 1),
+    slant: num(value.slant, base.slant, -35, 35, 1),
+    x: round(num(value.x, base.x, 0, 1)),
+    y: round(num(value.y, base.y, 0, 1))
   };
 }
 
@@ -423,6 +443,7 @@ function sanitizeLighting(raw: unknown, base: LightingSettings): LightingSetting
       x: round(num(position.x, base.position.x, -0.5, 1.5)),
       y: round(num(position.y, base.position.y, -0.5, 1.5))
     },
+    window: sanitizeWindow(value.window, base.window),
     color: color(value.color, base.color),
     softness: round(num(value.softness, base.softness, 0, 1)),
     bloom: round(num(value.bloom, base.bloom, 0, 1)),

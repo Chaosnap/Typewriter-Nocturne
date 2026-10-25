@@ -3,6 +3,8 @@
 
 import React from 'react';
 
+import {activeTheme} from '../../../app/nocturne/apply-config';
+import {resolveSource} from '../../../app/nocturne/light-model';
 import {PAPER_IDS, PAPERS} from '../../../app/nocturne/papers';
 import {applyLightingPreset} from '../../../app/nocturne/settings';
 import {THEMES} from '../../../app/nocturne/themes';
@@ -13,6 +15,7 @@ import type {
   EffectQuality,
   FocusBackground,
   LightingPresetId,
+  LightingSettings,
   NocturneSettings,
   ScrollbarStyle,
   SelectionStyle,
@@ -44,6 +47,13 @@ const VOICES: readonly {value: TypewriterVoice; label: string}[] = [
   {value: 'portable', label: 'Portable'},
   {value: 'electric', label: 'Electric'},
   {value: 'whisper', label: 'Whisper'}
+];
+
+const SOURCES: readonly {value: LightingSettings['source']; label: string}[] = [
+  {value: 'theme', label: 'Theme'},
+  {value: 'carriage', label: 'Carriage'},
+  {value: 'desk-lamp', label: 'Desk lamp'},
+  {value: 'moonlight', label: 'Window'}
 ];
 
 const BEAMS: readonly {value: BeamShape; label: string}[] = [
@@ -85,6 +95,15 @@ const FOCUS_BACKGROUNDS: readonly {value: FocusBackground; label: string}[] = [
 const degrees = (value: number) => `${Math.round(value)}°`;
 const signedDegrees = (value: number) => (value > 0 ? `+${Math.round(value)}°` : degrees(value));
 const pixels = (value: number) => `${value}px`;
+const panes = (value: number) => String(Math.round(value));
+
+/** The sheet's width, from the narrowest to the full length of the platen. */
+function sheetWidth(value: number) {
+  if (value <= 0) {
+    return 'Narrow';
+  }
+  return value >= 1 ? 'Full platen' : percent(value);
+}
 
 type StudioProps = {
   settings: NocturneSettings;
@@ -98,6 +117,9 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
   const {lighting, typography, typewriter, paper, scrollbar, focus} = settings;
   const light = (patch: Partial<NocturneSettings['lighting']>) =>
     updateSettings({lighting: {...patch, preset: 'custom'}});
+  const frame = (patch: Partial<LightingSettings['window']>) => light({window: {...lighting.window, ...patch}});
+  const look = activeTheme(settings);
+  const lightSource = look ? resolveSource(lighting, look) : 'carriage';
   const type = (patch: Partial<NocturneSettings['typography']>) =>
     updateSettings({typography: {...patch, preset: 'custom'}});
   const preset = lighting.enabled ? lighting.preset : 'off';
@@ -167,6 +189,15 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           step={0.01}
           format={percent}
           onChange={(texture) => updateSettings({paper: {texture}})}
+        />
+        <Slider
+          label="Sheet width"
+          value={paper.width}
+          min={0}
+          max={1}
+          step={0.01}
+          format={sheetWidth}
+          onChange={(width) => updateSettings({paper: {width}})}
         />
         <Slider
           label="Type impression"
@@ -260,6 +291,7 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           onChange={(pullCord) => updateSettings({chrome: {pullCord}})}
         />
         <Segmented label="Preset" value={preset} options={PRESETS} onChange={choosePreset} />
+        <Segmented label="Light" value={lighting.source} options={SOURCES} onChange={(source) => light({source})} />
         <Slider
           label="Brightness"
           value={lighting.intensity}
@@ -269,25 +301,77 @@ export function Studio({settings, drawing, onClose, onPress}: StudioProps) {
           format={percent}
           onChange={(intensity) => light({intensity})}
         />
-        <Slider
-          label="Beam angle"
-          value={lighting.spread}
-          min={20}
-          max={160}
-          step={1}
-          format={degrees}
-          onChange={(spread) => light({spread})}
-        />
-        <Segmented label="Beam" value={lighting.beam} options={BEAMS} onChange={(beam) => light({beam})} />
-        <Slider
-          label="Aim"
-          value={lighting.aim}
-          min={-45}
-          max={45}
-          step={1}
-          format={signedDegrees}
-          onChange={(aim) => light({aim})}
-        />
+        {lightSource === 'moonlight' ? (
+          <>
+            <Slider
+              label="Panes across"
+              value={lighting.window.columns}
+              min={1}
+              max={6}
+              step={1}
+              format={panes}
+              onChange={(columns) => frame({columns})}
+            />
+            <Slider
+              label="Panes down"
+              value={lighting.window.rows}
+              min={1}
+              max={6}
+              step={1}
+              format={panes}
+              onChange={(rows) => frame({rows})}
+            />
+            <Slider
+              label="Slant"
+              value={lighting.window.slant}
+              min={-35}
+              max={35}
+              step={1}
+              format={signedDegrees}
+              onChange={(slant) => frame({slant})}
+            />
+            <Slider
+              label="Across the page"
+              value={lighting.window.x}
+              min={0}
+              max={1}
+              step={0.01}
+              format={percent}
+              onChange={(x) => frame({x})}
+            />
+            <Slider
+              label="Down the page"
+              value={lighting.window.y}
+              min={0}
+              max={1}
+              step={0.01}
+              format={percent}
+              onChange={(y) => frame({y})}
+            />
+          </>
+        ) : (
+          <>
+            <Slider
+              label="Beam angle"
+              value={lighting.spread}
+              min={20}
+              max={160}
+              step={1}
+              format={degrees}
+              onChange={(spread) => light({spread})}
+            />
+            <Segmented label="Beam" value={lighting.beam} options={BEAMS} onChange={(beam) => light({beam})} />
+            <Slider
+              label="Aim"
+              value={lighting.aim}
+              min={-45}
+              max={45}
+              step={1}
+              format={signedDegrees}
+              onChange={(aim) => light({aim})}
+            />
+          </>
+        )}
         <Slider
           label="Reach"
           value={lighting.reach}

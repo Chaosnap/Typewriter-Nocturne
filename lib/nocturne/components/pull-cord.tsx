@@ -187,10 +187,12 @@ const PROFILE = [0, 0.18, WAIST_AT, 0.7, 1].map((t) => ({t, width: profile(t)}))
 function threadPath(thread: Thread, angle: number) {
   // The swing moves a thread more the further down it is, as a hanging thread bends.
   const sway = Math.sin(thread.fan + angle) * thread.length;
-  const points = PROFILE.map(({t, width}): Point => [
-    Number((thread.root * width + sway * t * t).toFixed(2)),
-    Number((SKIRT_TOP + thread.length * t).toFixed(2))
-  ]);
+  const points = PROFILE.map(
+    ({t, width}): Point => [
+      Number((thread.root * width + sway * t * t).toFixed(2)),
+      Number((SKIRT_TOP + thread.length * t).toFixed(2))
+    ]
+  );
   return `M${points[0][0]} ${points[0][1]}${curveThrough(points)}`;
 }
 

@@ -107,6 +107,18 @@ export type TypewriterVoice = 'standard' | 'portable' | 'electric' | 'whisper';
 /** `pointed`: the beam narrows to the bulb; `soft`: it opens softly round it, as a large bulb's does. */
 export type BeamShape = 'pointed' | 'soft';
 
+/** The window the moonlight comes through, as its light falls on the sheet. */
+export type WindowSettings = {
+  /** Panes across and down, 1–6. */
+  columns: number;
+  rows: number;
+  /** How far the light slants the window, in degrees; 0 casts it upright. */
+  slant: number;
+  /** Centre of the window's light on the sheet, as a share of its width and height. */
+  x: number;
+  y: number;
+};
+
 export type LightingSettings = {
   /** Master switch for the lighting layer. */
   enabled: boolean;
@@ -124,6 +136,8 @@ export type LightingSettings = {
   reach: number;
   /** Normalised position (desk lamp, moonlight). */
   position: {x: number; y: number};
+  /** The moonlit window's panes, slant and place. */
+  window: WindowSettings;
   /** Empty string = the theme's light colour. */
   color: string;
   softness: number;
@@ -199,11 +213,19 @@ export type PaperSettings = {
   style: PaperId;
   /** Depth of the paper's surface relief, 0–1.6. */
   texture: number;
+  /** Width of the sheet in the typewriter: 0 is the narrowest, 1 runs the full length of the platen. */
+  width: number;
 };
 
 export type FolioPaperId = 'laid' | 'cotton' | 'vellum' | 'parchment' | 'night';
 export type SealColor = 'crimson' | 'oxblood' | 'black' | 'gold' | 'emerald' | 'sapphire';
 export type SealEmblem = 'moon' | 'rose' | 'quill' | 'none';
+/**
+ * How the silk is laid under the seal: `tails` two swallowtails; `loop` a loop above and two tails;
+ * `band` one band down through the seal; `cross` two bands crossed; `banner` a band from above and
+ * two tails below; `pendant` a band from above falling in two long tails.
+ */
+export type RibbonStyle = 'tails' | 'loop' | 'band' | 'cross' | 'banner' | 'pendant';
 /** `sonnet`: an upright book face, as sonnets are printed; `custom`: `customFont`. */
 export type FolioFont = 'typewriter' | 'sonnet' | 'display' | 'plex' | 'terminal' | 'custom';
 
@@ -218,6 +240,7 @@ export type FolioStyle = {
   seal: boolean;
   /** The silk ribbon under the seal. */
   ribbon: boolean;
+  ribbonStyle: RibbonStyle;
   font: FolioFont;
   customFont: string;
   /** "set at the typewriter, by …"; empty = "by lamplight". */

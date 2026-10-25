@@ -37,3 +37,17 @@ test('the bail rollers sit on the bail, left and right of the sheet, and not wit
   t.true(left.x > layout.sheet.x && right.x + right.width < layout.sheet.x + layout.sheet.width);
   t.deepEqual(rollerBoxes(stageLayout(1280, 786, false)), []);
 });
+
+test('the sheet widens to the full length of the platen while the machine keeps its size', (t) => {
+  const narrow = stageLayout(1280, 786, true);
+  const wide = stageLayout(1280, 786, true, 1);
+  t.deepEqual(wide.platen, narrow.platen);
+  t.is(wide.margin, narrow.margin);
+  t.true(narrow.platen.left < narrow.sheet.x, 'the platen runs past the narrowest sheet');
+  t.true(Math.abs(wide.sheet.x - narrow.platen.left) <= 1, 'the widest sheet starts at the platen’s end');
+  t.true(Math.abs(wide.sheet.x + wide.sheet.width - narrow.platen.right) <= 1);
+  t.is(wide.text.width, wide.sheet.width);
+  const half = stageLayout(1280, 786, true, 0.5);
+  t.true(narrow.sheet.width < half.sheet.width && half.sheet.width < wide.sheet.width);
+  t.deepEqual(stageLayout(1280, 786, true, 7).sheet, wide.sheet);
+});

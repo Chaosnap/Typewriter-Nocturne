@@ -3,14 +3,15 @@
 // emblem, and soft highlights where the light catches the wax. Deterministic for a given seed, so
 // a folio's seal looks the same every time it is drawn.
 
-import type {SealColor, SealEmblem} from '../../../app/nocturne/types';
+import type {RibbonStyle, SealColor, SealEmblem} from '../../../app/nocturne/types';
 
 export type SealStyle = {
   seed: number;
   monogram: string;
   color: SealColor;
   emblem: SealEmblem;
-  ribbon: boolean;
+  /** How the silk ribbon is laid under the seal, or null for none. */
+  ribbon: RibbonStyle | null;
   /** Font stack for the monogram. */
   display: string;
 };
@@ -115,20 +116,158 @@ function cubicAt([p0, p1, p2, p3]: Point[], t: number): {at: Point; tangent: Poi
   return {at, tangent: [dx / length, dy / length]};
 }
 
+/** How an end of a band is finished: tucked under the seal, cut straight, or cut as a swallowtail. */
+type Cut = 'hidden' | 'straight' | 'swallow';
+
+/** A band of satin, in units of the seal's radius with the seal's centre at the origin. */
+type Band = {
+  /** The band's centre line, a cubic Bézier. */
+  curve: Point[];
+  width: number;
+  start: Cut;
+  end: Cut;
+  /** Where along the band it turns over once, showing the matte back of the satin, if it does. */
+  twist?: number;
+  /** Where the sheen rises and falls along the band. */
+  phase: number;
+};
+
+const flip = (band: Band, phase: number): Band => ({
+  ...band,
+  curve: band.curve.map(([px, py]): Point => [-px, py]),
+  phase
+});
+
+/** A tail laid from under the seal down the page in a gentle S. */
+const SWALLOWTAIL: Band = {
+  curve: [
+    [0.1, 0.05],
+    [0.58, 0.62],
+    [0.52, 1.5],
+    [1.02, 2.32]
+  ],
+  width: 0.46,
+  start: 'hidden',
+  end: 'swallow',
+  phase: 0.6
+};
+
+/** A straighter tail that crosses its fellow just under the seal. */
+const DROP: Band = {
+  curve: [
+    [-0.15, 0.2],
+    [0.15, 0.9],
+    [0.45, 1.6],
+    [0.75, 2.2]
+  ],
+  width: 0.36,
+  start: 'hidden',
+  end: 'swallow',
+  phase: 1.4
+};
+
+/** A band coming down from above the seal, cut straight at its top. */
+const HANGER: Band = {
+  curve: [
+    [0.02, -1.6],
+    [-0.04, -1.1],
+    [0.04, -0.5],
+    [0, 0]
+  ],
+  width: 0.48,
+  start: 'straight',
+  end: 'hidden',
+  phase: 0.3
+};
+
+/** One arm of a cross, swallowtailed at both ends. */
+const CROSSING: Band = {
+  curve: [
+    [-1.45, -1.3],
+    [-0.5, -0.42],
+    [0.5, 0.48],
+    [1.5, 1.4]
+  ],
+  width: 0.42,
+  start: 'swallow',
+  end: 'swallow',
+  phase: 0.8
+};
+
+/** The bands of each way of laying the silk, the lowest first. */
+const RIBBONS: Record<RibbonStyle, Band[]> = {
+  tails: [SWALLOWTAIL, {...flip(SWALLOWTAIL, 2.2), twist: 0.5}],
+  loop: [
+    {
+      curve: [
+        [-0.32, -0.55],
+        [-1.6, -2.55],
+        [1.6, -2.55],
+        [0.32, -0.55]
+      ],
+      width: 0.3,
+      start: 'hidden',
+      end: 'hidden',
+      phase: 0.9
+    },
+    flip(DROP, 2.6),
+    DROP
+  ],
+  band: [
+    {
+      curve: [
+        [-0.04, -1.75],
+        [0.08, -0.6],
+        [-0.08, 0.9],
+        [0.06, 2.25]
+      ],
+      width: 0.52,
+      start: 'straight',
+      end: 'swallow',
+      phase: 1
+    }
+  ],
+  cross: [CROSSING, flip(CROSSING, 2.4)],
+  banner: [HANGER, flip({...DROP, width: 0.42}, 2.6), {...DROP, width: 0.42}],
+  pendant: [
+    HANGER,
+    {
+      curve: [
+        [0.1, 0.1],
+        [0.2, 0.9],
+        [0.3, 1.6],
+        [0.42, 2.15]
+      ],
+      width: 0.46,
+      start: 'hidden',
+      end: 'swallow',
+      phase: 2
+    },
+    {
+      curve: [
+        [-0.05, 0.1],
+        [-0.1, 1],
+        [-0.02, 1.8],
+        [-0.12, 2.55]
+      ],
+      width: 0.48,
+      start: 'hidden',
+      end: 'swallow',
+      twist: 0.62,
+      phase: 0.8
+    }
+  ]
+};
+
 /**
- * One tail of the silk ribbon: a band of satin laid from under the seal down the page in a gentle
- * S, ending in a swallowtail cut. Its sheen rises and falls along its length, its woven edges show
- * as fine hems, and the left tail turns over once on the way, showing the matte back of the satin.
+ * One band of the silk ribbon, for a seal at (x, y) of radius r. Its sheen rises and falls along
+ * its length, its woven edges show as fine hems, a band with a twist turns over once on the way,
+ * showing the matte back of the satin, and a swallowtail end is cut in a V with a few loose threads.
  */
-function ribbonTail(c: CanvasRenderingContext2D, x: number, y: number, r: number, side: 1 | -1, palette: Palette) {
+function satinBand(c: CanvasRenderingContext2D, x: number, y: number, r: number, band: Band, palette: Palette) {
   const [shadow, sheen, body] = palette.silk.map(rgbOf);
-  const curve: Point[] = [
-    [x + side * r * 0.1, y + r * 0.05],
-    [x + side * r * 0.58, y + r * 0.62],
-    [x + side * r * 0.52, y + r * 1.5],
-    [x + side * r * 1.02, y + r * 2.32]
-  ];
-  const width = r * 0.46;
+  const curve = band.curve.map(([px, py]): Point => [x + px * r, y + py * r]);
+  const width = r * band.width;
   const steps = 44;
   const left: Point[] = [];
   const right: Point[] = [];
@@ -139,27 +278,40 @@ function ribbonTail(c: CanvasRenderingContext2D, x: number, y: number, r: number
     const normal: Point = [-tangent[1], tangent[0]];
     let half = width / 2;
     let back = false;
-    // The left tail's half twist: the band narrows to its edge and turns over.
-    if (side < 0 && t > 0.5) {
-      const u = Math.min(1, (t - 0.5) / 0.18);
+    // The half twist: the band narrows to its edge and turns over.
+    if (band.twist !== undefined && t > band.twist) {
+      const u = Math.min(1, (t - band.twist) / 0.18);
       half *= Math.max(0.04, Math.abs(Math.cos(Math.PI * u)));
       back = u > 0.5;
     }
     left.push([at[0] + normal[0] * half, at[1] + normal[1] * half]);
     right.push([at[0] - normal[0] * half, at[1] - normal[1] * half]);
-    // Satin catches the light in bands where it bends; brightest just before the twist.
-    const wave = 0.86 + 0.2 * Math.sin(t * Math.PI * 1.6 + (side > 0 ? 0.6 : 2.2));
-    const gleam = side < 0 ? Math.exp(-(((t - 0.47) / 0.06) ** 2)) : 0;
+    // Satin catches the light in bands where it bends; brightest just before a twist.
+    const wave = 0.86 + 0.2 * Math.sin(t * Math.PI * 1.6 + band.phase);
+    const gleam = band.twist === undefined ? 0 : Math.exp(-(((t - band.twist + 0.03) / 0.06) ** 2));
     const front = tone(body, sheen, 0.25 + gleam * 0.6, wave + gleam * 0.15);
     colors.push(back ? tone(shadow, body, 0.45, wave * 0.9) : front);
   }
-  const end = cubicAt(curve, 1);
-  const notch: Point = [end.at[0] - end.tangent[0] * width * 0.62, end.at[1] - end.tangent[1] * width * 0.62];
+  const ends = [
+    {cut: band.start, ...cubicAt(curve, 0), inward: 1, corners: [left[0], right[0]]},
+    {cut: band.end, ...cubicAt(curve, 1), inward: -1, corners: [left[steps], right[steps]]}
+  ];
+  const notches = ends.map(
+    ({at, tangent, inward}): Point => [
+      at[0] + tangent[0] * width * 0.62 * inward,
+      at[1] + tangent[1] * width * 0.62 * inward
+    ]
+  );
   const outline = () => {
     c.beginPath();
     left.forEach(([px, py], i) => (i === 0 ? c.moveTo(px, py) : c.lineTo(px, py)));
-    c.lineTo(notch[0], notch[1]);
+    if (band.end === 'swallow') {
+      c.lineTo(notches[1][0], notches[1][1]);
+    }
     [...right].reverse().forEach(([px, py]) => c.lineTo(px, py));
+    if (band.start === 'swallow') {
+      c.lineTo(notches[0][0], notches[0][1]);
+    }
     c.closePath();
   };
 
@@ -220,25 +372,30 @@ function ribbonTail(c: CanvasRenderingContext2D, x: number, y: number, r: number
   }
   c.restore();
 
-  // A few loose threads where the swallowtail was cut.
+  // A few loose threads where a swallowtail was cut.
   c.strokeStyle = tone(body, sheen, 0.3, 1);
   c.lineWidth = r * 0.008;
-  for (const corner of [left[steps], right[steps]]) {
-    for (let k = 0; k < 3; k++) {
-      c.beginPath();
-      c.moveTo(corner[0], corner[1]);
-      c.lineTo(
-        corner[0] + end.tangent[0] * r * (0.04 + k * 0.02) + (k - 1) * r * 0.012,
-        corner[1] + end.tangent[1] * r * (0.04 + k * 0.02)
-      );
-      c.stroke();
+  for (const end of ends.filter(({cut}) => cut === 'swallow')) {
+    const out: Point = [-end.tangent[0] * end.inward, -end.tangent[1] * end.inward];
+    for (const corner of end.corners) {
+      for (let k = 0; k < 3; k++) {
+        c.beginPath();
+        c.moveTo(corner[0], corner[1]);
+        c.lineTo(
+          corner[0] + out[0] * r * (0.04 + k * 0.02) + (k - 1) * r * 0.012,
+          corner[1] + out[1] * r * (0.04 + k * 0.02)
+        );
+        c.stroke();
+      }
     }
   }
 }
 
-function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, palette: Palette) {
-  ribbonTail(c, x, y, r, 1, palette);
-  ribbonTail(c, x, y, r, -1, palette);
+/** The silk under the seal, laid in the chosen way. */
+function ribbon(c: CanvasRenderingContext2D, x: number, y: number, r: number, style: RibbonStyle, palette: Palette) {
+  for (const band of RIBBONS[style]) {
+    satinBand(c, x, y, r, band, palette);
+  }
 }
 
 /** The outline of the wax: a pool that spread unevenly before it was pressed. */
@@ -410,7 +567,7 @@ export function drawSeal(c: CanvasRenderingContext2D, x: number, y: number, r: n
   const next = random(style.seed);
   c.save();
   if (style.ribbon) {
-    ribbon(c, x, y, r, palette);
+    ribbon(c, x, y, r, style.ribbon, palette);
   }
 
   // The wax, with its shadow on the paper and a few drops that ran off.

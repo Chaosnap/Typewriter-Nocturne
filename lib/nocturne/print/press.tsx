@@ -13,6 +13,7 @@ import type {
   FolioPaperId,
   FolioStyle,
   NocturneSettings,
+  RibbonStyle,
   SealColor,
   SealEmblem
 } from '../../../app/nocturne/types';
@@ -73,6 +74,15 @@ const EMBLEMS: readonly {value: SealEmblem; label: string}[] = [
   {value: 'none', label: 'None'}
 ];
 
+const RIBBONS: readonly {value: RibbonStyle; label: string}[] = [
+  {value: 'tails', label: 'Swallowtails'},
+  {value: 'loop', label: 'Loop'},
+  {value: 'band', label: 'Band'},
+  {value: 'cross', label: 'Cross'},
+  {value: 'banner', label: 'Banner'},
+  {value: 'pendant', label: 'Pendant'}
+];
+
 const FACES: readonly {value: FolioFont; label: string}[] = [
   {value: 'typewriter', label: 'Typewriter — Courier Prime'},
   {value: 'sonnet', label: 'Sonnet — EB Garamond'},
@@ -84,6 +94,11 @@ const FACES: readonly {value: FolioFont; label: string}[] = [
 
 const SEAL_MS = 420;
 const PREVIEW_SIZE = 76;
+/** A ribbon chip: its size and the radius of the little seal on it. */
+const CHIP = {width: 40, height: 54, radius: 9};
+
+/** Set on the preview until there is something to print, so every choice still shows on the sheet. */
+const SAMPLE = '// The verse you print is set here,\n// line by line, beneath the lamp.';
 
 type SwatchesProps<T extends string> = {
   label: string;
@@ -146,12 +161,66 @@ function SealPreview({style}: {style: FolioStyle}) {
       monogram: style.monogram,
       color: style.sealColor,
       emblem: style.emblem,
-      ribbon: false,
+      ribbon: null,
       display: DISPLAY_SERIF
     };
     drawSeal(c, PREVIEW_SIZE / 2, PREVIEW_SIZE / 2, PREVIEW_SIZE * 0.36, sealStyle);
   }, [style.monogram, style.sealColor, style.emblem]);
   return <canvas ref={canvasRef} className="tn-seal-preview" aria-hidden="true" />;
+}
+
+/** A little seal on one way of laying the ribbon, in the chosen wax and its silk. */
+function RibbonChip({ribbon, color}: {ribbon: RibbonStyle; color: SealColor}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const c = canvas?.getContext('2d');
+    if (!canvas || !c) {
+      return;
+    }
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = CHIP.width * ratio;
+    canvas.height = CHIP.height * ratio;
+    c.setTransform(ratio, 0, 0, ratio, 0, 0);
+    c.clearRect(0, 0, CHIP.width, CHIP.height);
+    const sealStyle = {seed: 9.59, monogram: '', color, emblem: 'none' as const, ribbon, display: DISPLAY_SERIF};
+    drawSeal(c, CHIP.width / 2, CHIP.height * 0.44, CHIP.radius, sealStyle);
+  }, [ribbon, color]);
+  return <canvas ref={canvasRef} className="tn-ribbon-chip" aria-hidden="true" />;
+}
+
+type RibbonChoicesProps = {
+  value: RibbonStyle;
+  color: SealColor;
+  onChange: (value: RibbonStyle) => void;
+};
+
+/** The ways of laying the silk, each shown under a little seal; the chosen one named beside the label. */
+function RibbonChoices({value, color, onChange}: RibbonChoicesProps) {
+  const current = RIBBONS.find((option) => option.value === value);
+  return (
+    <div className="tn-slider">
+      <div className="tn-slider-head">
+        <span className="tn-label">Ribbon</span>
+        <span className="tn-value">{current?.label}</span>
+      </div>
+      <div className="tn-ribbons" role="group" aria-label="Ribbon">
+        {RIBBONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className="tn-ribbon"
+            aria-label={option.label}
+            aria-pressed={option.value === value}
+            title={option.label}
+            onClick={() => onChange(option.value)}
+          >
+            <RibbonChip ribbon={option.value} color={color} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 type PressProps = {
@@ -220,7 +289,8 @@ export function Press({settings, initialTab, onClose}: PressProps) {
     if (tab !== 'print' || printing.current) {
       return;
     }
-    const draft = sanitizeDraft({title, text: composed, source, style});
+    const text = composed.trim() ? composed : SAMPLE;
+    const draft = sanitizeDraft({title, text, source, style});
     if (!draft) {
       return;
     }
@@ -555,6 +625,13 @@ export function Press({settings, initialTab, onClose}: PressProps) {
                       onChange={(emblem) => changeStyle({emblem})}
                     />
                     <Switch label="Silk ribbon" checked={style.ribbon} onChange={(ribbon) => changeStyle({ribbon})} />
+                    {style.ribbon ? (
+                      <RibbonChoices
+                        value={style.ribbonStyle}
+                        color={style.sealColor}
+                        onChange={(ribbonStyle) => changeStyle({ribbonStyle})}
+                      />
+                    ) : null}
                   </>
                 ) : null}
                 <div className="tn-slider">

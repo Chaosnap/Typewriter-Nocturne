@@ -66,9 +66,10 @@ export function NocturneShell({header, children}: ShellProps) {
   const gpu = detectGpu();
   const mode = renderMode(settings.lighting.quality, gpu);
   const machineVisible = theme !== null && mode !== 'basic' && !settings.focusMode && settings.typewriter.carriage;
+  const paperWidth = settings.paper.width;
   const layout = useMemo(() => {
-    return size ? stageLayout(size.width, size.height, machineVisible) : null;
-  }, [size, machineVisible]);
+    return size ? stageLayout(size.width, size.height, machineVisible, paperWidth) : null;
+  }, [size, machineVisible, paperWidth]);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;

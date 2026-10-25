@@ -267,10 +267,11 @@ const SNIPPET = [
 ].join('\n');
 
 const LOOKS: [string, Record<string, unknown>][] = [
-  ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: false}],
+  ['paper-and-ink', {theme: 'paper-and-ink', paper: {style: 'cotton', width: 0}, focusMode: false}],
   ['midnight-study', {theme: 'midnight-study', paper: {style: 'night'}, focusMode: false}],
   ['moonlit-poetry', {theme: 'moonlit-poetry', paper: {style: 'laid'}, focusMode: false}],
   ['parchment', {theme: 'paper-and-ink', paper: {style: 'parchment'}, focusMode: false}],
+  ['full-platen', {theme: 'paper-and-ink', paper: {style: 'cotton', width: 1}, focusMode: false}],
   ['focus-mode', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true}],
   ['focus-dark', {theme: 'paper-and-ink', paper: {style: 'cotton'}, focusMode: true, focus: {background: 'dark'}}]
 ];
@@ -352,6 +353,7 @@ test.serial('the typewriter stage renders every theme and paper over a live shel
   await page.click('.tn-swatch[aria-label="Night"]');
   await page.click('.tn-swatch[aria-label="Gold"]');
   await page.click('.tn-press .tn-segmented button:text-is("Rose")');
+  await page.click('.tn-ribbon[aria-label="Loop"]');
   await page.selectOption('#tn-folio-font', 'sonnet');
   await page.fill('#tn-signature', 'Ada');
   await page.click('.tn-press .tn-button-primary');

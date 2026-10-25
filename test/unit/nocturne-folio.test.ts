@@ -33,6 +33,7 @@ test('a draft keeps its print style, validated', (t) => {
     emblem: 'rose',
     seal: 'yes',
     ribbon: false,
+    ribbonStyle: 'cross',
     font: 'sonnet',
     customFont: 'Bad"";',
     signature: ' Yuki \u0007 '
@@ -44,11 +45,15 @@ test('a draft keeps its print style, validated', (t) => {
     emblem: 'rose',
     seal: true,
     ribbon: false,
+    ribbonStyle: 'cross',
     font: 'sonnet',
     customFont: '',
     signature: 'Yuki'
   });
-  const odd = sanitizeDraft({text: 'x', style: {paper: 'papyrus', sealColor: 'pink', font: 'comic', monogram: '!!'}});
+  const odd = sanitizeDraft({
+    text: 'x',
+    style: {paper: 'papyrus', sealColor: 'pink', font: 'comic', monogram: '!!', ribbonStyle: 'bow'}
+  });
   t.deepEqual(odd?.style, defaultFolioStyle());
   t.is(sanitizeDraft({text: 'x', style: {signature: 'n'.repeat(90)}})?.style.signature.length, 40);
   t.false(sanitizeDraft({text: 'x', style: {seal: false}})?.style.seal);
