@@ -33,11 +33,14 @@ features:
     details: One rack tooth per column, escapement physics, a sway on its pivot when it stops, a strike towards the platen with every key.
     link: /guide/stage
   - title: Light that behaves like light
-    details: Inverse-square falloff, Lambert's cosine law, a soft cone, moonlight through a window, and a braided pull cord to switch it.
+    details: Inverse-square falloff, Lambert's cosine law, a soft cone, moonlight through a window, and a theatre-curtain pull cord to switch it.
     link: /guide/lamp
   - title: Paper and ink
-    details: Six papers from cotton to parchment. Freshly typed characters land heavy and settle into print.
+    details: Six papers from cotton to parchment. Freshly typed characters land heavy and settle into print; selected text dissolves like ink and re-forms.
     link: /guide/paper
+  - title: A paper clip for a scrollbar
+    details: A wire clip hooked over the edge of the sheet glides and leans as you scroll; double-click a bail roller to roll to the top or the bottom.
+    link: /guide/stage
   - title: The sound of the machine
     details: Type bars, carriage return, margin bell, the platen ratchet on history recall, the tabulator, in stereo where the head stands.
     link: /guide/sounds
@@ -48,7 +51,7 @@ features:
     details: Bundled faces, Nerd Font presets, any installed family, and Nerd Font icons with every face.
     link: /guide/type
   - title: The Press
-    details: Print a snippet or the terminal as a folio set like a sonnet and sealed in red wax; keep it in the Archive.
+    details: Print a snippet, the screen or the last command as a folio set like a sonnet, on the paper, seal and face you choose; keep it in the Archive.
     link: /guide/press
 ---
 
@@ -58,7 +61,7 @@ features:
 
 ![Midnight Study on night paper, under a desk lamp](/images/midnight-study.jpg)
 
-![The Press: a code snippet printed as a folio](/images/press.jpg)
+![The Press: the last command printed on night paper under a gold seal](/images/press-night.jpg)
 
 ![Moonlit Poetry on laid paper, moonlight through a window](/images/moonlit-poetry.jpg)
 

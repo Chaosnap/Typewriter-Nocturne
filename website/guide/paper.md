@@ -19,3 +19,10 @@ project's tests.
 *Type impression* sets how a character you type lands: for a moment it is heavier and its ink spreads a
 little, then it settles into ordinary print. An impression is only ever drawn over a character the terminal
 has already displayed, so hidden input such as a password never appears in it.
+
+## Selecting text
+
+Selected text lies under a soft, feathered wash instead of a flat box, and each character taken into the
+selection dissolves like a drop of ink in water and re-forms. Selecting and copying work exactly as before;
+only the drawing changes. *Selection* in the Type section of the Studio switches between **Ink** and
+**Classic**, xterm's own selection box.

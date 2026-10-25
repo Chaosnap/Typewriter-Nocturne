@@ -18,6 +18,10 @@
 
 ![羊皮纸：斑驳、霉点与折痕](/images/parchment.jpg)
 
+## 回形针
+
+![夹在纸边的回形针滚动条](/images/clip.jpg)
+
 ## Nocturne Studio
 
 ![Studio 设置面板：主题、纸张与字体](/images/studio.jpg)
@@ -26,8 +30,14 @@
 
 ![印成诗笺并盖上火漆印的代码片段](/images/press.jpg)
 
+![上一条命令印在夜间纸上，盖着金色火漆](/images/press-night.jpg)
+
 ![保存的诗笺档案](/images/archive.jpg)
+
+![在档案里勾选多张诗笺一起删除](/images/archive-select.jpg)
 
 ## 专注模式
 
 ![专注模式：只留下纸张](/images/focus-mode.jpg)
+
+![深色背景的专注模式](/images/focus-dark.jpg)

@@ -21,10 +21,20 @@ else
   range="${fork_point}..v${version}"
 fi
 
+# This version's section of CHANGELOG.md, without its heading (empty when there is none).
+whats_new="$(awk -v heading="## ${version}" '$0 == heading {found = 1; next} found && /^## / {exit} found {print}' CHANGELOG.md 2>/dev/null || true)"
+
 cat <<NOTES
 Typewriter Nocturne ${version}: a literary terminal based on [Hyper](https://github.com/vercel/hyper).
 
 Built entirely on GitHub Actions from commit \`${GITHUB_SHA}\`.
+NOTES
+
+if [ -n "$whats_new" ]; then
+  printf '\n## What is new\n%s\n' "$whats_new"
+fi
+
+cat <<NOTES
 
 ## Downloads
 

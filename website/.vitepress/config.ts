@@ -33,6 +33,7 @@ const englishGuide = [
       { text: 'Privacy and security', link: '/guide/privacy' },
       { text: 'Questions', link: '/guide/faq' },
       { text: 'Built in the cloud', link: '/guide/building' },
+      { text: 'Changelog', link: '/guide/changelog' },
     ],
   },
 ]
@@ -64,6 +65,7 @@ const chineseGuide = [
       { text: '隐私与安全', link: '/zh/guide/privacy' },
       { text: '常见问题', link: '/zh/guide/faq' },
       { text: '云端构建', link: '/zh/guide/building' },
+      { text: '更新日志', link: '/zh/guide/changelog' },
     ],
   },
 ]

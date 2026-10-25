@@ -30,8 +30,37 @@ Shaders compile in the background, so the window never waits for them; the machi
 If animation ever runs slowly, the stage switches itself to simple drawing without motion. The Studio shows
 what is being drawn at the end of its last section.
 
+## Scrolling: the paper clip and the rollers
+
+The scrollbar is a paper clip hooked over the right edge of the sheet, its front loop on the paper and its
+back loop showing beyond the edge. It glides to the scroll position and leans a little as it moves; drag it to
+scroll. The wheel, the keyboard and the trackpad scroll as always.
+
+**Double-click** the left roller of the paper bail to roll the paper to the top, the right one to roll it to
+the bottom; the platen turns as it does.
+
+![The paper clip on the edge of the sheet](/images/clip.jpg)
+
+Under *Scrollbar* in the Studio you can choose:
+
+| Style | |
+| --- | --- |
+| Paper clip (default) | Silver, brass, gold or black wire |
+| Bar | A translucent white bar; its opacity and width are adjustable |
+| System | The terminal's own scrollbar |
+
 ## Focus Mode and quiet
 
-*Focus Mode* hides the machine, the light and every ornament, leaving the sheet. *All visual effects* in the
-Studio switches off light, glow, impressions and motion while keeping the layout. To use the terminal exactly
-as Hyper draws it, set `"theme": "classic"` in `nocturne.json`.
+*Focus Mode* leaves only the sheet: the machine, the cord and every ornament go. In the Quiet section of the
+Studio you choose what stays:
+
+| Control | What it does |
+| --- | --- |
+| Focus background | Paper (the chosen paper), Dark (the night paper) or Custom (any colour; the ink turns pale or dark to suit it) |
+| Paper in focus mode | Keeps the paper's texture, the type impressions and the ink selection |
+| Light in focus mode | Keeps the lamp's light on the sheet |
+
+![Focus Mode on the dark background](/images/focus-dark.jpg)
+
+*All visual effects* in the Studio switches off light, glow, impressions and motion while keeping the layout.
+To use the terminal exactly as Hyper draws it, set `"theme": "classic"` in `nocturne.json`.

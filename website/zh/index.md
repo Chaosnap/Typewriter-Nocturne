@@ -33,11 +33,14 @@ features:
     details: 齿条每一齿对应一列，擒纵机构推动前进，停下时绕支点摆动，每次击键都朝滚筒敲击。
     link: /zh/guide/stage
   - title: 符合物理的灯光
-    details: 平方反比衰减、朗伯余弦定律、柔边光锥、穿过窗格的月光，用一根编织拉绳开关。
+    details: 平方反比衰减、朗伯余弦定律、柔边光锥、穿过窗格的月光，用一根剧院帷幕式的拉绳开关。
     link: /zh/guide/lamp
   - title: 纸与墨
-    details: 从棉纸到羊皮纸共六种纸张。刚打出的字墨迹更重，然后沉淀为印刷字。
+    details: 从棉纸到羊皮纸共六种纸张。刚打出的字墨迹更重，然后沉淀为印刷字；选中的文字会像墨水一样消散再显现。
     link: /zh/guide/paper
+  - title: 回形针滚动条
+    details: 夹在纸边的钢丝回形针随滚动滑行、倾斜；双击压纸杆上的滚轮直达顶部或底部。
+    link: /zh/guide/stage
   - title: 机器的声音
     details: 打字杆、字车回位、边距铃、翻历史命令时的滚筒棘轮、制表器，按字头位置立体声定位。
     link: /zh/guide/sounds
@@ -48,7 +51,7 @@ features:
     details: 内置字体、Nerd Font 预设、任意已安装字体，每种字体都能显示 Nerd Font 图标。
     link: /zh/guide/type
   - title: 印刷机
-    details: 把代码片段或终端内容印成十四行诗式的诗笺，盖上红色火漆印，存入档案。
+    details: 把代码片段、屏幕或上一条命令印成十四行诗式的诗笺，纸张、火漆和字体随你选，存入档案。
     link: /zh/guide/press
 ---
 
@@ -58,7 +61,7 @@ features:
 
 ![Midnight Study 主题，夜间纸，台灯照明](/images/midnight-study.jpg)
 
-![印刷机：印成诗笺的代码片段](/images/press.jpg)
+![印刷机：上一条命令印在夜间纸上，盖着金色火漆](/images/press-night.jpg)
 
 ![Moonlit Poetry 主题，条纹纸，窗外月光](/images/moonlit-poetry.jpg)
 

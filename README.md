@@ -29,8 +29,12 @@ Vim, tmux and every other TUI program work as they do in any good terminal.
     <td width="50%"><img src="website/public/images/moonlit-poetry.jpg" alt="Moonlit Poetry theme on laid paper, moonlight through a window" width="100%"><br><em>Moonlit Poetry, laid paper</em></td>
   </tr>
   <tr>
-    <td width="50%"><img src="website/public/images/press.jpg" alt="The Press: a code snippet printed as a folio and sealed in wax" width="100%"><br><em>The Press: a snippet printed as a sealed folio</em></td>
+    <td width="50%"><img src="website/public/images/press-night.jpg" alt="The Press: the last command printed on night paper under a gold wax seal" width="100%"><br><em>The Press: the last command on night paper, gold seal</em></td>
+    <td width="50%"><img src="website/public/images/clip.jpg" alt="A paper clip hooked over the edge of the sheet serves as the scrollbar" width="100%"><br><em>The paper clip scrollbar</em></td>
+  </tr>
+  <tr>
     <td width="50%"><img src="website/public/images/studio.jpg" alt="Nocturne Studio: theme, paper, type, lamp and sound" width="100%"><br><em>Nocturne Studio</em></td>
+    <td width="50%"><img src="website/public/images/focus-dark.jpg" alt="Focus Mode on a dark background: only the sheet" width="100%"><br><em>Focus Mode, dark background</em></td>
   </tr>
 </table>
 
@@ -38,18 +42,24 @@ Vim, tmux and every other TUI program work as they do in any good terminal.
 so the typewriter is drawn on the CPU there with Quality set to High). More in the
 [gallery](https://chaosnap.github.io/Typewriter-Nocturne/guide/gallery).*
 
-> **Status: alpha.** `v0.1.0-alpha.2` is on the [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases)
-> page. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built and what comes next.
+> **Status: alpha.** The latest version is on the [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases)
+> page and what changed in each one is in the [changelog](CHANGELOG.md). See
+> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built and what comes next.
 
 ## Features
 
 * **A 3D typewriter** with physically based materials and soft shadows. The type head rides a rail with one
   rack tooth per terminal column, moves with escapement physics, sways on its pivot and strikes the platen.
 * **Light that behaves like light**: inverse-square falloff, Lambert's cosine law, a soft spot cone, moonlight
-  through a window; brightness, beam angle and aim are adjustable, and a braided **pull cord** at the top left
-  switches the lamp. The room never dims the page below 4.5:1 contrast.
+  through a window; brightness, beam angle and aim are adjustable, and a slender theatre-curtain **pull cord**
+  with a swinging tassel switches the lamp (hide it in the Studio if you like). The room never dims the page
+  below 4.5:1 contrast, and the light softens near the bulb so text under it stays readable.
 * **Paper and ink**: six papers from cotton to parchment, each with its own fibres; freshly typed characters
-  land heavy and settle into print.
+  land heavy and settle into print, and selected text dissolves like ink and re-forms instead of sitting in a
+  flat box.
+* **A paper clip for a scrollbar**: hooked over the edge of the sheet, it glides and leans as you scroll and
+  can be dragged (or use a translucent bar, or the system one). Double-click a bail roller to roll the paper
+  to the top or the bottom.
 * **Sounds of the machine**, synthesised: type bars, space bar, carriage return, margin bell, the platen
   ratchet when you recall history with ↑/↓, the escapement on ←/→, the tabulator, placed in stereo where the
   head stands.
@@ -57,9 +67,12 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
   lands as a firm double strike, without touching the IME or what the shell receives.
 * **Fonts**: Courier Prime and IBM Plex Mono bundled, Nerd Font presets, any installed family, and the
   Symbols Nerd Font bundled so Nerd Font icons appear with every face.
-* **The Press**: print a snippet, the selection or the screen as a folio set like a sonnet and sealed in red
-  wax; keep it in the local **Archive**, save it as PNG or copy it.
-* **Focus Mode**, a Studio for every setting, and an **Auto quality** that keeps the terminal fast on computers
+* **The Press**: print a snippet, the selection, the screen or the last command with its output as a folio set
+  like a sonnet: choose the paper, the colour, monogram and emblem of the wax seal, a face for the text (an
+  upright book face like a printed sonnet, or any installed font) and sign it with your name. Keep it in the
+  local **Archive**, rename it, save it as PNG or copy it.
+* **Focus Mode** with a paper, dark or custom background, keeping the paper's effects or the lamp if you
+  want them; a Studio for every setting; and an **Auto quality** that keeps the terminal fast on computers
   without a usable GPU.
 
 ## Principles

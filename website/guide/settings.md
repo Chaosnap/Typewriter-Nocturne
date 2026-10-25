@@ -40,7 +40,8 @@ anything unknown or out of range falls back to its default.
     "font": "courier-prime",
     "customFamily": "",
     "fontSize": 15,
-    "lineHeight": 1.4
+    "lineHeight": 1.4,
+    "selectionStyle": "ink"
   },
   "typewriter": {
     "sound": true,
@@ -50,7 +51,22 @@ anything unknown or out of range falls back to its default.
     "carriage": true,
     "impression": 0.8
   },
-  "print": { "keepInArchive": true }
+  "print": {
+    "keepInArchive": true,
+    "style": {
+      "paper": "laid",
+      "sealColor": "crimson",
+      "monogram": "N",
+      "emblem": "moon",
+      "ribbon": true,
+      "font": "typewriter",
+      "customFont": "",
+      "signature": ""
+    }
+  },
+  "chrome": { "pullCord": true },
+  "focus": { "background": "paper", "color": "#1c1916", "paper": true, "lighting": false },
+  "scrollbar": { "style": "clip", "finish": "silver", "barOpacity": 0.45, "barWidth": 6 }
 }
 ```
 
@@ -62,3 +78,12 @@ anything unknown or out of range falls back to its default.
 | `lighting.spread` / `aim` | beam angle 20–160°, swivel −45° to 45° |
 | `typography.font` | `courier-prime`, `ibm-plex-mono`, `jetbrains-mono-nf`, `fira-code-nf`, `hack-nf`, `meslo-nf`, `caskaydia-nf`, `custom`, … |
 | `typewriter.voice` | `standard`, `portable`, `electric`, `whisper` |
+| `typography.selectionStyle` | `ink` (dissolving ink), `classic` (xterm's box) |
+| `print.style.paper` | `laid`, `cotton`, `vellum`, `parchment`, `night` |
+| `print.style.sealColor` | `crimson`, `oxblood`, `black`, `gold`, `emerald`, `sapphire` |
+| `print.style.emblem` | `moon`, `rose`, `quill`, `none` |
+| `print.style.font` | `typewriter`, `sonnet`, `display`, `plex`, `terminal`, `custom` (uses `customFont`) |
+| `print.style.signature` | the name after “set at the typewriter, by”, up to 40 characters |
+| `focus.background` | `paper`, `dark`, `custom` (uses `focus.color`) |
+| `scrollbar.style` / `finish` | `clip`, `bar`, `native` / `silver`, `brass`, `gold`, `black` |
+| `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 px |

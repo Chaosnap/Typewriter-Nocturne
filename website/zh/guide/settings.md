@@ -39,7 +39,8 @@
     "font": "courier-prime",
     "customFamily": "",
     "fontSize": 15,
-    "lineHeight": 1.4
+    "lineHeight": 1.4,
+    "selectionStyle": "ink"
   },
   "typewriter": {
     "sound": true,
@@ -49,7 +50,22 @@
     "carriage": true,
     "impression": 0.8
   },
-  "print": { "keepInArchive": true }
+  "print": {
+    "keepInArchive": true,
+    "style": {
+      "paper": "laid",
+      "sealColor": "crimson",
+      "monogram": "N",
+      "emblem": "moon",
+      "ribbon": true,
+      "font": "typewriter",
+      "customFont": "",
+      "signature": ""
+    }
+  },
+  "chrome": { "pullCord": true },
+  "focus": { "background": "paper", "color": "#1c1916", "paper": true, "lighting": false },
+  "scrollbar": { "style": "clip", "finish": "silver", "barOpacity": 0.45, "barWidth": 6 }
 }
 ```
 
@@ -61,3 +77,12 @@
 | `lighting.spread` / `aim` | 光束角度 20–160°，朝向 −45° 到 45° |
 | `typography.font` | `courier-prime`、`ibm-plex-mono`、`jetbrains-mono-nf`、`fira-code-nf`、`hack-nf`、`meslo-nf`、`caskaydia-nf`、`custom` 等 |
 | `typewriter.voice` | `standard`、`portable`、`electric`、`whisper` |
+| `typography.selectionStyle` | `ink`（墨水消散）、`classic`（xterm 方框） |
+| `print.style.paper` | `laid`、`cotton`、`vellum`、`parchment`、`night` |
+| `print.style.sealColor` | `crimson`、`oxblood`、`black`、`gold`、`emerald`、`sapphire` |
+| `print.style.emblem` | `moon`、`rose`、`quill`、`none` |
+| `print.style.font` | `typewriter`、`sonnet`、`display`、`plex`、`terminal`、`custom`（使用 `customFont`） |
+| `print.style.signature` | “set at the typewriter, by” 后面的名字，最多 40 个字符 |
+| `focus.background` | `paper`、`dark`、`custom`（使用 `focus.color`） |
+| `scrollbar.style` / `finish` | `clip`、`bar`、`native` / `silver`、`brass`、`gold`、`black` |
+| `scrollbar.barOpacity` / `barWidth` | 0.1–0.9 / 3–12 像素 |
