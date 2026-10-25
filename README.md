@@ -33,6 +33,10 @@ Vim, tmux and every other TUI program work as they do in any good terminal.
     <td width="50%"><img src="website/public/images/clip.jpg" alt="A paper clip hooked over the edge of the sheet serves as the scrollbar" width="100%"><br><em>The paper clip scrollbar</em></td>
   </tr>
   <tr>
+    <td width="50%"><img src="website/public/images/cotton.jpg" alt="Paper &amp; Ink on cotton rag, its felted tooth in the lamp's light" width="100%"><br><em>Cotton rag under the carriage lamp</em></td>
+    <td width="50%"><img src="website/public/images/full-platen.jpg" alt="The sheet as wide as the whole platen" width="100%"><br><em>The sheet across the full platen</em></td>
+  </tr>
+  <tr>
     <td width="50%"><img src="website/public/images/studio.jpg" alt="Nocturne Studio: theme, paper, type, lamp and sound" width="100%"><br><em>Nocturne Studio</em></td>
     <td width="50%"><img src="website/public/images/focus-dark.jpg" alt="Focus Mode on a dark background: only the sheet" width="100%"><br><em>Focus Mode, dark background</em></td>
   </tr>
@@ -51,18 +55,18 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
 * **A 3D typewriter** with physically based materials and soft shadows. The type head rides a rail with one
   rack tooth per terminal column, moves with escapement physics, sways on its pivot and strikes the platen.
 * **Light that behaves like light**: inverse-square falloff, Lambert's cosine law, a soft spot cone that draws a
-  clean triangle up the page from the type head, moonlight through an upright window whose panes, slant and
-  place you choose; the lit paper shows only its soft, broad relief. Brightness, beam angle, beam shape, aim and
-  the light itself (carriage lamp, desk lamp or window) are adjustable, and a slender theatre-curtain
-  **pull cord** ending in a silk tassel switches the lamp (hide it in the Studio if you like). On a dark sheet
-  the lamp adds its own pool of light with a soft bloom; the room never dims the page below 4.5:1 contrast.
+  clean triangle up the page from the type head, moonlight through an upright window of square panes whose
+  number, slant and place you choose. Every paper keeps its own texture in the light. Brightness, beam angle,
+  beam shape, aim and the light itself (carriage lamp, desk lamp or window) are adjustable, and a slender
+  theatre-curtain **pull cord** ending in a silk tassel switches the lamp (hide it in the Studio if you like).
+  On a dark sheet the lamp shows as the paper itself lit, warm and dim, with a soft bloom; the room never dims
+  the page below 4.5:1 contrast.
 * **A typewriter's cursor**: the block carries the red half of a two-colour ribbon, which lifts with every key
   you strike as the ribbon vibrator does, over a gilt type-guide pointer. Or choose a quill pen standing at the
   insertion point with its nib on the line, breathing softly while the terminal waits.
-* **Paper and ink**: six papers, from smooth onionskin (the default) and felted cotton rag to parchment, each
-  with its own texture in the light as out of it, as narrow as a letter or as wide as the whole platen; freshly typed characters
-  land heavy and settle into print, and selected text dissolves like ink and re-forms instead of sitting in a
-  flat box.
+* **Paper and ink**: six papers, from smooth onionskin (the default) and felted cotton rag to parchment, as
+  narrow as a letter or as wide as the whole platen. Freshly typed characters land heavy and settle into print,
+  and selected text dissolves like ink and re-forms instead of sitting in a flat box.
 * **A paper clip for a scrollbar**: a Gem clip slid onto the edge of the sheet, it glides and leans as you scroll and
   can be dragged (or use a translucent bar, or the system one). Double-click a bail roller to roll the paper
   to the top or the bottom.
@@ -74,12 +78,13 @@ so the typewriter is drawn on the CPU there with Quality set to High). More in t
 * **Fonts**: Courier Prime and IBM Plex Mono bundled, Nerd Font presets, any installed family, and the
   Symbols Nerd Font bundled so Nerd Font icons appear with every face.
 * **The Press**: print a snippet, the selection, the screen or the last command with its output as a folio set
-  like a sonnet, previewed live as you choose: the paper, the wax seal (or none) with its colour, monogram,
-  emblem and satin ribbon laid one of six ways, a face for the text (an upright book face like a printed sonnet, or any installed
-  font), and your name to sign it. Keep it in the local **Archive**, rename it, save it as PNG or copy it.
+  like a sonnet, previewed live as you choose: the paper; the wax seal (or none) with its colour, monogram (TN
+  until you choose your own) and emblem; a satin ribbon laid one of six ways, in the wax's own silk or one of
+  seven colours; a face for the text (an upright book face like a printed sonnet, or any installed font); and
+  your name to sign it. Keep it in the local **Archive**, rename it, save it as PNG or copy it.
 * **Focus Mode** with a paper, dark or custom background, keeping the paper's effects or the lamp if you
-  want them; a Studio for every setting; and an **Auto quality** that keeps the terminal fast on computers
-  without a usable GPU.
+  want them; a Studio for every setting; a gilt sheet icon for new tabs; and an **Auto quality** that keeps the
+  terminal fast on computers without a usable GPU.
 
 ## Principles
 

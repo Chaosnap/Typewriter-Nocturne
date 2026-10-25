@@ -239,6 +239,10 @@ the machine never covers a character.
   environment. The rack has one tooth per terminal column; the head moves with escapement physics, sways as a
   pendulum on its rail, strikes towards the platen and lifts the ribbon. The model is rebuilt only when the layout,
   theme or paper changes (debounced while resizing) and re-rendered only while something moves.
+* **Cursor** (`lib/nocturne/components/block-cursor.tsx`, `quill-cursor.tsx`): xterm.js keeps its own cursor;
+  over the block Nocturne lays the red half of a two-colour ribbon (blended so the character under it stays
+  readable) that lifts with each keystroke, and a type-guide pointer; the quill is drawn over a transparent bar.
+  Both follow the cursor geometry published by the terminal bridge and never take the pointer.
 * **Impressions** (`lib/nocturne/typewriter/ink-layer.ts`): when a character the user typed has been echoed and
   drawn by xterm.js, a heavier, slightly spread copy of that glyph settles into normal print over 420 ms. Hidden
   input never appears in the buffer, so it can never appear here.
@@ -264,6 +268,7 @@ Integration points in upstream files (kept minimal, each marked `[nocturne]`):
 | `lib/containers/hyper.tsx` | wrap `Header` + `Terms` in the Nocturne stage |
 | `lib/components/term.tsx` | attach the read-only terminal bridge (cursor geometry, echoed glyphs, text for the Press on request) |
 | `lib/components/header.tsx` | default window title |
+| `lib/components/new-tab.tsx` | a sheet icon in place of the chevron; with one profile a click opens the tab at once |
 | `app/index.ts` | register the Archive IPC handlers |
 | `app/index.ts` | register the settings IPC handlers |
 | `app/config/windows.ts` | larger default window |
