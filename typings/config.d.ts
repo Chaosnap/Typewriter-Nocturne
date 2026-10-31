@@ -32,6 +32,8 @@ type rootConfigOptions = {
   /** choose either `'stable'` for receiving highly polished, or `'canary'` for less polished but more frequent updates */
   updateChannel: 'stable' | 'canary';
   useConpty?: boolean;
+  /** Use node-pty's bundled ConPTY on Windows (default true); false uses the OS version. */
+  useConptyDll?: boolean;
 };
 
 type profileConfigOptions = {
