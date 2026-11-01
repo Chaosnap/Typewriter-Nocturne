@@ -148,7 +148,12 @@ export default class Session extends EventEmitter {
       cols,
       rows,
       cwd,
-      env: getDecoratedEnv(baseEnv)
+      env: getDecoratedEnv(baseEnv),
+      // Windows 10's inbox ConPTY consumes mouse tracking sequences before xterm
+      // can see them. Use node-pty's bundled console host for VT passthrough.
+      ...(process.platform === 'win32' && {
+        useConptyDll: config.getConfig().useConptyDll ?? true
+      })
     };
 
     // if config do not set the useConpty, it will be judged by the node-pty

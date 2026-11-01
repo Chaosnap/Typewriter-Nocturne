@@ -136,6 +136,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         run: bin/ci/run-step.sh "Compile" pnpm run build
 
+      - name: Windows PTY mouse and keyboard regression
+        if: runner.os == 'Windows'
+        run: bin/ci/run-step.sh "Windows PTY" pnpm run test:windows-pty
+
       - name: Keep Spotlight away from the disk images (macOS)
         if: runner.os == 'macOS'
         # Spotlight indexing a freshly built DMG keeps it busy, and hdiutil then cannot eject it.
