@@ -1,5 +1,5 @@
 import {existsSync} from 'fs';
-import {isAbsolute, normalize, sep} from 'path';
+import {isAbsolute} from 'path';
 import {URL, fileURLToPath} from 'url';
 
 import {app, BrowserWindow, shell, Menu} from 'electron';
@@ -21,6 +21,7 @@ import {decorateSessionOptions, decorateSessionClass} from '../plugins';
 import createRPC from '../rpc';
 import Session from '../session';
 import updater from '../updater';
+import {isDirectory, launchDirectory} from '../utils/launch-directory';
 import {setRendererType, unsetRendererType} from '../utils/renderer-utils';
 import toElectronBackgroundColor from '../utils/to-electron-background-color';
 
@@ -145,19 +146,20 @@ export function newWindow(
 
     const profileCfg = app.plugins.getDecoratedConfig(profile);
 
-    // set working directory
-    let argPath = process.argv[1];
-    if (argPath && process.platform === 'win32') {
-      if (/[a-zA-Z]:"/.test(argPath)) {
-        argPath = argPath.replace('"', sep);
-      }
-      argPath = normalize(argPath + sep);
-    }
+    // set working directory: the folder the app was opened in (Explorer's "Open TypeNoc here", the
+    // CLI), else the configured `workingDirectory`, else the home folder. [nocturne] Both are used
+    // only if they are existing folders.
+    const launched = launchDirectory(process.argv, {
+      platform: process.platform,
+      defaultApp: Boolean(process.defaultApp),
+      isDirectory
+    });
+    const configured = profileCfg.workingDirectory;
     let workingDirectory = homeDirectory;
-    if (argPath && isAbsolute(argPath)) {
-      workingDirectory = argPath;
-    } else if (profileCfg.workingDirectory && isAbsolute(profileCfg.workingDirectory)) {
-      workingDirectory = profileCfg.workingDirectory;
+    if (launched) {
+      workingDirectory = launched;
+    } else if (configured && isAbsolute(configured) && isDirectory(configured)) {
+      workingDirectory = configured;
     }
 
     // remove the rows and cols, the wrong value of them will break layout when init create

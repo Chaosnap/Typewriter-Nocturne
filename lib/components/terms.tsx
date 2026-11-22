@@ -62,8 +62,21 @@ export default class Terms extends React.Component<React.PropsWithChildren<Terms
   componentDidUpdate(prevProps: TermsProps) {
     for (const uid in prevProps.sessions) {
       if (!this.props.sessions[uid]) {
-        this.terms[uid].term.dispose();
+        // [nocturne] Dispose of a closed session's terminal outside React's commit phase. Its Term
+        // has already unmounted and detached the xterm element, and xterm's dispose() can throw
+        // then; an exception here would reach the error boundary that decorate() puts round
+        // Terms, which remounts the whole tree and leaves every other terminal blank.
+        const term = this.terms[uid];
         delete this.terms[uid];
+        if (term) {
+          setTimeout(() => {
+            try {
+              term.term.dispose();
+            } catch (error) {
+              console.warn('Could not dispose of a closed terminal:', error);
+            }
+          }, 0);
+        }
       }
     }
   }

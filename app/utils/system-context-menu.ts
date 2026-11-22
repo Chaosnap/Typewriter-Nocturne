@@ -9,7 +9,7 @@ const regKeys = [
 ];
 const regParts = [
   {key: 'command', name: '', value: `${appPath} "%V"`},
-  {name: '', value: 'Open in &Typewriter Nocturne'},
+  {name: '', value: 'Open TypeNoc &here'},
   {name: 'Icon', value: `${appPath}`}
 ];
 

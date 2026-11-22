@@ -10,9 +10,6 @@
     "email": "Chaosnap@users.noreply.github.com"
   },
   "repository": "Chaosnap/Typewriter-Nocturne",
-  "scripts": {
-    "postinstall": "npx patch-package"
-  },
   "dependencies": {
     "@babel/parser": "7.24.4",
     "@electron/remote": "2.1.2",
