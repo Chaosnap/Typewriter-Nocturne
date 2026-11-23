@@ -42,6 +42,22 @@ Add these repository secrets; the build picks them up automatically and otherwis
 | `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` | notarization |
 | `WIN_CERT_P12_BASE64`, `WIN_CERT_P12_PASSWORD` | Windows Authenticode certificate |
 
+## "Open TypeNoc here" in File Explorer (Windows)
+
+The installer adds **Open TypeNoc here** to the context menu of folders, folder backgrounds and drives;
+it opens a window whose shell starts in that folder. *Tools → Add/Remove “Open TypeNoc here”* does the
+same later. The folder can also be given on the command line: `"Typewriter Nocturne.exe" --cwd=D:\poems`.
+
+On Windows 11 these entries appear under *Show more options*. The top level of the new menu only shows
+packaged handlers, so the app also ships one (`build/win/context-menu/`): a small `IExplorerCommand`
+DLL and a sparse package that gives it the identity Windows asks for.
+
+- When the build is signed (`WIN_CERT_P12_BASE64` and `WIN_CERT_P12_PASSWORD` above), CI signs the
+  package with the same certificate and the installer registers it: the entry is at the top level for
+  every user.
+- Without a certificate, Windows only accepts the package in Developer Mode (*Settings → System → For
+  developers*); *Tools → Add “Open TypeNoc here”* then registers it in place.
+
 ## Configuration
 
 Settings live in `~/.config/TypewriterNocturne/` (Windows: `%APPDATA%\Typewriter Nocturne\`) and never touch

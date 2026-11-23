@@ -1,0 +1,4 @@
+LIBRARY TypeNocContextMenu
+EXPORTS
+  DllGetClassObject PRIVATE
+  DllCanUnloadNow PRIVATE

@@ -41,7 +41,13 @@
       ]
     },
     "artifactName": "Typewriter-Nocturne-${version}-win-${arch}-setup.${ext}",
-    "rfc3161TimeStampServer": "http://timestamp.comodoca.com"
+    "rfc3161TimeStampServer": "http://timestamp.comodoca.com",
+    "extraResources": [
+      {
+        "from": "./dist/context-menu/",
+        "to": "./context-menu/"
+      }
+    ]
   },
   "nsis": {
     "include": "build/win/installer.nsh",

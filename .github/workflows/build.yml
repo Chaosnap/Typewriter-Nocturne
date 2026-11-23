@@ -140,6 +140,14 @@ jobs:
         if: runner.os == 'Windows'
         run: bin/ci/run-step.sh "Windows PTY" pnpm run test:windows-pty
 
+      - name: Windows 11 context menu handler (Open TypeNoc here)
+        if: runner.os == 'Windows'
+        env:
+          # The installer's code-signing certificate also signs the context menu package, when set.
+          WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_P12_PASSWORD }}
+        run: bin/ci/run-step.sh "Context menu" pwsh -NoProfile -File bin/ci/build-context-menu.ps1
+
       - name: Keep Spotlight away from the disk images (macOS)
         if: runner.os == 'macOS'
         # Spotlight indexing a freshly built DMG keeps it busy, and hdiutil then cannot eject it.
@@ -175,6 +183,19 @@ jobs:
             fi
           done
           exit 1
+
+      - name: Register the context menu package in Developer Mode (Windows, diagnostic)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          # Registers the packaged app's sparse package in place, as Tools > Add "Open TypeNoc here"
+          # does on a machine in Developer Mode, then removes it again.
+          reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock /v AllowDevelopmentWithoutDevLicense /t REG_DWORD /d 1 /f
+          $app = Resolve-Path dist/win-unpacked
+          Add-AppxPackage -Register "$app\resources\context-menu\AppxManifest.xml" -ExternalLocation $app
+          Get-AppxPackage TypewriterNocturne.ContextMenu | Format-List Name, Version, InstallLocation, Status
+          Get-AppxPackage TypewriterNocturne.ContextMenu | Remove-AppxPackage
 
       - name: Collect installers, checksums and build info
         run: bin/ci/run-step.sh "Collect artifacts" bin/ci/collect-artifacts.sh "${{ matrix.slug }}" "${{ steps.version.outputs.version }}"

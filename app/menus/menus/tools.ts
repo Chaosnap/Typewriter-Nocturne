@@ -26,13 +26,13 @@ const toolsMenu = (
       ...(process.platform === 'win32'
         ? <MenuItemConstructorOptions[]>[
             {
-              label: 'Add Typewriter Nocturne to system context menu',
+              label: 'Add “Open TypeNoc here” to File Explorer',
               click() {
                 execCommand('systemContextMenu:add');
               }
             },
             {
-              label: 'Remove Typewriter Nocturne from system context menu',
+              label: 'Remove “Open TypeNoc here” from File Explorer',
               click() {
                 execCommand('systemContextMenu:remove');
               }

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  [nocturne] Sparse package for the Windows 11 context menu entry "Open TypeNoc here".
+  It gives OpenHere.cpp's IExplorerCommand handler the package identity that Windows 11 needs to
+  show it at the top level of File Explorer's menu. Its external location is the app's install
+  folder, so Executable and the COM server's Path are relative to that folder. __VERSION__ and
+  __PUBLISHER__ are filled in by bin/ci/build-context-menu.ps1; the publisher must match the
+  subject of the certificate the package is signed with.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 desktop4 desktop5 com rescap">
+  <Identity Name="TypewriterNocturne.ContextMenu" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="neutral" />
+  <Properties>
+    <DisplayName>Typewriter Nocturne</DisplayName>
+    <PublisherDisplayName>Typewriter Nocturne contributors</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+  <Applications>
+    <Application Id="TypewriterNocturne" Executable="Typewriter Nocturne.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements
+        AppListEntry="none"
+        DisplayName="Typewriter Nocturne"
+        Description="Open TypeNoc here"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <desktop5:ItemType Type="Directory">
+              <desktop5:Verb Id="OpenTypeNocHere" Clsid="12531877-688C-4311-BF1C-E9FA8A122A48" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory\Background">
+              <desktop5:Verb Id="OpenTypeNocHere" Clsid="12531877-688C-4311-BF1C-E9FA8A122A48" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Drive">
+              <desktop5:Verb Id="OpenTypeNocHere" Clsid="12531877-688C-4311-BF1C-E9FA8A122A48" />
+            </desktop5:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="Open TypeNoc here">
+              <com:Class Id="12531877-688C-4311-BF1C-E9FA8A122A48" Path="resources\context-menu\TypeNocContextMenu.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>
