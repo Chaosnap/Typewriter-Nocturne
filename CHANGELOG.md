@@ -4,6 +4,27 @@ Every version is built, tested and packaged by GitHub Actions; installers and SH
 [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) page. The installers are not code-signed
 yet: see [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md).
 
+## 1.2.0
+
+### Windows
+
+- **Open TypeNoc here**: the File Explorer context menu of folders, folder backgrounds and drives opens a window
+  whose shell starts in that folder ([#9](https://github.com/Chaosnap/Typewriter-Nocturne/issues/9)). On
+  Windows 11 the entry can stand at the top level of the new menu: the app ships a packaged `IExplorerCommand`
+  handler with a sparse package, registered by the installer when the build is signed, or from *Tools → Add
+  “Open TypeNoc here”* in Developer Mode. Otherwise it is under *Show more options*.
+- **Mouse in full-screen programs**: Vim, htop, Midnight Commander and other TUI programs receive mouse clicks
+  and scrolling again, through node-pty's bundled ConPTY (`useConptyDll`, on by default). Thanks to
+  @fishOfOUC ([#7](https://github.com/Chaosnap/Typewriter-Nocturne/pull/7)).
+
+### Everywhere
+
+- **The starting folder**: `--cwd=<folder>` (or a folder as the first argument) opens the app there. A
+  `workingDirectory` in the configuration is used only if the folder exists; otherwise the shell starts in the
+  home folder.
+- **Closing a tab no longer blanks the other tabs**: the closed terminal was disposed of while React was
+  updating the page; when that failed, every terminal was rebuilt empty. It is now disposed of afterwards.
+
 ## 1.0.0
 
 The first stable version. It brings together everything since `0.1.0-alpha.2`: `0.1.0-alpha.3` was tagged but

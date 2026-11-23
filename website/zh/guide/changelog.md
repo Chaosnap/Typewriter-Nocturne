@@ -2,6 +2,18 @@
 
 每个版本都由 GitHub Actions 构建、测试和打包；安装包和 SHA-256 校验值在 [Releases](https://github.com/Chaosnap/Typewriter-Nocturne/releases) 页面。安装包目前还没有代码签名，请参阅 [docs/INSTALL.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/docs/INSTALL.md)。英文原文见 [CHANGELOG.md](https://github.com/Chaosnap/Typewriter-Nocturne/blob/main/CHANGELOG.md)。
 
+## 1.2.0
+
+### Windows
+
+- **Open TypeNoc here**：在文件资源管理器里右键文件夹、文件夹空白处或驱动器，打开一个 Shell 就在该文件夹的窗口（[#9](https://github.com/Chaosnap/Typewriter-Nocturne/issues/9)）。在 Windows 11 上，这一项可以出现在新右键菜单的第一级：应用附带了打包的 `IExplorerCommand` 处理程序和稀疏包（Sparse Package），构建签名后由安装程序注册；未签名时可在开发者模式下通过 *Tools → Add “Open TypeNoc here”* 注册。否则它在「显示更多选项」里。
+- **全屏程序里的鼠标**：Vim、htop、Midnight Commander 等 TUI 程序重新能收到鼠标点击和滚动，改用 node-pty 自带的 ConPTY（`useConptyDll`，默认开启）。感谢 @fishOfOUC（[#7](https://github.com/Chaosnap/Typewriter-Nocturne/pull/7)）。
+
+### 所有系统
+
+- **启动目录**：`--cwd=<文件夹>`（或第一个参数是文件夹）会在该文件夹打开。配置里的 `workingDirectory` 只有在文件夹存在时才使用，否则 Shell 从用户主目录启动。
+- **关闭一个标签页不再清空其他标签页**：以前关闭的终端是在 React 更新页面的过程中释放的，一旦出错，所有终端都会被重建为空白。现在改为在更新之后再释放。
+
 ## 1.0.0
 
 第一个正式版本，汇集了 `0.1.0-alpha.2` 之后的全部内容：`0.1.0-alpha.3` 打了标签但没有发布（构建安装包时有一个端到端测试失败），原本准备作为 `0.1.0-alpha.4` 的内容就以这个版本发布。
