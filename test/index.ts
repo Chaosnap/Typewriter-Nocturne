@@ -150,6 +150,17 @@ test.serial('dev tools are closed', async (t) => {
   t.false(await app.evaluate(({webContents}) => !!webContents.getFocusedWebContents()?.isDevToolsOpened()));
 });
 
+test.serial('the first shell starts in the home folder', async (t) => {
+  // The answer is assembled by the shell, so the typed command itself never matches the pattern.
+  if (isWindows) {
+    await run("Write-Output ('start-in-' + $(if ((Get-Location).Path -eq $HOME) {'home'} else {'elsewhere:' + $PWD}))");
+  } else {
+    await run('echo "start-in-$([ "$PWD" = "$HOME" ] && echo home || echo "elsewhere:$PWD")"');
+  }
+  const text = await waitForText(/start-in-(home|elsewhere)/);
+  t.true(text.includes('start-in-home'), text.slice(text.indexOf('start-in-'), text.indexOf('start-in-') + 80));
+});
+
 test.serial('a real shell echoes command output through the PTY', async (t) => {
   await run(isWindows ? 'Write-Output ("nocturne-" + 6*7)' : 'echo "nocturne-$((6*7))"');
   const text = await waitForText('nocturne-42');
